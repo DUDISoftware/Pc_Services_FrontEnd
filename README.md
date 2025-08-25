@@ -54,54 +54,57 @@ PC_Services_Frontend/
 │   └── tsconfig.json
 └── README.md
 ```
-🛠️ Tech Stack
 
-Framework: Next.js 14+ (App Router)
+---
 
-Language: TypeScript
+## 🛠️ Tech Stack
 
-UI: React, CSS Modules / Styled Components
+- **Framework:** [Next.js 14+ (App Router)](https://nextjs.org/docs/app)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **UI:** [React](https://react.dev/), CSS Modules / Styled Components
+- **Linting:** [ESLint](https://eslint.org/)
+- **Build tool:** [PostCSS](https://postcss.org/)
 
-Linting: ESLint
+---
 
-Build tool: PostCSS
+## ⚙️ Installation & Run
 
-⚙️ Installation & Run
-
-Clone repo:
-
+### 🔽 Clone repository
+```bash
 git clone https://github.com/your-username/PC_Services_Frontend.git
 cd PC_Services_Frontend/frontend
+```
 
-
-Cài dependencies:
-
+### 📥 Install dependencies
+```bash
 npm install
+```
 
-
-Chạy development server:
-
+### 🚀 Run development server
+```bash
 npm run dev
+```
 
+Mở trình duyệt và truy cập tại: 👉 http://localhost:3000
 
-Mở trình duyệt tại: http://localhost:3000
+---
 
-📦 Available Scripts
+## 📦 Available Scripts
 
-npm run dev → Chạy dev server
+| Script          | Mục đích                                |
+|-----------------|-----------------------------------------|
+| `npm run dev`   | 🚀 Chạy development server               |
+| `npm run build` | 🏗️ Build ứng dụng cho production         |
+| `npm run start` | 🌐 Chạy server ở chế độ production       |
+| `npm run lint`  | ✅ Kiểm tra code với ESLint              |
 
-npm run build → Build production
+---
 
-npm run start → Chạy production server
+## 📏 Code Convention
 
-npm run lint → Kiểm tra code với ESLint
-
-📏 Code Convention
-
-Sử dụng TypeScript cho toàn bộ dự án
-
-Tuân thủ ESLint rules
-
-Component: PascalCase
-
-Utils & hooks: camelCase
+- 📘 **Ngôn ngữ**: Toàn bộ dự án sử dụng TypeScript  
+- 🧹 **Linting**: Tuân thủ ESLint rules  
+- 🏗️ **Đặt tên**:  
+  - Component → PascalCase  
+  - Utils & Hooks → camelCase  
+  - Styles → đặt cùng component hoặc trong thư mục `styles/`  
