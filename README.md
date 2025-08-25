@@ -91,20 +91,76 @@ Mở trình duyệt và truy cập tại: 👉 http://localhost:3000
 
 ## 📦 Available Scripts
 
-| Script          | Mục đích                                |
-|-----------------|-----------------------------------------|
-| `npm run dev`   | 🚀 Chạy development server               |
-| `npm run build` | 🏗️ Build ứng dụng cho production         |
-| `npm run start` | 🌐 Chạy server ở chế độ production       |
-| `npm run lint`  | ✅ Kiểm tra code với ESLint              |
+| Script         | Mục đích                           |
+|----------------|-----------------------------------|
+| `npm run dev`  | 🚀 Chạy development server         |
+| `npm run build`| 🏗️ Build ứng dụng cho production  |
+| `npm run start`| 🌐 Chạy server ở chế độ production |
+| `npm run lint` | ✅ Kiểm tra code với ESLint        |
 
 ---
 
 ## 📏 Code Convention
 
-- 📘 **Ngôn ngữ**: Toàn bộ dự án sử dụng TypeScript  
-- 🧹 **Linting**: Tuân thủ ESLint rules  
-- 🏗️ **Đặt tên**:  
-  - Component → PascalCase  
-  - Utils & Hooks → camelCase  
+- 📘 **Ngôn ngữ:** Toàn bộ dự án sử dụng TypeScript  
+- 🧹 **Linting:** Tuân thủ ESLint rules  
+- 🏗️ **Đặt tên:**  
+  - Component → `PascalCase`  
+  - Utils & Hooks → `camelCase`  
   - Styles → đặt cùng component hoặc trong thư mục `styles/`  
+
+---
+
+## 🚀 Deployment
+
+### 🔹 Vercel (khuyến nghị)
+1. Push toàn bộ code lên GitHub/GitLab.  
+2. Truy cập [Vercel](https://vercel.com/) → Import repository.  
+3. Vercel sẽ tự động nhận diện dự án **Next.js** và deploy.  
+4. Domain sẽ có dạng:  
+   ```
+   https://pc-services-frontend.vercel.app
+   ```
+
+### 🔹 Docker
+Nếu muốn chạy bằng Docker:
+
+**Dockerfile**
+```dockerfile
+# Base image
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Build Next.js app
+RUN npm run build
+
+# Expose port
+EXPOSE 3000
+
+# Run app
+CMD ["npm", "start"]
+```
+
+**Build & Run**
+```bash
+docker build -t pc-services-frontend .
+docker run -p 3000:3000 pc-services-frontend
+```
+
+Sau đó mở 👉 http://localhost:3000
+
+---
+
+## 📄 License
+MIT © 2025 - PC Services
