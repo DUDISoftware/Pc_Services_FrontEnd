@@ -16,7 +16,7 @@ const services = [
   { title: "Thay linh kiện", img: Service },
 ];
 
-export default function FeaturedServices() {
+export default function FeaturedFixServices() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-4 border-b border-gray-200">

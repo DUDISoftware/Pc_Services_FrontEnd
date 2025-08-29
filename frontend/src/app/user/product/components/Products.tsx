@@ -109,7 +109,9 @@ export default function Products({ category }: ProductsProps) {
           {category === "Tất cả" ? "Tất cả sản phẩm" : category}
         </h2>
         <Link
-          href={`/user/product/allproduct?category=${encodeURIComponent(category)}`}
+          href={`/user/product/allproduct?category=${encodeURIComponent(
+            category
+          )}`}
           className="text-sm text-blue-500 hover:underline flex items-center"
         >
           Xem thêm <ChevronRightCircle className="w-4 h-4 ml-1" />
@@ -141,9 +143,11 @@ export default function Products({ category }: ProductsProps) {
             </div>
 
             {/* Title */}
-            <h3 className="text-xs sm:text-sm font-medium line-clamp-2 flex-1 mb-2">
-              {item.title}
-            </h3>
+            <Link href={`/user/product/${idx + 1}`}>
+              <h3 className="text-xs sm:text-sm font-medium line-clamp-2 flex-1 mb-2 hover:text-blue-600">
+                {item.title}
+              </h3>
+            </Link>
 
             {/* Price + Rating */}
             <div className="flex items-center justify-between mt-auto">
