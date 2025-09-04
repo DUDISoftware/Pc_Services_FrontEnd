@@ -1,3 +1,4 @@
+"use client";
 import OrderBreadcrumb from "./components/OrderBreadcrumb";
 import OrderForm from "./components/OrderForm";
 import OrderSummary from "./components/OrderSummary";
