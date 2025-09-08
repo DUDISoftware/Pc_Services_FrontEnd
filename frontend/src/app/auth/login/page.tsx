@@ -2,74 +2,87 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import { authService } from "../../../services/auth.service";
+import { useAuth } from "../../../hooks/useAuth";
+import { isAxiosError } from "axios";
+
+// Helper function to check if an error has a message property
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return typeof error === "object" && error !== null && "message" in error;
+}
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const { login } = useAuth();
+  const router = useRouter();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     try {
-      const res = await axios.post("/api/auth/login", { email, password });
+      const data = await authService.login(username, password);
 
-      if (res.data.token) {
-        document.cookie = `token=${res.data.token}; path=/`;
+      if (!data?.accessToken || !data?.user) {
+        setError("Phản hồi từ server không hợp lệ");
+        return;
+      }
 
-        // 🚀 Tạm thời cho tất cả user vào admin dashboard
+      login(data.accessToken, data.user);
+
+      // ✅ Redirect theo role
+      if (data.user.role === "admin" || data.user.role === "staff") {
         router.push("/admin/dashboard");
-
-        /* ✅ Phân quyền thật sau này bật lại
-        if (res.data.role === "admin") {
-          router.push("/admin/dashboard");
-        } else {
-          router.push("/user/home");
-        }
-        */
+      } else {
+        router.push("/");
       }
     } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response) {
-        setError(err.response.data?.message || "Login failed");
+      console.error("Login failed", err);
+
+      // ✅ Nếu backend trả về message cụ thể
+      if (isAxiosError(err) && err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (isErrorWithMessage(err)) {
+        setError(err.message);
       } else {
-        setError("An unexpected error occurred");
+        setError("Đăng nhập thất bại, vui lòng thử lại.");
       }
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+    <div className="flex items-center justify-center h-screen bg-gray-100">
       <form
-        onSubmit={handleLogin}
-        className="bg-white p-6 rounded-lg shadow-md w-80"
+        onSubmit={handleSubmit}
+        className="p-6 bg-white rounded shadow-md w-80"
       >
-        <h2 className="text-xl font-bold mb-4">Login</h2>
-        {error && <p className="text-red-500 mb-2">{error}</p>}
+        <h2 className="text-xl font-bold mb-4 text-center">Login</h2>
+
+        {error && (
+          <p className="mb-2 text-sm text-red-500 text-center">{error}</p>
+        )}
 
         <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full mb-3 p-2 border rounded"
-          required
+          type="text"
+          placeholder="Username"
+          className="w-full p-2 border rounded mb-2 focus:outline-none focus:ring focus:border-blue-300"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
         />
 
         <input
           type="password"
           placeholder="Password"
+          className="w-full p-2 border rounded mb-4 focus:outline-none focus:ring focus:border-blue-300"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full mb-3 p-2 border rounded"
-          required
         />
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
         >
           Login
         </button>

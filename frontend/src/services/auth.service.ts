@@ -1,13 +1,13 @@
-// import api from "@/lib/api";
-// import { LoginResponse, LoginPayload } from "@/types/auth";
+// src/services/auth.service.ts
+import { api } from "../lib/api";
 
-// export const authService = {
-//   login: (data: LoginPayload) =>
-//     api.post<LoginResponse>("/auth/login", data),
-
-//   register: (data: any) =>
-//     api.post("/auth/register", data),
-
-//   getProfile: () =>
-//     api.get("/auth/profile"),
-// };
+export const authService = {
+  login: async (username: string, password: string) => {
+    const res = await api.post("/auth/login", { username, password });
+    return res.data;
+  },
+  logout: () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  },
+};
