@@ -9,6 +9,9 @@ export default function AdminSidebar() {
         <Link href="/admin/products" className="block px-3 py-2 rounded hover:bg-gray-100">
           📦 Sản phẩm
         </Link>
+         <Link href="/admin/category" className="block px-3 py-2 rounded hover:bg-gray-100">
+          📦 Danh mục sản phẩm
+        </Link>
         <Link href="/admin/services" className="block px-3 py-2 rounded hover:bg-gray-100">
           🛠️ Sửa chữa
         </Link>

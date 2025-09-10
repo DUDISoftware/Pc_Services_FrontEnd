@@ -1,16 +1,155 @@
 "use client";
 
-import { Edit, Trash, Eye } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Edit, Trash, Eye, X } from "lucide-react";
 import TableHeader from "../TableHeader";
 import Button from "@/components/common/Button";
+import { productService } from "@/services/product.service";
+import { categoryService } from "@/services/category.service";
+import { Product, UploadedImage } from "@/types/Product";
 
-const products = [
-  { id: 1, name: "Màn hình LG", desc: "Là một màn hình c", price: 39000000, category: "Màn hình", qty: 50, status: "còn hàng" },
-  { id: 2, name: "Màn hình LG", desc: "Là một màn hình c", price: 39000000, category: "Màn hình", qty: 50, status: "ngừng bán" },
-  { id: 3, name: "Màn hình LG", desc: "Là một màn hình c", price: 39000000, category: "Màn hình", qty: 50, status: "hết hàng" },
-];
+type Category = {
+  _id: string;
+  name: string;
+};
 
 export default function ProductTable() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // State cho form modal
+  const [showForm, setShowForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState<{
+    name?: string;
+    description?: string;
+    price?: number;
+    quantity?: number;
+    status?: string;
+    brand?: string;
+    category_id?: string;
+    images?: (File | UploadedImage)[];
+  }>({ images: [] });
+
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const data = await productService.getAll();
+      setProducts(data.products);
+    } catch (err) {
+      console.error("Error fetching products", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const data = await categoryService.getAll();
+      setCategories(data.categories);
+    } catch (err) {
+      console.error("Error fetching categories", err);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Bạn có chắc muốn xóa sản phẩm này?")) {
+      try {
+        await productService.delete(id);
+        setProducts((prev) => prev.filter((p) => p._id !== id));
+      } catch (err) {
+        console.error("Delete failed", err);
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.category_id) {
+      alert("Vui lòng chọn danh mục!");
+      return;
+    }
+
+    const payload = {
+      name: formData.name ?? "",
+      description: formData.description ?? "",
+      price: formData.price ?? 0,
+      quantity: formData.quantity ?? 0,
+      status: formData.status ?? "available",
+      brand: formData.brand ?? "",
+      category_id: formData.category_id,
+      images: formData.images ?? [],
+    };
+
+    try {
+      if (editingProduct) {
+        const updated = await productService.update(editingProduct._id, payload);
+        setProducts((prev) =>
+          prev.map((p) => (p._id === updated._id ? updated : p))
+        );
+      } else {
+        const created = await productService.create(payload);
+        setProducts((prev) => [...prev, created]);
+      }
+      setShowForm(false);
+      setEditingProduct(null);
+      setFormData({ images: [] });
+    } catch (err) {
+      console.error("Save failed", err);
+    }
+  };
+
+  const openEditForm = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      quantity: product.quantity,
+      status: product.status,
+      brand: product.brand,
+      category_id:
+        typeof product.category === "object"
+          ? product.category._id
+          : product.category,
+      images: product.images, // giữ ảnh cũ
+    });
+    setShowForm(true);
+  };
+
+  const openAddForm = () => {
+    setEditingProduct(null);
+    setFormData({ images: [] });
+    setShowForm(true);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const newFiles = Array.from(e.target.files);
+
+    setFormData((prev) => {
+      const current = prev.images || [];
+      if (current.length + newFiles.length > 3) {
+        alert("Chỉ được phép upload tối đa 3 ảnh!");
+        return { ...prev, images: current.slice(0, 3) };
+      }
+      return { ...prev, images: [...current, ...newFiles].slice(0, 3) };
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images?.filter((_, i) => i !== index),
+    }));
+  };
+
   return (
     <div className="bg-white shadow rounded p-4">
       {/* Header */}
@@ -20,73 +159,211 @@ export default function ProductTable() {
         actions={
           <>
             <Button variant="secondary">📤 Xuất file</Button>
-            <Button variant="primary">+ Thêm sản phẩm</Button>
+            <Button variant="primary" onClick={openAddForm}>
+              + Thêm sản phẩm
+            </Button>
           </>
         }
       />
 
-      {/* Search + Filter */}
-      <div className="flex justify-between mb-4">
-        <input
-          type="text"
-          placeholder="Tìm kiếm sản phẩm"
-          className="border rounded px-3 py-2 w-1/3"
-        />
-        <Button variant="secondary">Bộ lọc</Button>
-      </div>
-
       {/* Table */}
-      <table className="w-full text-left border-collapse">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="p-2"><input type="checkbox" /></th>
-            <th className="p-2">Sản phẩm</th>
-            <th className="p-2">Mô tả</th>
-            <th className="p-2">Giá</th>
-            <th className="p-2">Danh mục</th>
-            <th className="p-2">Số lượng</th>
-            <th className="p-2">Trạng thái</th>
-            <th className="p-2">Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((p) => (
-            <tr key={p.id} className="border-b hover:bg-gray-50">
-              <td className="p-2"><input type="checkbox" /></td>
-              <td className="p-2">{p.name}</td>
-              <td className="p-2">{p.desc}</td>
-              <td className="p-2">{p.price.toLocaleString()} đ</td>
-              <td className="p-2">{p.category}</td>
-              <td className="p-2">{p.qty}</td>
-              <td className="p-2">
-                <span
-                  className={`px-2 py-1 rounded text-sm ${
-                    p.status === "còn hàng"
-                      ? "bg-green-100 text-green-600"
-                      : p.status === "hết hàng"
-                      ? "bg-red-100 text-red-600"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {p.status}
-                </span>
-              </td>
-              <td className="p-2 flex gap-2">
-                <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
-                <Edit className="w-4 h-4 cursor-pointer text-yellow-600" />
-                <Trash className="w-4 h-4 cursor-pointer text-red-600" />
-              </td>
+      {loading ? (
+        <p>Đang tải...</p>
+      ) : (
+        <table className="w-full text-left border-collapse mt-4">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2">Hình ảnh</th>
+              <th className="p-2">Sản phẩm</th>
+              <th className="p-2">Mô tả</th>
+              <th className="p-2">Giá</th>
+              <th className="p-2">Danh mục</th>
+              <th className="p-2">Số lượng</th>
+              <th className="p-2">Trạng thái</th>
+              <th className="p-2">Hành động</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {products.map((p) => (
+              <tr key={p._id} className="border-b hover:bg-gray-50">
+                <td className="p-2">
+                  {p.images && p.images.length > 0 ? (
+                    <img
+                      src={p.images[0].url}
+                      alt={p.name}
+                      className="w-16 h-16 object-cover rounded"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
+                      No Img
+                    </div>
+                  )}
+                </td>
+                <td className="p-2">{p.name}</td>
+                <td className="p-2">{p.description}</td>
+                <td className="p-2">{p.price.toLocaleString()} đ</td>
+                <td className="p-2">
+                  {typeof p.category === "object"
+                    ? p.category.name
+                    : p.category}
+                </td>
+                <td className="p-2">{p.quantity}</td>
+                <td className="p-2">
+                  <span
+                    className={`px-2 py-1 rounded text-sm ${
+                      p.status === "available"
+                        ? "bg-green-100 text-green-600"
+                        : p.status === "out_of_stock"
+                        ? "bg-red-100 text-red-600"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {p.status === "available"
+                      ? "Còn hàng"
+                      : p.status === "out_of_stock"
+                      ? "Hết hàng"
+                      : "Ẩn"}
+                  </span>
+                </td>
+                <td className="p-2 flex gap-2">
+                  <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
+                  <Edit
+                    className="w-4 h-4 cursor-pointer text-yellow-600"
+                    onClick={() => openEditForm(p)}
+                  />
+                  <Trash
+                    className="w-4 h-4 cursor-pointer text-red-600"
+                    onClick={() => handleDelete(p._id)}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
-      {/* Pagination */}
-      <div className="flex justify-end gap-2 mt-4">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <Button key={n} variant="secondary">{n}</Button>
-        ))}
-      </div>
+      {/* Modal form */}
+      {showForm && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-white p-6 rounded shadow w-2/3 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-semibold mb-4">
+              {editingProduct ? "Sửa sản phẩm" : "Thêm sản phẩm"}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <input
+                type="text"
+                placeholder="Tên sản phẩm"
+                value={formData.name || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="w-full border px-3 py-2 rounded"
+              />
+              <textarea
+                placeholder="Mô tả"
+                value={formData.description || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                className="w-full border px-3 py-2 rounded"
+              />
+              <input
+                type="number"
+                placeholder="Giá"
+                value={formData.price || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, price: Number(e.target.value) })
+                }
+                className="w-full border px-3 py-2 rounded"
+              />
+              <input
+                type="number"
+                placeholder="Số lượng"
+                value={formData.quantity || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, quantity: Number(e.target.value) })
+                }
+                className="w-full border px-3 py-2 rounded"
+              />
+
+              {/* Dropdown category */}
+              <select
+                value={formData.category_id || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, category_id: e.target.value })
+                }
+                className="w-full border px-3 py-2 rounded"
+              >
+                <option value="">-- Chọn danh mục --</option>
+                {categories.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="text"
+                placeholder="Thương hiệu"
+                value={formData.brand || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, brand: e.target.value })
+                }
+                className="w-full border px-3 py-2 rounded"
+              />
+
+              {/* Upload ảnh */}
+              <div>
+                <label className="block mb-1 font-medium">Hình ảnh (tối đa 3)</label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="w-full"
+                  disabled={(formData.images?.length || 0) >= 3}
+                />
+                {/* Preview */}
+                <div className="flex flex-wrap gap-3 mt-3">
+                  {formData.images &&
+                    formData.images.map((img, index) => {
+                      const url =
+                        img instanceof File ? URL.createObjectURL(img) : img.url;
+                      return (
+                        <div
+                          key={index}
+                          className="relative w-24 h-24 border rounded overflow-hidden"
+                        >
+                          <img
+                            src={url}
+                            alt="preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setShowForm(false)}>
+                  Hủy
+                </Button>
+                <Button variant="primary" type="submit">
+                  {editingProduct ? "Cập nhật" : "Thêm"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

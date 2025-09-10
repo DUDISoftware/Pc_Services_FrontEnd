@@ -1,5 +1,5 @@
 // src/services/auth.service.ts
-import { api } from "../lib/api";
+import  api  from "../lib/api";
 
 export const authService = {
   login: async (username: string, password: string) => {

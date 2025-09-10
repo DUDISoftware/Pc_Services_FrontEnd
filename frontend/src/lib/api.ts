@@ -2,12 +2,11 @@ import axios from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-export const api = axios.create({
+const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
 });
 
-// interceptor để tự động gắn token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -15,3 +14,5 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+export default api; // 👈 thêm dòng này
