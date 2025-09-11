@@ -8,7 +8,6 @@ export type Product = {
   quantity: number;
   status: "available" | "out_of_stock" | "hidden";
   brand?: string;
-
   category: {
     _id: string;
     name: string;

@@ -12,6 +12,14 @@ export const productService = {
     const res = await api.get(`/products/${id}`);
     return mapProduct(res.data.product);
   },
+  getFeatured: async (): Promise<Product[]> => {
+    const res = await api.get("/products/featured");
+    return res.data.products.map((p: ProductApi) => mapProduct(p));
+  },
+  getRelated: async (id: string, limit = 4): Promise<Product[]> => {
+    const res = await api.get(`/products/${id}/related?limit=${limit}`);
+    return res.data.products.map((p: ProductApi) => mapProduct(p));
+  },
 
   create: async (data: Partial<ProductApi>): Promise<Product> => {
     const formData = new FormData();

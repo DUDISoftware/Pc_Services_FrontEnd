@@ -1,74 +1,109 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import ProductHeader from "../components/ProductHeader";
+import { useEffect, useState } from "react";
+import { productService } from "@/services/product.service";
+import { Product } from "@/types/Product";
 
+import ProductHeader from "../components/ProductHeader";
 import ProductBreadcrumb from "./components/ProductBreadcrumb";
 import ProductGallery from "./components/ProductGallery";
 import ProductInfo from "./components/ProductInfo";
 import ProductDescription from "./components/ProductDescription";
 import ProductSpecs from "./components/ProductSpecs";
 import ProductReviewSection from "./components/ProductReviewSection";
-
-import Product1 from "@/assets/image/product/product1.jpg";
-import Product2 from "@/assets/image/product/product2.jpg";
-import Product3 from "@/assets/image/product/product3.png";
-import Product4 from "@/assets/image/product/product4.png";
 import ProductSample from "./components/ProductSample";
 
-const products = [
-  {
-    id: "1",
-    title: "Màn Hình Gaming LG UltraGear 45GS95QE-B ...",
-    oldPrice: 39000000,
-    price: 31499999,
-    discount: "20%",
-    rating: 4.53,
-    reviews: 436,
-    img: Product1.src, // <-- Use .src for string URL
-    gallery: [Product1.src, Product2.src, Product3.src, Product4.src, Product1.src], // <-- Use .src for each
-    category: "Màn hình",
-    brand: "LG",
-    model: "24MR400-B",
-    size: "23.8 inch",
-    resolution: "Full HD (1920x1080)",
-    panel: "IPS",
-    ports: "D-Sub, HDMI, Headphone Out",
-    description: `Màn hình LG 24MR400-B có kích thước 23.8 inch...`,
-  },
-];
-
 export default function ProductDetailPage() {
-  const params = useParams();
-  const { id } = params;
-  const product = products.find((p) => p.id === id);
+  const { id } = useParams();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!product) {
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const data = await productService.getById(id as string);
+        setProduct(data);
+      } catch (err) {
+        console.error("Lỗi khi tải chi tiết sản phẩm:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) fetchProduct();
+  }, [id]);
+
+  if (loading) return <p className="text-center py-10">Đang tải...</p>;
+  if (!product)
     return (
       <div className="max-w-6xl mx-auto px-4 py-10">
         <p className="text-gray-500">Sản phẩm không tồn tại.</p>
       </div>
     );
-  }
+
+  const oldPrice = Math.round(product.price * 1.2);
 
   return (
     <>
-      <ProductHeader selectedCategory={product.category} onSelectCategory={() => {}} />
-      <ProductBreadcrumb category={product.category} />
+      <ProductHeader
+        selectedCategory={
+          typeof product.category === "object"
+            ? product.category.name
+            : (product.category as string)
+        }
+        onSelectCategory={() => {}}
+      />
+      <ProductBreadcrumb
+        category={
+          typeof product.category === "object"
+            ? product.category.name
+            : (product.category as string)
+        }
+      />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          <ProductGallery product={product} />
-          <ProductInfo product={product} />
+          <ProductGallery
+            product={{
+              img: product.images?.[0]?.url || "/images/placeholder.png",
+              title: product.name,
+              gallery: product.images?.map((i) => i.url) || [],
+            }}
+          />
+          <ProductInfo
+            product={{
+              id: product._id,
+              title: product.name,
+              rating: 4.5,
+              reviews: 120,
+              oldPrice,
+              price: product.price,
+              discount: `${Math.round(
+                ((oldPrice - product.price) / oldPrice) * 100
+              )}%`,
+            }}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-12">
-          <ProductDescription description={product.description} />
-          <ProductSpecs product={product} />
+          <ProductDescription
+            description={product.description || "Chưa có mô tả."}
+          />
+          <ProductSpecs
+            product={{
+              brand: product.brand || "Đang cập nhật",
+              model: "Đang cập nhật",
+              size: "Đang cập nhật",
+              resolution: "Đang cập nhật",
+              panel: "Đang cập nhật",
+              ports: "Đang cập nhật",
+            }}
+          />
         </div>
 
         <ProductReviewSection />
-        <ProductSample/>
+     <ProductSample productId={product._id} />
+
       </div>
     </>
   );
