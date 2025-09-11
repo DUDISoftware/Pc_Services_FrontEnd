@@ -14,7 +14,10 @@ export const serviceApi = {
     const res = await api.get(`/services/${id}`)
     return res.data.service
   },
-
+getFeatured: async () => {
+    const res = await api.get("/services?featured=true");
+    return res.data.services;
+  },
   // Tạo dịch vụ mới
   create: async (payload: Partial<Service>): Promise<Service> => {
     const res = await api.post("/services", payload)

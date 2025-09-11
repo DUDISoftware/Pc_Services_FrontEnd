@@ -51,7 +51,6 @@ export default function ServiceCard({ service }: { service: Service }) {
             {new Intl.NumberFormat("vi-VN").format(service.price)}₫
           </span>
         </div>
-
         <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
           <Star className="w-4 h-4 text-yellow-400 mr-1" />
           {service.rating.toFixed(1)}

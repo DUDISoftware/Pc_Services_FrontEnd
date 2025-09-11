@@ -1,36 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import Services from "@/assets/image/service/services.png";
+import { serviceApi } from "@/services/service.service";
+import { Service } from "@/types/Service";
+import DefaultServiceImage from "@/assets/image/service/services.png";
+
 import FeaturedFixServices from "./components/FeaturedFixServices";
 import ServiceRequestModal from "./components/ServiceRequestModal";
 
 export default function ServiceDetailPage({ params }: { params: { id: string } }) {
   const { id } = params;
+  const [service, setService] = useState<Service | null>(null);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
 
-  const service = {
-    id,
-    title: "Dịch Vụ Vệ Sinh Máy Tính Bàn (PC, Desktop) Chuyên Nghiệp",
-    price: 20999999,
-    oldPrice: 23000000,
-    description: "Dịch vụ vệ sinh chuyên nghiệp, đảm bảo hiệu suất tối đa cho PC.",
-    img: Services,
-  };
+  useEffect(() => {
+    const fetchService = async () => {
+      try {
+        const data = await serviceApi.getById(id);
+        setService(data);
+      } catch (err) {
+        console.error("Lỗi khi tải chi tiết dịch vụ:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchService();
+  }, [id]);
+
+  if (loading) return <p>Đang tải chi tiết dịch vụ...</p>;
+  if (!service) return <p>Không tìm thấy dịch vụ.</p>;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="relative w-full h-80">
-          <Image src={service.img} alt={service.title} fill className="object-contain" />
+          <Image
+            src={DefaultServiceImage}
+            alt={service.name}
+            fill
+            className="object-contain"
+          />
         </div>
 
         <div>
-          <h1 className="text-2xl font-bold mb-4">{service.title}</h1>
+          <h1 className="text-2xl font-bold mb-4">{service.name}</h1>
           <div className="flex gap-3 mb-6">
             <span className="text-gray-400 line-through">
-              {new Intl.NumberFormat("vi-VN").format(service.oldPrice)}₫
+              {new Intl.NumberFormat("vi-VN").format(service.price * 1.2)}₫
             </span>
             <span className="text-red-500 text-2xl font-semibold">
               {new Intl.NumberFormat("vi-VN").format(service.price)}₫
@@ -48,7 +66,6 @@ export default function ServiceDetailPage({ params }: { params: { id: string } }
 
       <FeaturedFixServices />
 
-      {/* Popup Modal */}
       <ServiceRequestModal isOpen={open} onClose={() => setOpen(false)} />
     </div>
   );
