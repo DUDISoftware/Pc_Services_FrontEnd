@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Image from "next/image";
 import { serviceApi } from "@/services/service.service";
 import { Service } from "@/types/Service";
@@ -9,8 +9,10 @@ import DefaultServiceImage from "@/assets/image/service/services.png";
 import FeaturedFixServices from "./components/FeaturedFixServices";
 import ServiceRequestModal from "./components/ServiceRequestModal";
 
-export default function ServiceDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  // ✅ unwrap params
+  const { id } = use(params);
+
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
