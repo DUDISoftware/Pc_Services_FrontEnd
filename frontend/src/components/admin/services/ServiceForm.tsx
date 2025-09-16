@@ -1,104 +1,158 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Service } from "@/types/Service"
+import { useState, useEffect } from "react";
+import { Service } from "@/types/Service";
+import { CategoryService } from "@/types/CategoryService";
 
-interface ServiceFormProps {
-  initialData?: Partial<Service>
-  onSubmit: (data: Partial<Service>) => void
-  onCancel: () => void
-}
+type Props = {
+  initialData?: Service;
+  categories: CategoryService[];
+  onSubmit: (data: Partial<Service> & { category: string }) => void;
+  onCancel: () => void;
+};
 
-export default function ServiceForm({ initialData, onSubmit, onCancel }: ServiceFormProps) {
-  const [form, setForm] = useState<Partial<Service>>({
+export default function ServiceForm({
+  initialData,
+  categories,
+  onSubmit,
+  onCancel,
+}: Props) {
+  const [form, setForm] = useState({
     name: "",
     description: "",
     price: 0,
-    type: "store",
+    type: "store" as "store" | "home", // ✅ ép kiểu
     estimated_time: "",
-    status: "active",
-  })
+    status: "active" as "active" | "inactive" | "hidden", // ✅ ép kiểu
+    category: "",
+  });
 
-useEffect(() => {
-  if (initialData) {
-    setForm({
-      name: initialData.name || "",
-      description: initialData.description || "",
-      price: initialData.price || 0,
-      type: initialData.type || "store",
-      estimated_time: initialData.estimated_time || "",
-      status: initialData.status || "active"
-    })
-  }
-}, [initialData])
+  useEffect(() => {
+    if (initialData) {
+      setForm({
+        name: initialData.name || "",
+        description: initialData.description || "",
+        price: initialData.price || 0,
+        type: (initialData.type as "store" | "home") || "store", // ✅
+        estimated_time: initialData.estimated_time || "",
+        status: (initialData.status as "active" | "inactive" | "hidden") || "active", // ✅
+        category:
+          typeof initialData.category === "string"
+            ? initialData.category
+            : initialData.category?._id || "",
+      });
+    }
+  }, [initialData]);
 
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
-  }
-
- const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault()
-  const payload = {
-    name: form.name,
-    description: form.description,
-    price: Number(form.price),
-    type: form.type,
-    estimated_time: form.estimated_time,
-    status: form.status
-  }
-  onSubmit(payload)
-}
-
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      ...form,
+      price: Number(form.price),
+      type: form.type as "store" | "home", // ✅ ép kiểu trước khi gửi
+      status: form.status as "active" | "inactive" | "hidden", // ✅
+      category: form.category,
+    });
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <input
-        type="text"
         name="name"
-        placeholder="Tên dịch vụ"
         value={form.name}
         onChange={handleChange}
+        placeholder="Tên dịch vụ"
         className="w-full border p-2 rounded"
       />
+
       <textarea
         name="description"
-        placeholder="Mô tả"
         value={form.description}
         onChange={handleChange}
+        placeholder="Mô tả"
         className="w-full border p-2 rounded"
       />
+
       <input
-        type="number"
         name="price"
-        placeholder="Giá"
+        type="number"
         value={form.price}
         onChange={handleChange}
+        placeholder="Giá"
         className="w-full border p-2 rounded"
       />
-      <input
-        type="text"
-        name="estimated_time"
-        placeholder="Thời gian ước tính"
-        value={form.estimated_time}
+
+      <select
+        name="type"
+        value={form.type}
         onChange={handleChange}
         className="w-full border p-2 rounded"
+      >
+        <option value="store">Tại cửa hàng</option>
+        <option value="home">Tại nhà</option>
+      </select>
+
+      <input
+        name="estimated_time"
+        value={form.estimated_time}
+        onChange={handleChange}
+        placeholder="Thời gian ước tính"
+        className="w-full border p-2 rounded"
       />
-      <select name="status" value={form.status} onChange={handleChange} className="w-full border p-2 rounded">
-        <option value="active">Đã mở</option>
-        <option value="inactive">Tạm ngừng</option>
-        <option value="hidden">Đã ẩn</option>
+
+      <select
+        name="status"
+        value={form.status}
+        onChange={handleChange}
+        className="w-full border p-2 rounded"
+      >
+        <option value="active">Hoạt động</option>
+        <option value="inactive">Không hoạt động</option>
+        <option value="hidden">Ẩn</option>
+      </select>
+
+      {/* chọn danh mục sửa chữa */}
+      <select
+        name="category"
+        value={form.category}
+        onChange={handleChange}
+        className="w-full border p-2 rounded"
+      >
+        <option value="">-- Chọn danh mục --</option>
+        {categories.map((c) => (
+          <option key={c._id} value={c._id}>
+            {c.name}
+          </option>
+        ))}
       </select>
 
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 border rounded">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 border rounded"
+        >
           Hủy
         </button>
-        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
+        <button
+          type="submit"
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
           Lưu
         </button>
       </div>
     </form>
-  )
+  );
 }

@@ -1,16 +1,16 @@
 "use client";
 
 const categories = [
+  { label: "Tất cả" },
   { label: "Màn hình" },
   { label: "CPU" },
   { label: "GPU" },
-  { label: "RAM" },
+  { label: "Ram" },
   { label: "SSD" },
   { label: "MainBoard" },
   { label: "Vỏ Case" },
   { label: "GDA" },
-  { label: "Sửa chữa" },
-  { label: "Giảm giá" },
+
 ];
 
 interface Props {

@@ -61,7 +61,7 @@ export default function HotProduct() {
       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-2">
         <h2 className="text-lg font-semibold">Deal hot</h2>
         <Link
-          href="/user/product/hot"
+          href="/user/product/allproduct"
           className="text-sm text-blue-500 hover:underline flex items-center"
         >
           Xem thêm <ChevronRightCircle className="w-4 h-4 ml-1" />

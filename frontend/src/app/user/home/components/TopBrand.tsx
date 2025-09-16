@@ -22,12 +22,6 @@ export default function TopBrand() {
       {/* Header */}
       <div className="flex justify-between items-center border-b border-gray-200 mb-6">
         <h2 className="text-lg md:text-xl font-semibold">Top Linh Kiện</h2>
-        <a
-          href="#"
-          className="text-sm md:text-base text-blue-500 hover:underline flex items-center"
-        >
-          Xem thêm <ChevronRightCircle className="w-4 h-4 ml-1" />
-        </a>
       </div>
 
       {/* Grid Brands */}

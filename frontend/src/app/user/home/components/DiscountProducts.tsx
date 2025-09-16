@@ -1,72 +1,82 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronRightCircle, Star } from "lucide-react";
-import Product1 from "@/assets/image/product/product1.jpg";
-import Product2 from "@/assets/image/product/product2.jpg";
-import Product3 from "@/assets/image/product/product3.png";
-import Product4 from "@/assets/image/product/product4.png";
+import { productService } from "@/services/product.service";
+import { Product } from "@/types/Product";
 
-const products = [
-  {
-    title: "Nguồn máy tính ASUS PRIME 650B (650W, 80 Plus Bronze)",
-    oldPrice: 4399999,
-    price: 3000000,
-    discount: "20%",
-    rating: 4.6,
-    img: Product1,
-  },
-  {
-    title: "Mainboard Asus B760M-AYW WIFI DDR4",
-    oldPrice: 12440290,
-    price: 9999999,
-    discount: "30% Today Only!",
-    rating: 4.5,
-    img: Product2,
-  },
-  {
-    title: "Vỏ CASE ASUS TUF GAMING GT302 ARGB BLACK",
-    oldPrice: 3999999,
-    price: 3119999,
-    discount: "10%",
-    rating: 4.33,
-    img: Product3,
-  },
-  {
-    title: "Vỏ CASE ASUS TUF GAMING GT302 ARGB BLACK",
-    oldPrice: 3999999,
-    price: 3119999,
-    discount: "10%",
-    rating: 4.33,
-    img: Product4,
-  },
-];
+type ProductType = {
+  _id: string;
+  title: string;
+  oldPrice: number;
+  price: number;
+  discount?: string;
+  rating: number;
+  img: string;
+};
 
 export default function DiscountProducts() {
+  const [products, setProducts] = useState<ProductType[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDiscountProducts = async () => {
+      try {
+        const { products } = await productService.getAll();
+
+        // ✅ lấy 4 sản phẩm đầu tiên và gán discount theo mảng cố định
+        const discountList = [25, 30, 20, 30];
+
+        const mapped = products.slice(0, 4).map((p: Product, idx: number) => {
+          const discountPercent = discountList[idx] || 20; // fallback = 20%
+          const oldPrice = Math.round(p.price / (1 - discountPercent / 100));
+
+          return {
+            _id: p._id,
+            title: p.name,
+            oldPrice,
+            price: p.price,
+            discount: `${discountPercent}%`,
+            rating: 4 + Math.random(), // random 4.0 - 5.0
+            img: p.images?.[0]?.url || "/images/placeholder.png",
+          };
+        });
+
+        setProducts(mapped);
+      } catch (err) {
+        console.error("Lỗi khi fetch sản phẩm:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDiscountProducts();
+  }, []);
+
+  if (loading) return <p className="px-4">Đang tải sản phẩm...</p>;
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-2">
         <h2 className="text-lg font-semibold">Sản phẩm giảm giá</h2>
-        <a
-          href="#"
-          className="text-sm text-blue-500 hover:underline flex items-center"
-        >
-          Xem thêm <ChevronRightCircle className="w-4 h-4 ml-1" />
-        </a>
       </div>
 
       {/* Grid Products */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {products.map((item, idx) => (
+        {products.map((item) => (
           <div
-            key={idx}
+            key={item._id}
             className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative"
           >
             {/* Badge */}
-            <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
-              {item.discount}
-            </span>
+            {item.discount && (
+              <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
+                {item.discount}
+              </span>
+            )}
 
             {/* Image */}
             <div className="relative w-full h-36 sm:h-40 mb-3">
@@ -79,13 +89,14 @@ export default function DiscountProducts() {
             </div>
 
             {/* Title */}
-            <h3 className="text-xs sm:text-sm font-medium line-clamp-2 flex-1 mb-2">
-              {item.title}
-            </h3>
+            <Link href={`/user/product/${item._id}`}>
+              <h3 className="text-xs sm:text-sm font-medium line-clamp-2 flex-1 mb-2 hover:text-blue-600">
+                {item.title}
+              </h3>
+            </Link>
 
             {/* Price + Rating */}
             <div className="flex items-center justify-between mt-auto">
-              {/* Giá */}
               <div className="flex items-center gap-1">
                 <span className="text-[11px] text-gray-400 line-through">
                   {item.oldPrice.toLocaleString()}₫
@@ -94,14 +105,19 @@ export default function DiscountProducts() {
                   {item.price.toLocaleString()}₫
                 </span>
               </div>
-
-              {/* Rating */}
               <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
-                <Star className="w-4 h-4 text-yellow-400 mr-1" /> {item.rating}
+                <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                {item.rating.toFixed(1)}
               </div>
             </div>
           </div>
         ))}
+
+        {products.length === 0 && (
+          <p className="text-gray-500 text-sm col-span-full">
+            Không có sản phẩm giảm giá nào.
+          </p>
+        )}
       </div>
     </div>
   );

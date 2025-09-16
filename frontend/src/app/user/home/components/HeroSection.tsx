@@ -3,6 +3,7 @@
 import Image from "next/image";
 import hero1 from "@/assets/image/product/macbook.jpg";
 import hero2 from "@/assets/image/product/pin.jpg";
+import Link from "next/link";
 
 export default function HeroSection() {
   return (
@@ -33,9 +34,9 @@ export default function HeroSection() {
                 </div>
 
                 {/* Button */}
-                <button className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm md:text-base px-4 sm:px-5 py-2 rounded-md font-medium shadow shrink-0">
+                <Link href="/user/product" className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm md:text-base px-4 sm:px-5 py-2 rounded-md font-medium shadow shrink-0">
                   Xem ngay
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -65,9 +66,9 @@ export default function HeroSection() {
                 </div>
 
                 {/* Button */}
-                <button className="bg-white border-2 border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 text-xs sm:text-sm md:text-base px-4 sm:px-5 py-2 rounded-md font-medium shadow shrink-0">
+                <Link href="/user/service" className="bg-white border-2 border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 text-xs sm:text-sm md:text-base px-4 sm:px-5 py-2 rounded-md font-medium shadow shrink-0">
                   Xem ngay
-                </button>
+                </Link>
               </div>
             </div>
           </div>

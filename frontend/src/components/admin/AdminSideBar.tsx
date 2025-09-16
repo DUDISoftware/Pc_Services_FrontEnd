@@ -15,6 +15,9 @@ export default function AdminSidebar() {
         <Link href="/admin/services" className="block px-3 py-2 rounded hover:bg-gray-100">
           🛠️ Sửa chữa
         </Link>
+         <Link href="/admin/category-service" className="block px-3 py-2 rounded hover:bg-gray-100">
+          📦 Danh mục dịch vụ
+        </Link>
         <Link href="/admin/requests" className="block px-3 py-2 rounded hover:bg-gray-100">
           📋 Yêu cầu
         </Link>
