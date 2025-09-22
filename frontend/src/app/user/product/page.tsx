@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation"; // ✅ đọc query
 import BrandScreen from "./components/BrandScreen";
 import HotProduct from "./components/HotProduct";
-import ProductHeader from "./components/ProductHeader";
 import Products from "./components/Products";
+import CategoryNav from "@/components/common/CategoryNav";
 
 export default function UserProductPage() {
   const searchParams = useSearchParams();
@@ -21,7 +21,7 @@ export default function UserProductPage() {
   return (
     <div>
       {/* Thanh category */}
-      <ProductHeader
+      <CategoryNav
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
       />

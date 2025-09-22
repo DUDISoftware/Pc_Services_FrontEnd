@@ -12,6 +12,10 @@ export const productService = {
     const res = await api.get(`/products/${id}`);
     return mapProduct(res.data.product);
   },
+  getBySlug: async (slug: string): Promise<Product> => {
+    const res = await api.get(`/products/slug/${slug}`);
+    return mapProduct(res.data.product);
+  },
   getFeatured: async (): Promise<Product[]> => {
     const res = await api.get("/products/featured");
     return res.data.products.map((p: ProductApi) => mapProduct(p));
@@ -25,6 +29,8 @@ export const productService = {
     const formData = new FormData();
     formData.append("name", data.name || "");
     formData.append("description", data.description || "");
+    formData.append("tags", JSON.stringify(data.tags || []));
+    formData.append("slug", data.slug || "");
     formData.append("price", String(data.price || 0));
     formData.append("quantity", String(data.quantity || 0));
     formData.append("status", data.status || "available");

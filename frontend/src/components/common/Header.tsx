@@ -11,12 +11,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useSearch } from "@/hooks/useSearch";
 
 export default function Header() {
   const [lang, setLang] = useState("VN");
   const [openMenu, setOpenMenu] = useState(false);
   const [active, setActive] = useState("Trang chủ"); // 🔹 menu đang active
   const [langOpen, setLangOpen] = useState(false); // 🔹 mở dropdown ngôn ngữ
+  const [searchQuery, setSearchQuery] = useState("");
 
   const links = [
     { href: "/user/home", label: "Trang chủ" },
@@ -25,6 +27,7 @@ export default function Header() {
     { href: "/user/about", label: "Về chúng tôi" },
   ];
 
+  const { handleSearch, loading, error } = useSearch();
   const langs = ["EN", "VN"]; // 🔹 danh sách ngôn ngữ
 
   return (
@@ -58,10 +61,23 @@ export default function Header() {
           <input
             type="text"
             placeholder="Bạn đang tìm kiếm..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSearch(searchQuery);
+            }}
             className="flex-1 px-2 md:px-3 py-1 text-sm outline-none"
           />
-          <button className="bg-gray-100 px-2 md:px-3">
-            <Search size={18} />
+          <button
+            className="bg-gray-100 px-2 md:px-3"
+            onClick={() => handleSearch(searchQuery)}
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="animate-spin h-4 w-4 border-t-2 border-black rounded-full" />
+            ) : (
+              <Search size={18} />
+            )}
           </button>
         </div>
 

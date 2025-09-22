@@ -16,6 +16,10 @@ export const serviceApi = {
     const res = await api.get("/services");
     return res.data.services;
   },
+  getBySlug: async (slug: string): Promise<Service> => {
+    const res = await api.get(`/services/slug/${slug}`);
+    return res.data.service;
+  },
 
   create: async (payload: Partial<Service>): Promise<Service> => {
     const res = await api.post("/services", payload);

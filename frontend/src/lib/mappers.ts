@@ -5,6 +5,8 @@ export function mapCategory(apiData: CategoryApi): Category {
   return {
     _id: apiData._id,
     name: apiData.name,
+    slug: apiData.slug,
+    tags: apiData.tags || [],
     description: apiData.description,
     createdAt: apiData.created_at,
     updatedAt: apiData.updated_at,
@@ -15,6 +17,8 @@ export function mapProduct(apiData: ProductApi): Product {
   return {
     _id: apiData._id,
     name: apiData.name,
+    tags: apiData.tags || [],
+    slug: apiData.slug,
     description: apiData.description ?? "",
     price: apiData.price,
     quantity: apiData.quantity,

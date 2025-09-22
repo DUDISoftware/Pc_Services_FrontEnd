@@ -6,11 +6,11 @@ import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { Product } from "@/types/Product";
-import ProductHeader from "../components/ProductHeader";
+import CategoryNav from "@/components/common/CategoryNav";
 
 export default function AllProductsPage() {
   const params = useSearchParams();
-  const category = params.get("category") || "Tất cả";
+  const category = params.get("category") || "all";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,20 +29,22 @@ export default function AllProductsPage() {
     fetchProducts();
   }, []);
 
-  const filtered =
-    category === "Tất cả"
-      ? products
-      : products.filter((p) =>
-          typeof p.category === "object"
-            ? p.category.name === category
-            : p.category === category
-        );
+  const filtered = products;
+    // category === "Tất cả"
+    //   ? products
+    //   : products.filter((p) =>
+    //       typeof p.category === "object"
+    //         ? p.category.name === category
+    //         : p.category === category
+    //     );
 
+  console.log("Filtered products:", filtered);
+  console.log("Current category:", category);
   if (loading) return <p className="text-center">Đang tải sản phẩm...</p>;
 
   return (
     <>
-      <ProductHeader
+      <CategoryNav
         selectedCategory={category}
         onSelectCategory={(newCategory: string) => {
           const url = new URL(window.location.href);
@@ -53,7 +55,7 @@ export default function AllProductsPage() {
       />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-xl font-semibold mb-6">
-          {category === "Tất cả" ? "Tất cả sản phẩm" : category}
+          {category === "all" ? "Tất cả sản phẩm" : category}
         </h1>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

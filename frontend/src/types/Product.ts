@@ -3,6 +3,8 @@ export type UploadedImage = { url: string; public_id: string };
 export type Product = {
   _id: string;
   name: string;
+  tags: string[];
+  slug: string;
   description: string;
   price: number;
   quantity: number;
@@ -13,7 +15,6 @@ export type Product = {
     name: string;
   } | string;
   category_id?: string;
-
   images: UploadedImage[]; // FE luôn hiển thị mảng ảnh đã upload
   createdAt: string;
   updatedAt: string;
@@ -22,6 +23,8 @@ export type Product = {
 export interface ProductApi {
   _id: string;
   name: string;
+  tags?: string[];
+  slug: string;
   description?: string;
   price: number;
   quantity: number;
