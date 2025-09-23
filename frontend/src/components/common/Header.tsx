@@ -12,6 +12,9 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { useSearch } from "@/hooks/useSearch";
+import { cartService } from "@/services/cart.service";
+import { Cart } from "@/types/Cart";
+import { useEffect } from "react";
 
 export default function Header() {
   const [lang, setLang] = useState("VN");
@@ -19,6 +22,22 @@ export default function Header() {
   const [active, setActive] = useState("Trang chủ"); // 🔹 menu đang active
   const [langOpen, setLangOpen] = useState(false); // 🔹 mở dropdown ngôn ngữ
   const [searchQuery, setSearchQuery] = useState("");
+  const [cart, setCart] = useState<Cart | null>(null);
+
+  useEffect(() => {
+    const fetchCart = async () => {
+      try {
+        const data = await cartService.getCart();
+        setCart(data);
+      } catch (err) {
+        console.error("Lỗi khi tải giỏ hàng:", err);
+      }
+    };
+    fetchCart();
+  }, []);
+
+  const cartCount = cart?.items?.length || 0;
+  //const wishlistCount = cart?.wishlist?.length || 0;
 
   const links = [
     { href: "/user/home", label: "Trang chủ" },
@@ -40,11 +59,10 @@ export default function Header() {
               key={link.label}
               href={link.href}
               onClick={() => setActive(link.label)}
-              className={`pb-1 transition-all ${
-                active === link.label
+              className={`pb-1 transition-all ${active === link.label
                   ? "font-semibold border-b-2 border-black"
                   : "hover:text-dark-600"
-              }`}
+                }`}
             >
               {link.label}
             </Link>
@@ -102,9 +120,8 @@ export default function Header() {
                     setLang(l);
                     setLangOpen(false);
                   }}
-                  className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${
-                    lang === l ? "font-semibold" : ""
-                  }`}
+                  className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${lang === l ? "font-semibold" : ""
+                    }`}
                 >
                   {l}
                 </div>
@@ -120,11 +137,16 @@ export default function Header() {
           </div>
 
           <div className="relative cursor-pointer">
-            <ShoppingCart size={20} />
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">
-              3
-            </span>
+            <button onClick={() => (window.location.href = "/user/cart")}>
+              <ShoppingCart size={20} />
+            </button>
+            {cartCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">
+                {cartCount}
+              </span>
+            )}
           </div>
+
         </div>
       </div>
 
@@ -157,11 +179,10 @@ export default function Header() {
                 setActive(link.label);
                 setOpenMenu(false);
               }}
-              className={`${
-                active === link.label
+              className={`${active === link.label
                   ? "underline text-dark-600"
                   : "hover:underline"
-              }`}
+                }`}
             >
               {link.label}
             </Link>

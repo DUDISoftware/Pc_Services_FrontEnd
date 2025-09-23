@@ -29,17 +29,15 @@ export default function AllProductsPage() {
     fetchProducts();
   }, []);
 
-  const filtered = products;
-    // category === "Tất cả"
-    //   ? products
-    //   : products.filter((p) =>
-    //       typeof p.category === "object"
-    //         ? p.category.name === category
-    //         : p.category === category
-    //     );
+  const filtered =
+    category === "all"
+      ? products
+      : products.filter((p) => {
+          const productCategorySlug =
+            typeof p.category === "object" ? p.category.slug : p.category;
+          return productCategorySlug?.toLowerCase() === category.toLowerCase();
+        });
 
-  console.log("Filtered products:", filtered);
-  console.log("Current category:", category);
   if (loading) return <p className="text-center">Đang tải sản phẩm...</p>;
 
   return (
@@ -55,7 +53,7 @@ export default function AllProductsPage() {
       />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-xl font-semibold mb-6">
-          {category === "all" ? "Tất cả sản phẩm" : category}
+          {category === "all" ? "all sản phẩm" : category}
         </h1>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

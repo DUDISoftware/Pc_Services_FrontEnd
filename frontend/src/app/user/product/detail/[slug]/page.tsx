@@ -15,14 +15,16 @@ import ProductSample from "./components/ProductSample";
 import CategoryNav from "@/components/common/CategoryNav";
 
 export default function ProductDetailPage() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("Slug from params:", slug);
     const fetchProduct = async () => {
       try {
-        const data = await productService.getById(id as string);
+        const data = await productService.getBySlug(slug as string);
+        console.log("Fetched product data:", data);
         setProduct(data);
       } catch (err) {
         console.error("Lỗi khi tải chi tiết sản phẩm:", err);
@@ -30,8 +32,8 @@ export default function ProductDetailPage() {
         setLoading(false);
       }
     };
-    if (id) fetchProduct();
-  }, [id]);
+    if (slug) fetchProduct();
+  }, [slug]);
 
   if (loading) return <p className="text-center py-10">Đang tải...</p>;
   if (!product)

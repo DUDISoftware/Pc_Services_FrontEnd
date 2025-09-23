@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -8,68 +8,58 @@ import {
   DropResult,
 } from "@hello-pangea/dnd";
 import { MoreHorizontal } from "lucide-react";
+import { Request } from "@/types/Request";
+import { requestApi } from "@/services/request.service";
 
-interface Request {
+interface RequestPayload {
   id: string;
   customer: string;
   description: string;
   date: string;
+  items?: { name: string; product_id: string; quantity: number; price: number }[];
+  service_id?: string;
 }
 
 interface Column {
   id: string;
   title: string;
-  requests: Request[];
+  requests: RequestPayload[];
 }
 
-const initialData: Column[] = [
-  {
-    id: "new",
-    title: "🆕 Mới",
-    requests: [
-      {
-        id: "1",
-        customer: "Nguyễn Văn A",
-        description: "Máy tính không lên nguồn",
-        date: "2025-09-01",
-      },
-      {
-        id: "2",
-        customer: "Trần Thị B",
-        description: "Cài đặt Windows 11 + Office",
-        date: "2025-08-31",
-      },
-    ],
-  },
-  {
-    id: "inprogress",
-    title: "⚙️ Đang xử lý",
-    requests: [
-      {
-        id: "3",
-        customer: "Lê Văn C",
-        description: "Thay RAM 16GB",
-        date: "2025-08-30",
-      },
-    ],
-  },
-  {
-    id: "done",
-    title: "✅ Hoàn thành",
-    requests: [
-      {
-        id: "4",
-        customer: "Phạm Thị D",
-        description: "Vệ sinh laptop",
-        date: "2025-08-29",
-      },
-    ],
-  },
-];
+function mapRequestsToColumns(requests: Request[]): Column[] {
+  const columns: Column[] = [
+    { id: "new", title: "🆕 Mới", requests: [] },
+    { id: "in_progress", title: "⚙️ Đang xử lý", requests: [] },
+    { id: "completed", title: "✅ Hoàn thành", requests: [] },
+  ];
+
+  for (const req of requests) {
+    const col = columns.find((c) => c.id === req.status);
+    if (col) {
+      col.requests.push({
+        id: req._id,
+        customer: req.name,
+        description: req.problem_description ?? req.items?.[0]?.name ?? "",
+        date: new Date(req.updatedAt).toLocaleDateString("vi-VN"),
+      });
+    }
+  }
+
+  return columns;
+}
 
 export default function RequestBoard() {
-  const [columns, setColumns] = useState<Column[]>(initialData);
+  const [columns, setColumns] = useState<Column[]>([]);
 
+  // Fetch dữ liệu khi load trang
+  useEffect(() => {
+    requestApi.getAll().then((requests) => {
+      const cols = mapRequestsToColumns(requests);
+      setColumns(cols);
+    });
+  }, []);
+
+  // Xử lý kéo thả
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
@@ -87,6 +77,10 @@ export default function RequestBoard() {
     destCol.requests.splice(destination.index, 0, movedRequest);
 
     setColumns(updatedColumns);
+
+    // 👉 Có thể gọi API update status ở đây
+    requestApi.update(movedRequest.id, { status: destCol.id as Request["status"] });
+
   };
 
   return (
@@ -103,9 +97,8 @@ export default function RequestBoard() {
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`p-4 rounded-xl shadow-md bg-white transition ${
-                    snapshot.isDraggingOver ? "bg-blue-50" : ""
-                  }`}
+                  className={`p-4 rounded-xl shadow-md bg-white transition ${snapshot.isDraggingOver ? "bg-blue-50" : ""
+                    }`}
                 >
                   <h3 className="text-lg font-semibold mb-3">{col.title}</h3>
                   <div className="space-y-4">
@@ -116,28 +109,32 @@ export default function RequestBoard() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className={`p-4 border rounded-lg shadow-sm bg-gray-50 transition ${
-                              snapshot.isDragging
+                            className={`p-4 border rounded-lg shadow-sm bg-gray-50 transition ${snapshot.isDragging
                                 ? "bg-blue-100 border-blue-400"
                                 : "hover:bg-gray-100"
-                            }`}
+                              }`}
                           >
                             <div className="flex justify-between items-start">
                               <div>
-                                <p className="font-semibold text-gray-800">
-                                  {req.customer}
-                                </p>
+                                <p className="font-semibold text-gray-800">{req.customer}</p>
+
+                                {/* ✅ Phần xử lý hiển thị nội dung thông minh */}
                                 <p className="text-sm text-gray-600">
-                                  {req.description}
+                                  {req.description ||
+                                    (req.items?.length
+                                      ? req.items.map((i) => `${i.name} x${i.quantity}`).join(", ")
+                                      : req.service_id
+                                        ? "Yêu cầu sửa chữa"
+                                        : "Không có mô tả")}
                                 </p>
                               </div>
+
                               <button className="text-gray-500 hover:text-gray-700">
                                 <MoreHorizontal size={18} />
                               </button>
                             </div>
-                            <p className="text-xs text-gray-400 mt-2">
-                              Ngày: {req.date}
-                            </p>
+
+                            <p className="text-xs text-gray-400 mt-2">Ngày: {req.date}</p>
                           </div>
                         )}
                       </Draggable>

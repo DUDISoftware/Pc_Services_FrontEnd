@@ -1,6 +1,7 @@
 import api from "@/lib/api";
 import { Product, ProductApi } from "@/types/Product";
 import { mapProduct } from "@/lib/mappers";
+import { get } from "http";
 
 export const productService = {
   getAll: async (): Promise<{ products: Product[] }> => {
@@ -8,10 +9,7 @@ export const productService = {
     return { products: res.data.products.map((p: ProductApi) => mapProduct(p)) };
   },
 
-  getById: async (id: string): Promise<Product> => {
-    const res = await api.get(`/products/${id}`);
-    return mapProduct(res.data.product);
-  },
+
   getBySlug: async (slug: string): Promise<Product> => {
     const res = await api.get(`/products/slug/${slug}`);
     return mapProduct(res.data.product);
@@ -23,6 +21,18 @@ export const productService = {
   getRelated: async (id: string, limit = 4): Promise<Product[]> => {
     const res = await api.get(`/products/${id}/related?limit=${limit}`);
     return res.data.products.map((p: ProductApi) => mapProduct(p));
+  },
+  getByCategory: async (category: string): Promise<Product[]> => {
+    const res = await api.get(`/products/category/${category}`);
+    return res.data.products.map((p: ProductApi) => mapProduct(p));
+  },
+  getByCategorySlug: async (slug: string): Promise<Product[]> => {
+    const res = await api.get(`/products/category/slug/${slug}`);
+    return res.data.products.map((p: ProductApi) => mapProduct(p));
+  }, // lấy sản phẩm theo slug của category (PHẢI CÓ API Ở BACKEND)
+  getById: async (id: string): Promise<Product> => {
+    const res = await api.get(`/products/${id}`);
+    return mapProduct(res.data.product);
   },
 
   create: async (data: Partial<ProductApi>): Promise<Product> => {
@@ -36,7 +46,7 @@ export const productService = {
     formData.append("status", data.status || "available");
     formData.append("brand", data.brand || "");
     formData.append(
-      "category_id",
+      "category",
       typeof data.category_id === "object"
         ? data.category_id._id
         : (data.category_id || "")
@@ -65,11 +75,12 @@ export const productService = {
     formData.append("status", data.status || "available");
     formData.append("brand", data.brand || "");
     formData.append(
-      "category_id",
+      "category",
       typeof data.category_id === "object"
         ? data.category_id._id
         : (data.category_id || "")
     );
+    formData.append("tags", JSON.stringify(data.tags || []));
 
     if (data.images && Array.isArray(data.images)) {
       if (data.images.length > 0 && data.images[0] instanceof File) {

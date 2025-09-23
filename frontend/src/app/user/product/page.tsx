@@ -9,9 +9,9 @@ import CategoryNav from "@/components/common/CategoryNav";
 
 export default function UserProductPage() {
   const searchParams = useSearchParams();
-  const categoryFromQuery = searchParams.get("category") || "Tất cả";
+  const categoryFromQuery = searchParams.get("category") || "all";
 
-  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   // Đồng bộ state với query
   useEffect(() => {

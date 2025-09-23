@@ -4,8 +4,8 @@ export interface CategoryApi {
   slug: string;
   tags?: string[];
   description: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Category {
