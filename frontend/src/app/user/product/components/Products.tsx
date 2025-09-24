@@ -51,8 +51,8 @@ export default function Products({ category }: ProductsProps) {
             img: p.images?.[0]?.url || "/images/placeholder.png",
             category:
               typeof p.category === "object"
-                ? p.category.name
-                : p.category || "Khác",
+                ? p.category.slug
+                : p.category || "khac",
           };
         });
 
@@ -66,10 +66,10 @@ export default function Products({ category }: ProductsProps) {
     fetchProducts();
   }, []);
 
-  const filteredProducts =
-    category === "Tất cả"
-      ? products.slice(0, 4)
-      : products.filter((p) => p.category === category).slice(0, 4);
+  const filteredProducts = //products.slice(0, 4);
+     category === "all"
+       ? products.slice(0, 4)
+       : products.filter((p) => p.category.toLowerCase() === category.toLowerCase()).slice(0, 4);
 
   if (loading) return <p>Đang tải sản phẩm...</p>;
 
@@ -78,7 +78,7 @@ export default function Products({ category }: ProductsProps) {
       {/* Header */}
       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-2">
         <h2 className="text-lg font-semibold">
-          {category === "Tất cả" ? "Tất cả sản phẩm" : category}
+          {category === "all" ? "Tất cả sản phẩm" : category.toUpperCase()}
         </h2>
         <Link
           href={`/user/product/allproduct?category=${encodeURIComponent(

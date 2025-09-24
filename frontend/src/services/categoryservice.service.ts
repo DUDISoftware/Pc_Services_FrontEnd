@@ -14,8 +14,15 @@ export const categoryServiceApi = {
     return res.data.category
   },
 
+  // Lấy theo slug
+  getBySlug: async (slug: string): Promise<CategoryService> => {
+    const res = await api.get(`/service-categories/slug/${slug}`)
+    return res.data.category
+  },
+
   // Tạo mới
   create: async (payload: Partial<CategoryService>): Promise<CategoryService> => {
+    //payload.slug = payload.name!.toLowerCase().replace(/\s+/g, "-")
     const res = await api.post("/service-categories", payload)
     return res.data.category
   },

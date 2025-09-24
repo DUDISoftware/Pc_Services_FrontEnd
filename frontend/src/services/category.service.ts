@@ -26,6 +26,12 @@ export const categoryService = {
     return res.data.category;
   },
 
+  // Lấy chi tiết theo slug
+  getBySlug: async (slug: string): Promise<CategoryApi> => {
+    const res = await api.get<{ category: CategoryApi }>(`/categories/slug/${slug}`);
+    return res.data.category;
+  },
+
   // Tạo mới category
   create: async (data: Pick<CategoryApi, "name" | "description">): Promise<CategoryApi> => {
     const res = await api.post<{ category: CategoryApi }>("/categories", data);

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { productService } from "@/services/product.service";
 import { Product } from "@/types/Product";
 
-import ProductHeader from "../components/ProductHeader";
 import ProductBreadcrumb from "./components/ProductBreadcrumb";
 import ProductGallery from "./components/ProductGallery";
 import ProductInfo from "./components/ProductInfo";
@@ -13,6 +12,7 @@ import ProductDescription from "./components/ProductDescription";
 import ProductSpecs from "./components/ProductSpecs";
 import ProductReviewSection from "./components/ProductReviewSection";
 import ProductSample from "./components/ProductSample";
+import CategoryNav from "@/components/common/CategoryNav";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -45,7 +45,7 @@ export default function ProductDetailPage() {
 
   return (
     <>
-      <ProductHeader
+      <CategoryNav
         selectedCategory={
           typeof product.category === "object"
             ? product.category.name
@@ -74,8 +74,8 @@ export default function ProductDetailPage() {
             product={{
               id: product._id,
               title: product.name,
-              rating: 4.5,
-              reviews: 120,
+              rating: product.rating || 4.5,
+              reviews: 34,
               oldPrice,
               price: product.price,
               discount: `${Math.round(
@@ -92,16 +92,16 @@ export default function ProductDetailPage() {
           <ProductSpecs
             product={{
               brand: product.brand || "Đang cập nhật",
-              model: "Đang cập nhật",
-              size: "Đang cập nhật",
-              resolution: "Đang cập nhật",
-              panel: "Đang cập nhật",
-              ports: "Đang cập nhật",
+              model: product.model || "Đang cập nhật",
+              size: product.size || "Đang cập nhật",
+              resolution: product.resolution || "Đang cập nhật",
+              panel: product.panel || "Đang cập nhật",
+              ports: product.ports || "Đang cập nhật",
             }}
           />
         </div>
 
-        <ProductReviewSection />
+        <ProductReviewSection productId={product._id} />
      <ProductSample productId={product._id} />
 
       </div>
