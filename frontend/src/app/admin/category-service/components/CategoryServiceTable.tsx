@@ -33,8 +33,10 @@ export default function CategoryServiceTable() {
   const handleSubmit = async (payload: Partial<CategoryService>) => {
     try {
       if (editing) {
+        payload.slug = payload.name!.toLowerCase().replace(/\s+/g, "-")
         await categoryServiceApi.update(editing._id, payload)
       } else {
+        payload.slug = payload.name!.toLowerCase().replace(/\s+/g, "-")
         await categoryServiceApi.create(payload)
       }
       setModalOpen(false)

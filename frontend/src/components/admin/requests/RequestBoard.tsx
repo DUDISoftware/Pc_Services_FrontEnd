@@ -10,6 +10,7 @@ import {
 import { MoreHorizontal } from "lucide-react";
 import { Request } from "@/types/Request";
 import { requestApi } from "@/services/request.service";
+import { all } from "axios";
 
 interface RequestPayload {
   id: string;
@@ -48,16 +49,22 @@ function mapRequestsToColumns(requests: Request[]): Column[] {
   return columns;
 }
 
-export default function RequestBoard() {
+export default function RequestBoard({ requests }: { requests: Request[] }) {
   const [columns, setColumns] = useState<Column[]>([]);
 
   // Fetch dữ liệu khi load trang
   useEffect(() => {
-    requestApi.getAll().then((requests) => {
-      const cols = mapRequestsToColumns(requests);
+    const load = async () => {
+      let data = await requestApi.getAll();
+      if (requests.length > 0) {
+        data = requests;
+      }
+      const cols = mapRequestsToColumns(data);
       setColumns(cols);
-    });
-  }, []);
+    };
+
+    load();
+  }, [requests]);
 
   // Xử lý kéo thả
   const handleDragEnd = (result: DropResult) => {
@@ -78,9 +85,7 @@ export default function RequestBoard() {
 
     setColumns(updatedColumns);
 
-    // 👉 Có thể gọi API update status ở đây
     requestApi.update(movedRequest.id, { status: destCol.id as Request["status"] });
-
   };
 
   return (

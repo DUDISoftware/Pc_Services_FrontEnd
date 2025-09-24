@@ -9,7 +9,6 @@ export const productService = {
     return { products: res.data.products.map((p: ProductApi) => mapProduct(p)) };
   },
 
-
   getBySlug: async (slug: string): Promise<Product> => {
     const res = await api.get(`/products/slug/${slug}`);
     return mapProduct(res.data.product);
@@ -39,18 +38,29 @@ export const productService = {
     const formData = new FormData();
     formData.append("name", data.name || "");
     formData.append("description", data.description || "");
-    formData.append("tags", JSON.stringify(data.tags || []));
     formData.append("slug", data.slug || "");
     formData.append("price", String(data.price || 0));
     formData.append("quantity", String(data.quantity || 0));
     formData.append("status", data.status || "available");
     formData.append("brand", data.brand || "");
+    formData.append("panel", data.panel || "");
+    formData.append("size", data.size || "");
+    formData.append("model", data.model || "");
+    formData.append("resolution", data.resolution || "");
     formData.append(
-      "category",
+      "category_id",
       typeof data.category_id === "object"
         ? data.category_id._id
         : (data.category_id || "")
     );
+
+    (data.tags || []).forEach((tag, i) => {
+      formData.append(`tags[${i}]`, tag);
+    });
+
+    (data.ports || []).forEach((port, i) => {
+      formData.append(`ports[${i}]`, port);
+    });
 
     if (data.images && Array.isArray(data.images)) {
       if (data.images.length > 0 && data.images[0] instanceof File) {
@@ -74,13 +84,24 @@ export const productService = {
     formData.append("quantity", String(data.quantity || 0));
     formData.append("status", data.status || "available");
     formData.append("brand", data.brand || "");
+    formData.append("panel", data.panel || "");
+    formData.append("size", data.size || "");
+    formData.append("model", data.model || "");
+    formData.append("resolution", data.resolution || "");
     formData.append(
       "category",
       typeof data.category_id === "object"
         ? data.category_id._id
         : (data.category_id || "")
     );
-    formData.append("tags", JSON.stringify(data.tags || []));
+    
+    (data.tags || []).forEach((tag, i) => {
+      formData.append(`tags[${i}]`, tag);
+    });
+
+    (data.ports || []).forEach((port, i) => {
+      formData.append(`ports[${i}]`, port);
+    });
 
     if (data.images && Array.isArray(data.images)) {
       if (data.images.length > 0 && data.images[0] instanceof File) {

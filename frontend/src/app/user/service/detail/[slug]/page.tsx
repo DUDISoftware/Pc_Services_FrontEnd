@@ -9,9 +9,9 @@ import DefaultServiceImage from "@/assets/image/service/services.png";
 import FeaturedFixServices from "./components/FeaturedFixServices";
 import ServiceRequestModal from "./components/ServiceRequestModal";
 
-export default function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ServiceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   // ✅ unwrap params
-  const { id } = use(params);
+  const { slug } = use(params);
 
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +20,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
   useEffect(() => {
     const fetchService = async () => {
       try {
-        const data = await serviceApi.getById(id);
+        const data = await serviceApi.getBySlug(slug);
         setService(data);
       } catch (err) {
         console.error("Lỗi khi tải chi tiết dịch vụ:", err);
@@ -29,7 +29,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
       }
     };
     fetchService();
-  }, [id]);
+  }, [slug]);
 
   if (loading) return <p>Đang tải chi tiết dịch vụ...</p>;
   if (!service) return <p>Không tìm thấy dịch vụ.</p>;

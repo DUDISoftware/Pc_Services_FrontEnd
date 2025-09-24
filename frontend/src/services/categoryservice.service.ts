@@ -22,6 +22,7 @@ export const categoryServiceApi = {
 
   // Tạo mới
   create: async (payload: Partial<CategoryService>): Promise<CategoryService> => {
+    //payload.slug = payload.name!.toLowerCase().replace(/\s+/g, "-")
     const res = await api.post("/service-categories", payload)
     return res.data.category
   },

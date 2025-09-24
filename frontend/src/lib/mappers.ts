@@ -3,6 +3,7 @@ import { Category, CategoryApi } from "@/types/Category";
 import { Rating, RatingApi } from "@/types/Rating";
 import { Service, ServiceApi } from "@/types/Service";
 import { Request, RequestApi } from "@/types/Request";
+import { Banner, BannerApi } from "@/types/Banner";
 
 export function mapCategory(apiData: CategoryApi): Category {
   return {
@@ -43,11 +44,11 @@ export function mapProduct(apiData: ProductApi): Product {
     status: apiData.status as Product["status"],
     resolution: apiData.resolution,
     model: apiData.model,
-    ports: apiData.ports,
+    ports: apiData.ports || [],
     panel: apiData.panel,
     size: apiData.size,
 
-    category:
+    category_id:
     typeof apiData.category_id === "object"
       ? {
           _id: apiData.category_id._id,
@@ -69,8 +70,8 @@ export function mapProduct(apiData: ProductApi): Product {
         }))
       : [],
 
-    createdAt: apiData.created_at,
-    updatedAt: apiData.updated_at,
+    createdAt: apiData.createdAt,
+    updatedAt: apiData.updatedAt,
   };
 }
 
@@ -81,6 +82,7 @@ export function mapService(apiData: ServiceApi): Service {
     description: apiData.description,
     price: apiData.price,
     type: apiData.type,
+    slug: apiData.slug,
     estimated_time: apiData.estimated_time,
     status: apiData.status,
     created_at: apiData.created_at,
@@ -115,7 +117,17 @@ export function mapRequest(apiData: RequestApi): Request {
           public_id: (img as UploadedImage).public_id,
         }))
       : [],
-    created_at: apiData.createdAt,
-    updated_at: apiData.updatedAt,
+    createdAt: apiData.createdAt,
+    updatedAt: apiData.updatedAt,
+  };
+}
+
+export function mapBanner(apiData: BannerApi): Banner {
+  return {
+    title: apiData.title,
+    description: apiData.description,
+    image: apiData.image,
+    link: apiData.link,
+    position: apiData.position
   };
 }

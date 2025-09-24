@@ -32,7 +32,6 @@ export const requestApi = {
         repairs.data.requests.map((reqData: RequestApi) => mapRequest(reqData));
         const orders = await api.get("/requests/orders");
         orders.data.requests.map((reqData: RequestApi) => mapRequest(reqData));
-        console.log("Orders:", orders.data.requests);
         return [...repairs.data.requests, ...orders.data.requests];
     },
 
