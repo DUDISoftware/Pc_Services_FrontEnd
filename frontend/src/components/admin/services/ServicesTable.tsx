@@ -59,7 +59,7 @@ export default function ServicesTable() {
     }
   };
 
-  const handleSubmit = async (data: Partial<Service> & { category: string }) => {
+  const handleSubmit = async (data: Partial<Service> & { category_id: string }) => {
     try {
       if (editingService) {
         await serviceApi.update(editingService._id, data);
@@ -115,9 +115,9 @@ export default function ServicesTable() {
               <td className="p-2">{s.description}</td>
               <td className="p-2">{s.price.toLocaleString()} đ</td>
               <td className="p-2">
-                {typeof s.category === "string"
+                {typeof s.category_id === "string"
                   ? "Chưa có"
-                  : s.category?.name || "Chưa có"}
+                  : s.category_id?.name || "Chưa có"}
               </td>
               <td className="p-2">
                 <span

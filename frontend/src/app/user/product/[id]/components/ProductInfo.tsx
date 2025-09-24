@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
-import ProductPolicies from "./ProductPolicies";
 import { useRouter } from "next/navigation";
+import ProductPolicies from "./ProductPolicies";
+import { cartService } from "@/services/cart.service";
 
 interface Product {
-  id: string; // thêm id để điều hướng
+  id: string;
   title: string;
   rating: number;
   reviews: number;
@@ -17,10 +19,35 @@ interface Product {
 export default function ProductInfo({ product }: { product: Product }) {
   const router = useRouter();
 
+  const [showPopup, setShowPopup] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+
+  const handleAddToCart = async () => {
+    try {
+      await cartService.addToCart(product.id, quantity);
+      alert("Đã thêm vào giỏ hàng!");
+      setShowPopup(false); // đóng popup
+    } catch (error) {
+      console.error("Lỗi khi thêm vào giỏ hàng:", error);
+      alert("Thêm vào giỏ hàng thất bại. Vui lòng thử lại.");
+    }
+  };
+
   const handleOrder = () => {
-    // điều hướng đến trang đặt hàng theo id sản phẩm
     router.push(`/user/order/${product.id}`);
   };
+
+  useEffect(() => {
+    const checkCart = async () => {
+      try {
+        const cart = await cartService.getCart();
+        console.log("Giỏ hàng hiện tại:", cart);
+      } catch (error) {
+        console.error("Lỗi khi lấy giỏ hàng:", error);
+      }
+    };
+    checkCart();
+  }, []);
 
   return (
     <div>
@@ -53,13 +80,46 @@ export default function ProductInfo({ product }: { product: Product }) {
         >
           Đặt hàng
         </button>
-        <button className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50 transition">
+        <button
+          className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50 transition"
+          onClick={() => setShowPopup(true)}
+        >
           Thêm vào giỏ hàng
         </button>
       </div>
 
       {/* Policies */}
       <ProductPolicies />
+
+      {/* Popup modal */}
+      {showPopup && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-80 relative">
+            <h2 className="text-lg font-semibold mb-4">Chọn số lượng</h2>
+            <input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(Number(e.target.value))}
+              className="w-full border rounded px-3 py-2 mb-4"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowPopup(false)}
+                className="px-4 py-2 border rounded hover:bg-gray-100"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleAddToCart}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:opacity-90"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

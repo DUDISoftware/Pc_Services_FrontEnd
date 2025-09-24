@@ -68,7 +68,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
 
       <FeaturedFixServices />
 
-      <ServiceRequestModal isOpen={open} onClose={() => setOpen(false)} />
+      <ServiceRequestModal serviceData = {service} isOpen={open} onClose={() => setOpen(false)} />
     </div>
   );
 }

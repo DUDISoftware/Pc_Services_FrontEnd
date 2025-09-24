@@ -23,14 +23,21 @@ export default function ProductTable() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<{
     name?: string;
+    slug?: string;
+    tags?: string[];
+    ports?: string[];
+    panel?: string;
+    resolution?: string;
+    size?: string;
+    model?: string;
     description?: string;
     price?: number;
     quantity?: number;
-    status?: string;
+    status?: "available" | "out_of_stock" | "hidden";
     brand?: string;
     category_id?: string;
     images?: (File | UploadedImage)[];
-  }>({ images: [] });
+  }>({ images: [], status: "available" });
 
   useEffect(() => {
     fetchProducts();
@@ -78,6 +85,13 @@ export default function ProductTable() {
 
     const payload = {
       name: formData.name ?? "",
+      slug: formData.slug ?? "",
+      tags: formData.tags ?? [],
+      ports: formData.ports ?? [],
+      panel: formData.panel ?? "",
+      resolution: formData.resolution ?? "",
+      size: formData.size ?? "",
+      model: formData.model ?? "",
       description: formData.description ?? "",
       price: formData.price ?? 0,
       quantity: formData.quantity ?? 0,
@@ -99,7 +113,7 @@ export default function ProductTable() {
       }
       setShowForm(false);
       setEditingProduct(null);
-      setFormData({ images: [] });
+      setFormData({ images: [], status: "available" });
     } catch (err) {
       console.error("Save failed", err);
     }
@@ -109,23 +123,30 @@ export default function ProductTable() {
     setEditingProduct(product);
     setFormData({
       name: product.name,
+      slug: product.slug,
+      tags: product.tags,
+      ports: product.ports,
+      panel: product.panel,
+      resolution: product.resolution,
+      size: product.size,
+      model: product.model,
       description: product.description,
       price: product.price,
       quantity: product.quantity,
       status: product.status,
       brand: product.brand,
       category_id:
-        typeof product.category === "object"
-          ? product.category._id
-          : product.category,
-      images: product.images, // giữ ảnh cũ
+        typeof product.category_id === "object"
+          ? product.category_id._id
+          : product.category_id,
+      images: product.images,
     });
     setShowForm(true);
   };
 
   const openAddForm = () => {
     setEditingProduct(null);
-    setFormData({ images: [] });
+    setFormData({ images: [], status: "available"});
     setShowForm(true);
   };
 
@@ -203,9 +224,9 @@ export default function ProductTable() {
                 <td className="p-2">{p.description}</td>
                 <td className="p-2">{p.price.toLocaleString()} đ</td>
                 <td className="p-2">
-                  {typeof p.category === "object"
-                    ? p.category.name
-                    : p.category}
+                  {typeof p.category_id === "object"
+                    ? p.category_id.name
+                    : p.category_id}
                 </td>
                 <td className="p-2">{p.quantity}</td>
                 <td className="p-2">
@@ -250,15 +271,85 @@ export default function ProductTable() {
               {editingProduct ? "Sửa sản phẩm" : "Thêm sản phẩm"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-3">
+              {/* Name + Slug */}
               <input
                 type="text"
                 placeholder="Tên sản phẩm"
                 value={formData.name || ""}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full border px-3 py-2 rounded"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Slug (URL friendly)"
+                value={formData.slug || ""}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                className="w-full border px-3 py-2 rounded"
+                required
+              />
+
+              {/* Tags + Ports */}
+              <input
+                type="text"
+                placeholder="Tags (cách nhau bởi dấu ,)"
+                value={formData.tags?.join(", ") || ""}
                 onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
+                  setFormData({
+                    ...formData,
+                    tags: e.target.value.split(",").map((t) => t.trim()),
+                  })
                 }
                 className="w-full border px-3 py-2 rounded"
               />
+              <input
+                type="text"
+                placeholder="Cổng kết nối (cách nhau bởi dấu ,)"
+                value={formData.ports?.join(", ") || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    ports: e.target.value.split(",").map((p) => p.trim()),
+                  })
+                }
+                className="w-full border px-3 py-2 rounded"
+              />
+
+              {/* Panel / Resolution / Size / Model */}
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder="Panel"
+                  value={formData.panel || ""}
+                  onChange={(e) => setFormData({ ...formData, panel: e.target.value })}
+                  className="w-full border px-3 py-2 rounded"
+                />
+                <input
+                  type="text"
+                  placeholder="Độ phân giải"
+                  value={formData.resolution || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, resolution: e.target.value })
+                  }
+                  className="w-full border px-3 py-2 rounded"
+                />
+                <input
+                  type="text"
+                  placeholder="Kích thước"
+                  value={formData.size || ""}
+                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                  className="w-full border px-3 py-2 rounded"
+                />
+                <input
+                  type="text"
+                  placeholder="Model"
+                  value={formData.model || ""}
+                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                  className="w-full border px-3 py-2 rounded"
+                />
+              </div>
+
+              {/* Description */}
               <textarea
                 placeholder="Mô tả"
                 value={formData.description || ""}
@@ -267,32 +358,39 @@ export default function ProductTable() {
                 }
                 className="w-full border px-3 py-2 rounded"
               />
-              <input
-                type="number"
-                placeholder="Giá"
-                value={formData.price || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, price: Number(e.target.value) })
-                }
-                className="w-full border px-3 py-2 rounded"
-              />
-              <input
-                type="number"
-                placeholder="Số lượng"
-                value={formData.quantity || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, quantity: Number(e.target.value) })
-                }
-                className="w-full border px-3 py-2 rounded"
-              />
 
-              {/* Dropdown category */}
+              {/* Price + Quantity */}
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="number"
+                  placeholder="Giá"
+                  value={formData.price || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price: Number(e.target.value) })
+                  }
+                  className="w-full border px-3 py-2 rounded"
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Số lượng"
+                  value={formData.quantity || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, quantity: Number(e.target.value) })
+                  }
+                  className="w-full border px-3 py-2 rounded"
+                  required
+                />
+              </div>
+
+              {/* Category */}
               <select
                 value={formData.category_id || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, category_id: e.target.value })
                 }
                 className="w-full border px-3 py-2 rounded"
+                required
               >
                 <option value="">-- Chọn danh mục --</option>
                 {categories.map((c) => (
@@ -302,15 +400,28 @@ export default function ProductTable() {
                 ))}
               </select>
 
+              {/* Brand */}
               <input
                 type="text"
                 placeholder="Thương hiệu"
                 value={formData.brand || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, brand: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                 className="w-full border px-3 py-2 rounded"
+                required
               />
+
+              {/* Status + Featured */}
+              <div className="flex items-center gap-4">
+                <select
+                  value={formData.status || "available"}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as "available" | "out_of_stock" | "hidden" })}
+                  className="border px-3 py-2 rounded"
+                >
+                  <option value="available">Còn hàng</option>
+                  <option value="out_of_stock">Hết hàng</option>
+                  <option value="hidden">Ẩn</option>
+                </select>
+              </div>
 
               {/* Upload ảnh */}
               <div>
@@ -323,7 +434,6 @@ export default function ProductTable() {
                   className="w-full"
                   disabled={(formData.images?.length || 0) >= 3}
                 />
-                {/* Preview */}
                 <div className="flex flex-wrap gap-3 mt-3">
                   {formData.images &&
                     formData.images.map((img, index) => {
@@ -352,6 +462,7 @@ export default function ProductTable() {
                 </div>
               </div>
 
+              {/* Actions */}
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => setShowForm(false)}>
                   Hủy

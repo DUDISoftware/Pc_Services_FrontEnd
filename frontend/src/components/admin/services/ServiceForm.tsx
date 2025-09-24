@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { Service } from "@/types/Service";
 import { CategoryService } from "@/types/CategoryService";
+import { serviceApi } from "@/services/service.service";
 
 type Props = {
   initialData?: Service;
   categories: CategoryService[];
-  onSubmit: (data: Partial<Service> & { category: string }) => void;
+  onSubmit: (data: Partial<Service> & { category_id: string }) => void;
   onCancel: () => void;
 };
 
@@ -21,11 +22,13 @@ export default function ServiceForm({
     name: "",
     description: "",
     price: 0,
-    type: "store" as "store" | "home", // ✅ ép kiểu
+    type: "at_store" as "at_store" | "at_home", // ✅ ép kiểu
     estimated_time: "",
     status: "active" as "active" | "inactive" | "hidden", // ✅ ép kiểu
-    category: "",
+    category_id: "",
   });
+
+
 
   useEffect(() => {
     if (initialData) {
@@ -33,13 +36,13 @@ export default function ServiceForm({
         name: initialData.name || "",
         description: initialData.description || "",
         price: initialData.price || 0,
-        type: (initialData.type as "store" | "home") || "store", // ✅
+        type: (initialData.type as "at_store" | "at_home") || "at_store", // ✅
         estimated_time: initialData.estimated_time || "",
         status: (initialData.status as "active" | "inactive" | "hidden") || "active", // ✅
-        category:
-          typeof initialData.category === "string"
-            ? initialData.category
-            : initialData.category?._id || "",
+        category_id:
+          typeof initialData.category_id === "string"
+            ? initialData.category_id
+            : initialData.category_id || "",
       });
     }
   }, [initialData]);
@@ -56,16 +59,33 @@ export default function ServiceForm({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      ...form,
-      price: Number(form.price),
-      type: form.type as "store" | "home", // ✅ ép kiểu trước khi gửi
-      status: form.status as "active" | "inactive" | "hidden", // ✅
-      category: form.category,
-    });
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const payload = {
+    ...form,
+    price: Number(form.price),
+    type: form.type as "at_store" | "at_home",
+    status: form.status as "active" | "inactive" | "hidden",
+    category_id: form.category_id,
+    slug: form.name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "")
   };
+
+  try {
+    // const newService = await serviceApi.create(payload);
+    alert("Tạo dịch vụ thành công!");
+    // console.log("Service đã tạo:", newService);
+    onSubmit( payload);
+  } catch (err) {
+    console.error("Lỗi khi tạo dịch vụ:", err);
+    alert("Đã xảy ra lỗi khi tạo dịch vụ");
+  }
+};
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -100,8 +120,8 @@ export default function ServiceForm({
         onChange={handleChange}
         className="w-full border p-2 rounded"
       >
-        <option value="store">Tại cửa hàng</option>
-        <option value="home">Tại nhà</option>
+        <option value="at_store">Tại cửa hàng</option>
+        <option value="at_home">Tại nhà</option>
       </select>
 
       <input
@@ -125,8 +145,8 @@ export default function ServiceForm({
 
       {/* chọn danh mục sửa chữa */}
       <select
-        name="category"
-        value={form.category}
+        name="category_id"
+        value={form.category_id}
         onChange={handleChange}
         className="w-full border p-2 rounded"
       >

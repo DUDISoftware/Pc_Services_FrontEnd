@@ -13,7 +13,7 @@ export default function CategoryTable() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
-  const [form, setForm] = useState({ name: "", description: "" });
+  const [form, setForm] = useState({ name: "", description: "", slug: "" });
 
   // Fetch
   const fetchCategories = async () => {
@@ -37,12 +37,14 @@ export default function CategoryTable() {
   const handleSave = async () => {
     try {
       if (editing) {
+        form.slug = form.name.toLowerCase().replace(/\s+/g, "-");
         await categoryService.update(editing._id, form);
       } else {
+        form.slug = form.name.toLowerCase().replace(/\s+/g, "-");
         await categoryService.create(form);
       }
       setShowForm(false);
-      setForm({ name: "", description: "" });
+      setForm({ name: "", description: "", slug:"" });
       setEditing(null);
       fetchCategories();
     } catch (err) {
@@ -73,7 +75,7 @@ export default function CategoryTable() {
               variant="primary"
               onClick={() => {
                 setEditing(null);
-                setForm({ name: "", description: "" });
+                setForm({ name: "", description: "", slug: "" });
                 setShowForm(true);
               }}
             >
@@ -109,7 +111,7 @@ export default function CategoryTable() {
                     className="w-4 h-4 cursor-pointer text-yellow-600"
                     onClick={() => {
                       setEditing(c);
-                      setForm({ name: c.name, description: c.description });
+                      setForm({ name: c.name, description: c.description, slug: c.name.toLowerCase().replace(/\s+/g, "-") });
                       setShowForm(true);
                     }}
                   />

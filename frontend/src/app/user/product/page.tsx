@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation"; // ✅ đọc query
 import BrandScreen from "./components/BrandScreen";
 import HotProduct from "./components/HotProduct";
-import ProductHeader from "./components/ProductHeader";
 import Products from "./components/Products";
+import CategoryNav from "@/components/common/CategoryNav";
 
 export default function UserProductPage() {
   const searchParams = useSearchParams();
-  const categoryFromQuery = searchParams.get("category") || "Tất cả";
+  const categoryFromQuery = searchParams.get("category") || "all";
 
-  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   // Đồng bộ state với query
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function UserProductPage() {
   return (
     <div>
       {/* Thanh category */}
-      <ProductHeader
+      <CategoryNav
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
       />
