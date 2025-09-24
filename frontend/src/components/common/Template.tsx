@@ -10,17 +10,24 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { bannerService } from "@/services/banner.services";
 
-type BannerItem = {
-  id: string;
+interface BannerItem {
+  index: number;
   _id: string;
   image: string;
   position: number;
+}
+
+const templates = {
+  template1: ["large", "small", "small"],
+  template2: ["wide"],
+  template3: ["medium", "medium", "medium", "medium"],
 };
 
 export default function DragDropBannerLayout() {
-  const [selectedTemplate, setSelectedTemplate] = useState<"template1" | "template2" | "template3">("template3");
+  const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof templates>("template3");
   const [items, setItems] = useState<BannerItem[]>([]);
-  const [activeSlot, setActiveSlot] = useState<string | null>(null);
+  const [galleryItems, setGalleryItems] = useState<BannerItem[]>([]);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [showGallery, setShowGallery] = useState(false);
 
   useEffect(() => {
@@ -28,18 +35,28 @@ export default function DragDropBannerLayout() {
       try {
         const res = await bannerService.getAll();
         const data = res.banners;
-        const valid = data.filter((b) => b.position > 0 && b.position <= 4);
 
-        const mapped: BannerItem[] = valid
+        const active = data
+          .filter((b) => b.position > 0 && b.position <= 4)
           .sort((a, b) => a.position - b.position)
-          .map((b, index) => ({
-            id: (index + 1).toString(),
+          .map((b, i) => ({
+            index: i,
             _id: b._id,
             image: typeof b.image === "string" ? b.image : b.image?.url || "",
             position: b.position,
           }));
 
-        setItems(mapped);
+        const gallery = data
+          .filter((b) => b.position === 0)
+          .map((b) => ({
+            index: -1,
+            _id: b._id,
+            image: typeof b.image === "string" ? b.image : b.image?.url || "",
+            position: b.position,
+          }));
+
+        setItems(active);
+        setGalleryItems(gallery);
       } catch (err) {
         console.error("Lỗi khi tải banner:", err);
       }
@@ -52,108 +69,110 @@ export default function DragDropBannerLayout() {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = items.findIndex((i) => i.id === active.id);
-    const newIndex = items.findIndex((i) => i.id === over.id);
-    const newItems = arrayMove(items, oldIndex, newIndex);
+    const oldIndex = parseInt(active.id as string);
+    const newIndex = parseInt(over.id as string);
+
+    const newItems = [...items];
+    const temp = newItems[oldIndex];
+    newItems[oldIndex] = { ...newItems[newIndex], index: oldIndex };
+    newItems[newIndex] = { ...temp, index: newIndex };
     setItems(newItems);
 
     try {
-      await Promise.all(
-        newItems.map((item, index) =>
-          bannerService.update(item._id, { position: index + 1 })
-        )
-      );
-      console.log("Đã cập nhật vị trí thành công.");
+      await bannerService.update(newItems[oldIndex]._id, { position: oldIndex + 1 });
+      await bannerService.update(newItems[newIndex]._id, { position: newIndex + 1 });
     } catch (err) {
       console.error("Lỗi khi cập nhật position:", err);
     }
   };
 
-  const handleSlotClick = (id: string) => {
-    setActiveSlot(id);
+  const handleSlotDoubleClick = (index: number) => {
+    setActiveIndex(index);
     setShowGallery(true);
   };
 
-  const handleImageSelect = (src: string) => {
-    if (activeSlot) {
-      setItems((prev) =>
-        prev.map((item) =>
-          item.id === activeSlot ? { ...item, image: src } : item
-        )
-      );
-    }
-    setShowGallery(false);
-    setActiveSlot(null);
-  };
+  const handleImageSelect = async (selectedImage: BannerItem) => {
+    if (activeIndex === null) return;
 
-  const renderTemplate = () => {
-    if (selectedTemplate === "template1") {
-      return (
-        <div className="grid grid-cols-3 gap-4 h-64">
-          <div className="col-span-2">
-            <SortableImage id="1" image={items[0]?.image} onClick={handleSlotClick} />
-          </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex-1">
-              <SortableImage id="2" image={items[1]?.image} onClick={handleSlotClick} />
-            </div>
-            <div className="flex-1">
-              <SortableImage id="3" image={items[2]?.image} onClick={handleSlotClick} />
-            </div>
-          </div>
-        </div>
-      );
-    } else if (selectedTemplate === "template2") {
-      return (
-        <div className="h-64">
-          <SortableImage id="1" image={items[0]?.image} onClick={handleSlotClick} />
-        </div>
-      );
-    } else {
-      return (
-        <div className="grid grid-cols-2 gap-4">
-          {items.map((item) => (
-            <SortableImage key={item.id} id={item.id} image={item.image} onClick={handleSlotClick} />
-          ))}
-        </div>
-      );
+    const old = items[activeIndex];
+
+    try {
+      await bannerService.update(old._id, { position: 0 });
+      await bannerService.update(selectedImage._id, { position: activeIndex + 1 });
+
+      const updated = [...items];
+      updated[activeIndex] = {
+        ...selectedImage,
+        index: activeIndex,
+        position: activeIndex + 1,
+      };
+      setItems(updated);
+      setGalleryItems((prev) => prev.filter((img) => img._id !== selectedImage._id).concat(old));
+      setShowGallery(false);
+      setActiveIndex(null);
+    } catch (err) {
+      console.error("Lỗi khi thay đổi ảnh:", err);
     }
   };
 
   return (
-    <div className="p-4 max-w-xl mx-auto">
+    <div className="p-4 max-w-4xl mx-auto">
       <h2 className="text-xl font-semibold mb-4">Kéo thả để sắp xếp banner</h2>
 
       <div className="mb-4">
-        <label className="block mb-2 text-sm font-medium">Chọn bố cục hiển thị:</label>
+        <label className="block mb-2 text-sm font-medium">Chọn template:</label>
         <select
           value={selectedTemplate}
-          onChange={(e) => setSelectedTemplate(e.target.value as any)}
+          onChange={(e) => setSelectedTemplate(e.target.value as keyof typeof templates)}
           className="border px-3 py-2 rounded w-full"
         >
-          <option value="template1">Template 1: 1 ảnh lớn trái, 2 ảnh nhỏ phải</option>
-          <option value="template2">Template 2: 1 ảnh lớn toàn banner</option>
-          <option value="template3">Template 3: 4 ảnh vừa</option>
+          <option value="template1">Template 1: 1 lớn trái, 2 nhỏ phải</option>
+          <option value="template2">Template 2: 1 ảnh rộng</option>
+          <option value="template3">Template 3: 4 ảnh vuông</option>
         </select>
       </div>
 
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          {renderTemplate()}
+        <SortableContext items={items.map((_, i) => i.toString())} strategy={verticalListSortingStrategy}>
+          {selectedTemplate === "template1" && (
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2 h-[200px]">
+                <SortableImage index={0} image={items[0]?.image} onDoubleClick={handleSlotDoubleClick} />
+              </div>
+              <div className="flex flex-col justify-between gap-4 h-[200px]">
+                <SortableImage index={1} image={items[1]?.image} onDoubleClick={handleSlotDoubleClick} />
+                <SortableImage index={2} image={items[2]?.image} onDoubleClick={handleSlotDoubleClick} />
+              </div>
+            </div>
+          )}
+
+          {selectedTemplate === "template2" && (
+            <div className="w-full">
+              <SortableImage index={0} image={items[0]?.image} onDoubleClick={handleSlotDoubleClick} />
+            </div>
+          )}
+
+          {selectedTemplate === "template3" && (
+            <div className="grid grid-cols-2 gap-4">
+              {items.map((item, idx) => (
+                <SortableImage key={item._id} index={idx} image={item.image} onDoubleClick={handleSlotDoubleClick} />
+              ))}
+            </div>
+          )}
         </SortableContext>
       </DndContext>
 
       {showGallery && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white p-4 rounded shadow max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-2">Chọn ảnh</h3>
+            <h3 className="text-lg font-semibold mb-2">Chọn ảnh mới</h3>
             <div className="grid grid-cols-3 gap-3">
-              {items.map((img, i) => (
+              {galleryItems.map((img, i) => (
                 <img
                   key={img._id}
                   src={img.image}
-                  alt={`img-${i}`}
-                  onClick={() => handleImageSelect(img.image)}
+                  alt={`gallery-${i}`}
+                  onClick={() => handleImageSelect(img)}
                   className="h-24 w-full object-cover rounded cursor-pointer hover:ring-2 hover:ring-blue-500"
                 />
               ))}
@@ -171,18 +190,16 @@ export default function DragDropBannerLayout() {
   );
 }
 
-function SortableImage({ id, image, onClick }: {
-  id: string;
+function SortableImage({ index, image, onDoubleClick }: {
+  index: number;
   image?: string;
-  onClick: (id: string) => void;
+  onDoubleClick: (index: number) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id });
-
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: index.toString() });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    height: "100%",
+    height: "160px",
     width: "100%",
   };
 
@@ -192,7 +209,7 @@ function SortableImage({ id, image, onClick }: {
       {...attributes}
       {...listeners}
       style={style}
-      onClick={() => onClick(id)}
+      onDoubleClick={() => onDoubleClick(index)}
       className="rounded-md border border-black bg-gray-100 flex items-center justify-center overflow-hidden cursor-pointer"
     >
       {image ? (
@@ -200,7 +217,7 @@ function SortableImage({ id, image, onClick }: {
       ) : (
         <div className="flex flex-col items-center text-gray-400 text-sm">
           <Upload className="h-6 w-6 mb-1" />
-          Ảnh {id}
+          Slot {index + 1}
         </div>
       )}
     </div>
