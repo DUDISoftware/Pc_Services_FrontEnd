@@ -124,6 +124,7 @@ export function mapRequest(apiData: RequestApi): Request {
 
 export function mapBanner(apiData: BannerApi): Banner {
   return {
+    _id: apiData._id,
     title: apiData.title,
     description: apiData.description,
     image: apiData.image,

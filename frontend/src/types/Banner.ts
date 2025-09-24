@@ -1,4 +1,5 @@
 export interface Banner {
+    _id: string;
     title: string;
     description: string;
     image: string;
@@ -7,6 +8,7 @@ export interface Banner {
 }
 
 export interface BannerApi {
+    _id: string;
     title: string;
     description: string;
     image: string;

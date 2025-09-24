@@ -12,6 +12,7 @@ export const bannerService = {
         return mapBanner(res.data);
     },
     update: async (id: string, data: Partial<BannerApi>): Promise<Banner> => {
+        console.log("Id banner:", id);
         const res = await api.put(`/banners/${id}`, data);
         return mapBanner(res.data);
     },
