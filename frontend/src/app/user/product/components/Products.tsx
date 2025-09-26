@@ -50,9 +50,9 @@ export default function Products({ category }: ProductsProps) {
             rating: 4.5,
             img: p.images?.[0]?.url || "/images/placeholder.png",
             category:
-              typeof p.category === "object"
-                ? p.category.slug
-                : p.category || "khac",
+              typeof p.category_id === "object"
+                ? p.category_id.slug
+                : p.category_id || "Khác",
           };
         });
 

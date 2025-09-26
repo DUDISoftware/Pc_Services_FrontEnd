@@ -37,7 +37,7 @@ export default function CategoryNav({ selectedCategory, onSelectCategory }: Prop
 
   const handleClick = (cat: CategoryItem) => {
     if (onSelectCategory) {
-      onSelectCategory(cat.name);
+      onSelectCategory(cat.name);      
       router.push(`/user/product?category=${encodeURIComponent(cat.slug)}`);
     } else {
       router.push(`/user/product?category=${encodeURIComponent(cat.slug)}`);

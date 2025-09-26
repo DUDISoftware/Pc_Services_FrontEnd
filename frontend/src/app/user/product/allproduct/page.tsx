@@ -34,7 +34,7 @@ export default function AllProductsPage() {
       ? products
       : products.filter((p) => {
           const productCategorySlug =
-            typeof p.category === "object" ? p.category.slug : p.category;
+            typeof p.category_id === "object" ? p.category_id.slug : p.category_id.toString();
           return productCategorySlug?.toLowerCase() === category.toLowerCase();
         });
 
@@ -53,7 +53,7 @@ export default function AllProductsPage() {
       />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-xl font-semibold mb-6">
-          {category === "all" ? "all sản phẩm" : category}
+          {category === "all" ? "Tất cả sản phẩm" : category}
         </h1>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

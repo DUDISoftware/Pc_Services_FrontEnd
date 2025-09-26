@@ -3,12 +3,20 @@
 import { useEffect, useState } from "react";
 import { cartService } from "@/services/cart.service";
 import { Cart } from "@/types/Cart";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  const handleOrder = () => {
+    if (cart) {
+      router.push(`/user/order/1`);
+    }
+  };
 
   useEffect(() => {
     const fetchCart = async () => {
@@ -78,12 +86,12 @@ export default function CartPage() {
         <p className="text-lg font-semibold">
           Tổng cộng: {cart.totalPrice.toLocaleString("vi-VN")}₫
         </p>
-        <Link
-          href="/user/checkout"
-          className="mt-4 inline-block bg-green-600 text-white px-6 py-2 rounded hover:opacity-90"
+        <button
+          onClick={handleOrder}
+          className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:opacity-90"
         >
-          Thanh toán
-        </Link>
+          Đặt hàng
+        </button>
       </div>
     </div>
   );

@@ -3,7 +3,58 @@ import { Category, CategoryApi } from "@/types/Category";
 import { Rating, RatingApi } from "@/types/Rating";
 import { Service, ServiceApi } from "@/types/Service";
 import { Request, RequestApi } from "@/types/Request";
-import { Banner, BannerApi } from "@/types/Banner";
+// lib/mappers.ts
+import { Banner, BannerApi, LayoutOption } from "@/types/Banner";
+
+/** Convert FE layout -> BE numeric */
+export function mapLayoutToApi(layout?: LayoutOption | number): number | undefined {
+  if (!layout && layout !== 0) return undefined;
+  if (typeof layout === "number") return layout;
+  switch (layout) {
+    case "option1":
+      return 1;
+    case "option2":
+      return 2;
+    case "option3":
+      return 3;
+    default:
+      return undefined;
+  }
+}
+
+/** Convert BE numeric -> FE layout string */
+export function mapLayoutFromApi(layout?: number): LayoutOption | undefined {
+  if (!layout && layout !== 0) return undefined;
+  switch (layout) {
+    case 1:
+      return "option1";
+    case 2:
+      return "option2";
+    case 3:
+      return "option3";
+    default:
+      return undefined;
+  }
+}
+
+/** Map API banner -> FE Banner type (includes size & layout converted) */
+export function mapBanner(apiData: BannerApi): Banner {
+  return {
+    _id: apiData._id,
+    title: apiData.title,
+    description: apiData.description,
+    image: {
+      url: apiData.image?.url || "",
+      public_id: apiData.image?.public_id,
+    },
+    link: apiData.link,
+    position: apiData.position,
+    layout: mapLayoutFromApi(apiData.layout),
+    size: apiData.size ?? undefined,
+  };
+}
+
+
 
 export function mapCategory(apiData: CategoryApi): Category {
   return {
@@ -119,16 +170,5 @@ export function mapRequest(apiData: RequestApi): Request {
       : [],
     createdAt: apiData.createdAt,
     updatedAt: apiData.updatedAt,
-  };
-}
-
-export function mapBanner(apiData: BannerApi): Banner {
-  return {
-    _id: apiData._id,
-    title: apiData.title,
-    description: apiData.description,
-    image: apiData.image,
-    link: apiData.link,
-    position: apiData.position
   };
 }

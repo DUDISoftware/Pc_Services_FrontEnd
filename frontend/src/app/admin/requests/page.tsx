@@ -8,15 +8,18 @@ import { seachRequests } from "@/services/search.service";
 import { Request } from "@/types/Request";
 
 export default function RequestsPage() {
-  const [query, setQuery] = useState(""); // ✅ từ input
-  const [requests, setRequests] = useState<Request[]>([]); // ✅ từ API
+  const [query, setQuery] = useState("");
+  const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"service" | "product">("service");
 
-  // ✅ Gọi API khi query thay đổi (có debounce)
+  // ✅ Search cho tab Dịch vụ
   useEffect(() => {
+    if (activeTab !== "service") return;
+
     const timeout = setTimeout(async () => {
       if (!query.trim()) {
-        setRequests([]); // hoặc giữ nguyên nếu muốn
+        setRequests([]);
         return;
       }
 
@@ -30,10 +33,10 @@ export default function RequestsPage() {
       } finally {
         setLoading(false);
       }
-    }, 400); // ⏱ debounce 400ms
+    }, 400);
 
-    return () => clearTimeout(timeout); // cleanup
-  }, [query]);
+    return () => clearTimeout(timeout);
+  }, [query, activeTab]);
 
   return (
     <div className="p-6 flex-1">
@@ -44,22 +47,53 @@ export default function RequestsPage() {
         actions={<Button variant="secondary">Bộ lọc</Button>}
       />
 
-      {/* Search Input */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Tìm kiếm yêu cầu khách hàng"
-          className="border rounded px-3 py-2 w-1/3"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+      {/* Tabs */}
+      <div className="flex gap-4 mb-4 border-b">
+        <button
+          className={`pb-2 px-4 font-medium ${
+            activeTab === "service"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600"
+          }`}
+          onClick={() => setActiveTab("service")}
+        >
+          Dịch vụ
+        </button>
+        <button
+          className={`pb-2 px-4 font-medium ${
+            activeTab === "product"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600"
+          }`}
+          onClick={() => setActiveTab("product")}
+        >
+          Sản phẩm
+        </button>
       </div>
 
-      {/* Loading indicator */}
+      {/* Search Input */}
+      {activeTab === "service" && (
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Tìm kiếm yêu cầu dịch vụ"
+            className="border rounded px-3 py-2 w-1/3"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Content */}
       {loading && <p className="text-sm text-gray-500">Đang tìm kiếm...</p>}
 
-      {/* Board */}
-      <RequestBoard requests={requests} />
+      {activeTab === "service" ? (
+        <RequestBoard requests={requests} />
+      ) : (
+        <div className="p-6 text-gray-500 bg-gray-50 rounded-lg shadow-inner">
+          📦 Chưa có dữ liệu yêu cầu sản phẩm
+        </div>
+      )}
     </div>
   );
 }

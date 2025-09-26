@@ -1,58 +1,112 @@
 "use client";
 
-import Image, { StaticImageData } from "next/image";
+import { Cart } from "@/types/Cart";
 import { Trash2 } from "lucide-react";
 
 interface OrderSummaryProps {
-  product: {
-    id: string;
-    title: string;
-    oldPrice: number;
-    price: number;
-    img: string | StaticImageData;
-  };
+  cart: Cart;
+  setCart: (cart: Cart) => void;
 }
 
-export default function OrderSummary({ product }: OrderSummaryProps) {
+export default function OrderSummary({ cart, setCart }: OrderSummaryProps) {
+  const updateQuantity = (productId: string, delta: number) => {
+    const updatedItems = cart.items.map((item) =>
+      item.product_id === productId
+        ? { ...item, quantity: Math.max(1, item.quantity + delta) }
+        : item
+    );
+
+    const updatedCart: Cart = {
+      ...cart,
+      items: updatedItems,
+      totalPrice: updatedItems.reduce(
+        (sum, item) => sum + item.quantity * item.price,
+        0
+      ),
+      updated_at: new Date().toISOString(),
+    };
+
+    setCart(updatedCart);
+  };
+
+  const removeItem = (productId: string) => {
+    const updatedItems = cart.items.filter(
+      (item) => item.product_id !== productId
+    );
+
+    const updatedCart: Cart = {
+      ...cart,
+      items: updatedItems,
+      totalPrice: updatedItems.reduce(
+        (sum, item) => sum + item.quantity * item.price,
+        0
+      ),
+      updated_at: new Date().toISOString(),
+    };
+
+    setCart(updatedCart);
+  };
+
+  if (cart.items.length === 0) {
+    return (
+      <div className="w-full lg:w-1/3 border rounded-md p-4 bg-white">
+        <p className="text-center text-gray-500">Giỏ hàng trống.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full lg:w-1/3 border rounded-md p-4 bg-white">
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="font-semibold">Sản phẩm</h3>
-        <Trash2 className="w-5 h-5 text-gray-400 cursor-pointer hover:text-red-500" />
-      </div>
+      <h3 className="text-xl font-semibold mb-4">TÓM TẮT ĐƠN HÀNG</h3>
 
-      {/* Product */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-20 h-20 relative border rounded-md">
-          <Image
-            src={product.img}
-            alt={product.title}
-            fill
-            className="object-contain"
-          />
+      {cart.items.map((item) => (
+        <div key={item.product_id} className="mb-5">
+          <div className="flex items-start justify-between mb-3">
+            <p className="text-sm font-medium">{item.name}</p>
+            <Trash2
+              onClick={() => removeItem(item.product_id)}
+              className="w-4 h-4 text-gray-400 cursor-pointer hover:text-red-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-20 h-20 relative border rounded-md overflow-hidden">
+              {/* Nếu bạn muốn dùng image, truyền thêm item.image */}
+              {/* <Image src={...} alt="..." /> */}
+            </div>
+            <div className="flex-1">
+              <p className="text-gray-400 text-sm line-through">
+                {(item.price * 1.1).toLocaleString("vi-VN")}₫
+              </p>
+              <p className="text-red-500 font-semibold text-sm">
+                {item.price.toLocaleString("vi-VN")}₫ x {item.quantity}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-4 mt-3">
+            <button
+              className="w-8 h-8 border rounded-md"
+              onClick={() => updateQuantity(item.product_id, -1)}
+            >
+              -
+            </button>
+            <span>{item.quantity}</span>
+            <button
+              className="w-8 h-8 border rounded-md"
+              onClick={() => updateQuantity(item.product_id, 1)}
+            >
+              +
+            </button>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-medium">{product.title}</p>
-          <p className="text-gray-400 line-through text-sm">
-            {product.oldPrice.toLocaleString("vi-VN")}₫
-          </p>
-          <p className="text-red-500 font-semibold">
-            {product.price.toLocaleString("vi-VN")}₫
-          </p>
-        </div>
-      </div>
+      ))}
 
-      {/* Quantity */}
-      <div className="flex items-center justify-center gap-4 mb-4">
-        <button className="w-8 h-8 border rounded-md">-</button>
-        <span>1</span>
-        <button className="w-8 h-8 border rounded-md">+</button>
-      </div>
-
-      {/* Total */}
-      <div className="border-t pt-3 flex justify-between font-medium">
+      <div className="border-t pt-3 flex justify-between font-medium mt-6">
         <span>TỔNG TIỀN</span>
-        <span className="text-red-500">{product.price.toLocaleString("vi-VN")}₫</span>
+        <span className="text-red-500">
+          {cart.totalPrice.toLocaleString("vi-VN")}₫
+        </span>
       </div>
     </div>
   );

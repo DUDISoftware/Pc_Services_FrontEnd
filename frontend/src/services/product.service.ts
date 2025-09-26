@@ -80,6 +80,7 @@ export const productService = {
     const formData = new FormData();
     formData.append("name", data.name || "");
     formData.append("description", data.description || "");
+    formData.append("slug", data.slug || "");
     formData.append("price", String(data.price || 0));
     formData.append("quantity", String(data.quantity || 0));
     formData.append("status", data.status || "available");
@@ -89,7 +90,7 @@ export const productService = {
     formData.append("model", data.model || "");
     formData.append("resolution", data.resolution || "");
     formData.append(
-      "category",
+      "category_id",
       typeof data.category_id === "object"
         ? data.category_id._id
         : (data.category_id || "")

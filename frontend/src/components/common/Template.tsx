@@ -1,3 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
+"use client";
+
 import { useState, useEffect } from "react";
 import { Upload } from "lucide-react";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
@@ -8,7 +11,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { bannerService } from "@/services/banner.services";
+import { bannerService } from "@/services/banner.service";
 
 type BannerItem = {
   id: string;

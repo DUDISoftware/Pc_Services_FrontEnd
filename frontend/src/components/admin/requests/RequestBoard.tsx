@@ -9,7 +9,7 @@ import {
 } from "@hello-pangea/dnd";
 import { MoreHorizontal } from "lucide-react";
 import { Request } from "@/types/Request";
-import { requestApi } from "@/services/request.service";
+import { requestService } from "@/services/request.service";
 import { all } from "axios";
 
 interface RequestPayload {
@@ -55,7 +55,7 @@ export default function RequestBoard({ requests }: { requests: Request[] }) {
   // Fetch dữ liệu khi load trang
   useEffect(() => {
     const load = async () => {
-      let data = await requestApi.getAll();
+      let data = await requestService.getAll();
       if (requests.length > 0) {
         data = requests;
       }
@@ -85,7 +85,7 @@ export default function RequestBoard({ requests }: { requests: Request[] }) {
 
     setColumns(updatedColumns);
 
-    requestApi.update(movedRequest.id, { status: destCol.id as Request["status"] });
+    requestService.update(movedRequest.id, { status: destCol.id as Request["status"] });
   };
 
   return (

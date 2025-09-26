@@ -25,7 +25,6 @@ export default function ProductInfo({ product }: { product: Product }) {
   const handleAddToCart = async () => {
     try {
       await cartService.addToCart(product.id, quantity);
-      alert("Đã thêm vào giỏ hàng!");
       setShowPopup(false); // đóng popup
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng:", error);
@@ -41,7 +40,6 @@ export default function ProductInfo({ product }: { product: Product }) {
     const checkCart = async () => {
       try {
         const cart = await cartService.getCart();
-        console.log("Giỏ hàng hiện tại:", cart);
       } catch (error) {
         console.error("Lỗi khi lấy giỏ hàng:", error);
       }

@@ -2,7 +2,7 @@ import api from "@/lib/api";
 import { Service } from "@/types/Service";
 import { mapService } from "@/lib/mappers";
 
-export const serviceApi = {
+export const serviceService = {
   getAll: async (): Promise<Service[]> => {
     const res = await api.get("/services");
     return res.data.services.map(mapService);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { serviceApi } from "@/services/service.service";
+import { serviceService } from "@/services/service.service";
 import { Service } from "@/types/Service";
 
 import ServiceCard from "./ServiceCard";
@@ -14,7 +14,7 @@ export default function ServiceList() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const data = await serviceApi.getAll();
+        const data = await serviceService.getAll();
         setServices(data);
       } catch (err) {
         console.error("Lỗi khi tải dịch vụ:", err);

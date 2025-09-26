@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Edit, Trash, Eye } from "lucide-react";
 import TableHeader from "../TableHeader";
 import Button from "@/components/common/Button";
-import { serviceApi } from "@/services/service.service";
-import { categoryServiceApi } from "@/services/categoryservice.service";
+import { serviceService } from "@/services/service.service";
+import { categoryServiceService } from "@/services/categoryservice.service";
 import { Service } from "@/types/Service";
 import { CategoryService } from "@/types/CategoryService";
 import Modal from "@/components/admin/services/Modal";
@@ -20,7 +20,7 @@ export default function ServicesTable() {
 
   const fetchServices = async () => {
     try {
-      const data = await serviceApi.getAll();
+      const data = await serviceService.getAll();
       setServices(data);
     } catch (error) {
       console.error("Lỗi khi tải dịch vụ:", error);
@@ -29,7 +29,7 @@ export default function ServicesTable() {
 
   const fetchCategories = async () => {
     try {
-      const data = await categoryServiceApi.getAll();
+      const data = await categoryServiceService.getAll();
       setCategories(data);
     } catch (error) {
       console.error("Lỗi khi tải danh mục:", error);
@@ -48,13 +48,14 @@ export default function ServicesTable() {
   };
 
   const handleEdit = (service: Service) => {
+    console.log('Editing service:', service);
     setEditingService(service);
     setModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     if (confirm("Bạn có chắc muốn xóa dịch vụ này?")) {
-      await serviceApi.delete(id);
+      await serviceService.delete(id);
       fetchServices();
     }
   };
@@ -62,9 +63,9 @@ export default function ServicesTable() {
   const handleSubmit = async (data: Partial<Service> & { category_id: string }) => {
     try {
       if (editingService) {
-        await serviceApi.update(editingService._id, data);
+        await serviceService.update(editingService._id, data);
       } else {
-        await serviceApi.create(data);
+        await serviceService.create(data);
       }
       setModalOpen(false);
       fetchServices();

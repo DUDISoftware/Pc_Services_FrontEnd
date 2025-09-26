@@ -5,7 +5,7 @@ import { useState } from "react";
 import { X, Upload, FlagIcon } from "lucide-react";
 import { Service } from "@/types/Service";
 import { Request, RepairRequestPayload } from "@/types/Request";
-import { requestApi } from "@/services/request.service";
+import { requestService } from "@/services/request.service";
 
 interface ServiceRequestModalProps {
   serviceData: Service;
@@ -42,7 +42,7 @@ export default function ServiceRequestModal({serviceData, isOpen, onClose }: Ser
     try {
       console.log("Service Data:", serviceData);
       console.log("Gửi yêu cầu với dữ liệu:", form);
-      await requestApi.create(
+      await requestService.create(
         {...form, service_id: serviceData._id} as RepairRequestPayload
       );
       alert("Yêu cầu đã được gửi thành công!");

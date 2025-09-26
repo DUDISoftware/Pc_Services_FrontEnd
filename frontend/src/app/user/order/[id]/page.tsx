@@ -1,32 +1,44 @@
 "use client";
+
+import { useEffect, useState } from "react";
 import OrderBreadcrumb from "./components/OrderBreadcrumb";
 import OrderForm from "./components/OrderForm";
 import OrderSummary from "./components/OrderSummary";
-import Product1 from "@/assets/image/product/product1.jpg";
+import { Cart } from "@/types/Cart";
 
-const products = [
-  {
-    id: "1",
-    title: "Màn hình Gaming LG UltraGear 45GS95QE-B",
-    oldPrice: 39000000,
-    price: 31199999,
-    img: Product1,
-  },
-];
+export default function OrderPage() {
+  const [cart, setCart] = useState<Cart>({
+    _id: "",
+    items: [],
+    totalPrice: 0,
+    updated_at: "",
+  });
 
-export default function OrderPage({ params }: { params: { id: string } }) {
-  const product = products.find((p) => p.id === params.id);
+  useEffect(() => {
+    const stored = localStorage.getItem("cart");
+    console.log("Stored cart:", stored);
+    if (stored) {
+      try {
+        const parsed: Cart = JSON.parse(stored);
+        if (parsed && Array.isArray(parsed.items)) {
+          setCart(parsed);
+        }
+      } catch (err) {
+        console.error("Lỗi đọc cart từ localStorage:", err);
+      }
+    }
+  }, []);
 
-  if (!product) {
-    return <p className="p-6 text-gray-500">Sản phẩm không tồn tại.</p>;
-  }
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <OrderBreadcrumb />
       <div className="flex flex-col lg:flex-row gap-8">
-        <OrderForm />
-        <OrderSummary product={product} />
+        <OrderForm cart={cart} setCart={setCart} />
+        <OrderSummary cart={cart} setCart={setCart} />
       </div>
     </div>
   );

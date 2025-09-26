@@ -1,7 +1,7 @@
 import api from "@/lib/api"
 import { CategoryService } from "@/types/CategoryService"
 
-export const categoryServiceApi = {
+export const categoryServiceService = {
   // Lấy tất cả danh mục
   getAll: async (): Promise<CategoryService[]> => {
     const res = await api.get("/service-categories")

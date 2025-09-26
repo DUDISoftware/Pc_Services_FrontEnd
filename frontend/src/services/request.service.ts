@@ -1,6 +1,7 @@
 import api from "@/lib/api";
 import { Request, RequestApi } from "@/types/Request";
 import { mapRequest } from "@/lib/mappers";
+import { get } from "http";
 
 function isRepair (request: Request): boolean {
     return request.repair_type !== undefined && request.service_id !== undefined;
@@ -19,7 +20,7 @@ function findType (request: Request): "repair" | "order" | null {
     return null;
 }
 
-export const requestApi = {
+export const requestService = {
     create: async (data: Partial<Request>): Promise<unknown> => {
         const type = findType(data as Request);
         const endpoint = type === "repair" ? "/requests/repairs" : type === "order" ? "/requests/orders" : "/requests";
@@ -27,12 +28,20 @@ export const requestApi = {
         return mapRequest(res.data.request);
     },
 
+    getAllRepairs: async (): Promise<Request[]> => {
+        const res = await api.get("/requests/repairs");
+        return res.data.requests.map((reqData: RequestApi) => mapRequest(reqData));
+    },
+
+    getAllOrders: async (): Promise<Request[]> => {
+        const res = await api.get("/requests/orders");
+        return res.data.requests.map((reqData: RequestApi) => mapRequest(reqData));
+    },
+
     getAll: async (): Promise<Request[]> => {
-        const repairs = await api.get("/requests/repairs");
-        repairs.data.requests.map((reqData: RequestApi) => mapRequest(reqData));
-        const orders = await api.get("/requests/orders");
-        orders.data.requests.map((reqData: RequestApi) => mapRequest(reqData));
-        return [...repairs.data.requests, ...orders.data.requests];
+        const repairs = await requestService.getAllRepairs();
+        const orders = await requestService.getAllOrders();
+        return [...repairs, ...orders];
     },
 
     updateOrder: async (id: string, data: Partial<Request>): Promise<Request> => {
@@ -54,8 +63,8 @@ export const requestApi = {
     },
 
     update: async (id: string, data: Partial<Request>): Promise<Request> => {
-        const repair = requestApi.getRepairById(id).catch(() => null);
-        const order = requestApi.getOrderById(id).catch(() => null);
+        const repair = requestService.getRepairById(id).catch(() => null);
+        const order = requestService.getOrderById(id).catch(() => null);
         const existingRequest = await repair || await order;
         if (!existingRequest) {
             throw new Error("Yêu cầu không tồn tại");
