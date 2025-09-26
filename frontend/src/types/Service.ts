@@ -11,7 +11,12 @@ export interface Service {
   status: "active" | "inactive" | "hidden";
   created_at?: string;
   updated_at?: string;
-  category_id: string;
+  category_id: {
+  _id: string;
+    name: string;
+    description: string;
+    status: "active" | "inactive";
+  };
   images?: UploadedImage[];
 }
 
@@ -26,6 +31,11 @@ export interface ServiceApi {
   status: "active" | "inactive" | "hidden";
   created_at?: string;
   updated_at?: string;
-  category_id: string;
+  category_id: {
+    _id: string;
+    name: string;
+    description: string;
+    status: "active" | "inactive";
+  };
   images?: UploadedImage[];
 }

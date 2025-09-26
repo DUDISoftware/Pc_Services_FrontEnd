@@ -13,10 +13,10 @@ export default function OrderPage() {
     totalPrice: 0,
     updated_at: "",
   });
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   useEffect(() => {
     const stored = localStorage.getItem("cart");
-    console.log("Stored cart:", stored);
     if (stored) {
       try {
         const parsed: Cart = JSON.parse(stored);
@@ -27,9 +27,11 @@ export default function OrderPage() {
         console.error("Lỗi đọc cart từ localStorage:", err);
       }
     }
+    setIsFirstLoad(false);
   }, []);
 
   useEffect(() => {
+    if (isFirstLoad) return;
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 

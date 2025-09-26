@@ -116,11 +116,6 @@ export default function BannerForm() {
         <label className="block text-sm font-medium mb-2">Hình ảnh</label>
         <label className="flex h-28 w-28 cursor-pointer items-center justify-center rounded-md border-2 border-dashed bg-gray-50 hover:bg-gray-100 relative">
           {preview ? (
-            // For preview object URLs, Next Image can't optimize — using <img> is OK,
-            // but if you want to keep next/image, pass src that is allowed. Using <img> simpler:
-            // <Image src={preview} alt="Preview" fill sizes="100vw" />
-            // Use native img:
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt="Preview" className="h-full w-full object-cover rounded-md" />
           ) : (
             <div className="flex flex-col items-center text-gray-400 text-sm">

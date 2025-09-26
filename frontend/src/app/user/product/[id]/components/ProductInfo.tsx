@@ -24,7 +24,8 @@ export default function ProductInfo({ product }: { product: Product }) {
 
   const handleAddToCart = async () => {
     try {
-      await cartService.addToCart(product.id, quantity);
+      await cartService.addToCart(product.id, quantity || 1);
+      window.dispatchEvent(new Event("cart_updated"));
       setShowPopup(false); // đóng popup
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng:", error);
@@ -32,7 +33,8 @@ export default function ProductInfo({ product }: { product: Product }) {
     }
   };
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
+    await handleAddToCart();
     router.push(`/user/order/${product.id}`);
   };
 

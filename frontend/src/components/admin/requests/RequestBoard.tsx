@@ -7,15 +7,18 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-import { MoreHorizontal } from "lucide-react";
 import { Request } from "@/types/Request";
 import { requestService } from "@/services/request.service";
-import { all } from "axios";
+import { serviceService } from "@/services/service.service";
+import RequestCard from "./RequestCard";
 
 interface RequestPayload {
   id: string;
   customer: string;
   description: string;
+  phone?: string;
+  address?: string;
+  email?: string;
   date: string;
   items?: { name: string; product_id: string; quantity: number; price: number }[];
   service_id?: string;
@@ -27,47 +30,88 @@ interface Column {
   requests: RequestPayload[];
 }
 
-function mapRequestsToColumns(requests: Request[]): Column[] {
-  const columns: Column[] = [
-    { id: "new", title: "🆕 Mới", requests: [] },
-    { id: "in_progress", title: "⚙️ Đang xử lý", requests: [] },
-    { id: "completed", title: "✅ Hoàn thành", requests: [] },
-  ];
+export default function RequestBoard({
+  requests,
+  tab,
+}: {
+  requests: Request[];
+  tab: "service" | "product";
+}) {
+  const [columns, setColumns] = useState<Column[]>([]);
+  const [services, setServices] = useState<{ _id: string; name: string }[]>([]);
 
-  for (const req of requests) {
-    const col = columns.find((c) => c.id === req.status);
-    if (col) {
-      col.requests.push({
-        id: req._id,
-        customer: req.name,
-        description: req.problem_description ?? req.items?.[0]?.name ?? "",
-        date: new Date(req.updatedAt).toLocaleDateString("vi-VN"),
-      });
+  // Load danh sách dịch vụ (dùng cho title)
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const data = await serviceService.getAll();
+        setServices(data);
+      } catch (err) {
+        console.error("❌ Lỗi khi tải danh sách dịch vụ:", err);
+      }
+    };
+
+    if (tab === "service") {
+      loadServices();
     }
+  }, [tab]);
+
+  const getServiceNameById = (id?: string): string => {
+    if (!id) return "Không rõ dịch vụ";
+    return services.find((s) => s._id === id)?.name ?? "Đơn đặt hàng";
+  };
+
+  // Gộp request thành các column theo status
+  function mapRequestsToColumns(requests: Request[]): Column[] {
+    const columns: Column[] = [
+      { id: "new", title: "🆕 Mới", requests: [] },
+      { id: "in_progress", title: "⚙️ Đang xử lý", requests: [] },
+      { id: "completed", title: "✅ Hoàn thành", requests: [] },
+    ];
+
+    for (const req of requests) {
+      const col = columns.find((c) => c.id === req.status);
+      if (col) {
+        col.requests.push({
+          id: req._id,
+          customer: req.name,
+          description: req.problem_description ?? req.items?.[0]?.name ?? "",
+          date: new Date(req.updatedAt).toLocaleDateString("vi-VN"),
+          phone: req.phone,
+          address: req.address,
+          email: req.email,
+          items: req.items,
+          service_id: req.service_id,
+        });
+      }
+    }
+
+    return columns;
   }
 
-  return columns;
-}
-
-export default function RequestBoard({ requests }: { requests: Request[] }) {
-  const [columns, setColumns] = useState<Column[]>([]);
-
-  // Fetch dữ liệu khi load trang
+  // Load data khi đổi tab hoặc props.requests
   useEffect(() => {
     const load = async () => {
-      let data = await requestService.getAll();
+      let data: Request[] = [];
+
       if (requests.length > 0) {
         data = requests;
+      } else {
+        data =
+          tab === "service"
+            ? await requestService.getAllRepairs()
+            : await requestService.getAllOrders();
       }
+
       const cols = mapRequestsToColumns(data);
       setColumns(cols);
     };
 
     load();
-  }, [requests]);
+  }, [requests, tab]);
 
-  // Xử lý kéo thả
-  const handleDragEnd = (result: DropResult) => {
+  // Drag & Drop
+  const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
     const { source, destination } = result;
@@ -85,7 +129,21 @@ export default function RequestBoard({ requests }: { requests: Request[] }) {
 
     setColumns(updatedColumns);
 
-    requestService.update(movedRequest.id, { status: destCol.id as Request["status"] });
+    // Gửi update trạng thái
+    try {
+      if (tab === "service") {
+        await requestService.updateRepair(movedRequest.id, {
+          status: destCol.id as Request["status"],
+        });
+      } else {
+        await requestService.updateOrder(movedRequest.id, {
+          status: destCol.id as Request["status"],
+        });
+      }
+    } catch (err) {
+      console.error("❌ Lỗi khi cập nhật trạng thái:", err);
+      // Optional: rollback UI hoặc hiện toast lỗi
+    }
   };
 
   return (
@@ -102,8 +160,9 @@ export default function RequestBoard({ requests }: { requests: Request[] }) {
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`p-4 rounded-xl shadow-md bg-white transition ${snapshot.isDraggingOver ? "bg-blue-50" : ""
-                    }`}
+                  className={`p-4 rounded-xl shadow-md bg-white transition ${
+                    snapshot.isDraggingOver ? "bg-blue-50" : ""
+                  }`}
                 >
                   <h3 className="text-lg font-semibold mb-3">{col.title}</h3>
                   <div className="space-y-4">
@@ -114,32 +173,20 @@ export default function RequestBoard({ requests }: { requests: Request[] }) {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className={`p-4 border rounded-lg shadow-sm bg-gray-50 transition ${snapshot.isDragging
+                            className={`border rounded-lg shadow-sm bg-gray-50 p-2 transition ${
+                              snapshot.isDragging
                                 ? "bg-blue-100 border-blue-400"
                                 : "hover:bg-gray-100"
-                              }`}
+                            }`}
                           >
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="font-semibold text-gray-800">{req.customer}</p>
-
-                                {/* ✅ Phần xử lý hiển thị nội dung thông minh */}
-                                <p className="text-sm text-gray-600">
-                                  {req.description ||
-                                    (req.items?.length
-                                      ? req.items.map((i) => `${i.name} x${i.quantity}`).join(", ")
-                                      : req.service_id
-                                        ? "Yêu cầu sửa chữa"
-                                        : "Không có mô tả")}
-                                </p>
-                              </div>
-
-                              <button className="text-gray-500 hover:text-gray-700">
-                                <MoreHorizontal size={18} />
-                              </button>
-                            </div>
-
-                            <p className="text-xs text-gray-400 mt-2">Ngày: {req.date}</p>
+                            <RequestCard
+                              title={getServiceNameById(req.service_id)}
+                              customer={req.customer}
+                              phone={req.phone ?? ""}
+                              address={req.address ?? ""}
+                              details={[req.description ?? ""]}
+                              date={req.date}
+                            />
                           </div>
                         )}
                       </Draggable>

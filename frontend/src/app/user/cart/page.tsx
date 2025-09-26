@@ -14,7 +14,9 @@ export default function CartPage() {
 
   const handleOrder = () => {
     if (cart) {
-      router.push(`/user/order/1`);
+      router.push(`/user/order/0`);
+    } else {
+      console.log("Giỏ hàng trống, không thể đặt hàng.");
     }
   };
 

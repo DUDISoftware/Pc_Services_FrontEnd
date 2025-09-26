@@ -44,7 +44,7 @@ export interface RequestApi {
   estimated_time: string;
   status: "new" | "in_progress" | "completed" | "cancelled";
   service_id?: string;
-  images?: UploadedImage[];
+  images?: (File | UploadedImage)[];
   createdAt: string;
   updatedAt: string;
 }

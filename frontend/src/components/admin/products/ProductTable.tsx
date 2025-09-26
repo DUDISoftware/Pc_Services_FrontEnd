@@ -108,6 +108,7 @@ export default function ProductTable() {
           prev.map((p) => (p._id === updated._id ? updated : p))
         );
       } else {
+        console.log("Creating product with payload:", payload);
         const created = await productService.create(payload);
         setProducts((prev) => [...prev, created]);
       }

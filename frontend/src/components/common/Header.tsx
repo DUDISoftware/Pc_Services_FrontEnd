@@ -23,20 +23,34 @@ export default function Header() {
   const [langOpen, setLangOpen] = useState(false); // 🔹 mở dropdown ngôn ngữ
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<Cart | null>(null);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    const fetchCart = async () => {
-      try {
-        const data = await cartService.getCart();
-        setCart(data);
-      } catch (err) {
-        console.error("Lỗi khi tải giỏ hàng:", err);
+    const loadCart = () => {
+      const stored = localStorage.getItem("cart");
+      if (stored) {
+        try {
+          const parsed: Cart = JSON.parse(stored);
+          setCart(parsed);
+          setCartCount(parsed.items.length);
+        } catch (err) {
+          console.error("Lỗi parse cart:", err);
+        }
       }
     };
-    fetchCart();
+
+    loadCart(); // Lấy cart ban đầu
+
+    const handleCartUpdate = () => {
+      loadCart(); // reload khi có sự kiện
+    };
+    window.addEventListener("cart_updated", handleCartUpdate);
+    return () => {
+      window.removeEventListener("cart_updated", handleCartUpdate);
+    };
   }, []);
 
-  const cartCount = cart?.items?.length || 0;
+
   //const wishlistCount = cart?.wishlist?.length || 0;
 
   const links = [
@@ -60,8 +74,8 @@ export default function Header() {
               href={link.href}
               onClick={() => setActive(link.label)}
               className={`pb-1 transition-all ${active === link.label
-                  ? "font-semibold border-b-2 border-black"
-                  : "hover:text-dark-600"
+                ? "font-semibold border-b-2 border-black"
+                : "hover:text-dark-600"
                 }`}
             >
               {link.label}
@@ -138,10 +152,10 @@ export default function Header() {
 
           <div className="relative cursor-pointer">
             <button onClick={() => (window.location.href = "/user/cart")}>
-              <ShoppingCart size={20} />
+              <ShoppingCart size={20} className="relative top-1" />
             </button>
             {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">
+              <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full px-1">
                 {cartCount}
               </span>
             )}
@@ -180,8 +194,8 @@ export default function Header() {
                 setOpenMenu(false);
               }}
               className={`${active === link.label
-                  ? "underline text-dark-600"
-                  : "hover:underline"
+                ? "underline text-dark-600"
+                : "hover:underline"
                 }`}
             >
               {link.label}
