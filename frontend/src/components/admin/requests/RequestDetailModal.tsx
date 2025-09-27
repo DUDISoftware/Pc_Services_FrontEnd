@@ -68,7 +68,7 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
             <ul className="list-disc list-inside text-gray-700">
               {request.items.map((item, index) => (
                 <li key={index}>
-                  {item.product_id.name}: {item.quantity} x {item.product_id.price.toLocaleString()}₫
+                  {item.product_id.name}: {item.quantity} x {item.product_id.price}₫
                 </li>
               ))}
             </ul>

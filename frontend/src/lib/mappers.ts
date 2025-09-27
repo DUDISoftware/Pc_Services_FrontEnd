@@ -51,6 +51,7 @@ export function mapBanner(apiData: BannerApi): Banner {
     position: apiData.position,
     layout: mapLayoutFromApi(apiData.layout),
     size: apiData.size ?? undefined,
+    updatedAt: apiData.updatedAt,
   };
 }
 

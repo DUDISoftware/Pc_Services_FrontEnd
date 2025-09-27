@@ -15,7 +15,7 @@ export default function RequestsPage() {
 
   // Search chỉ áp dụng khi đang ở tab "service"
   useEffect(() => {
-    if (activeTab !== "service") return;
+    //if (activeTab !== "service") return;
 
     const timeout = setTimeout(async () => {
       if (!query.trim()) {
@@ -78,7 +78,8 @@ export default function RequestsPage() {
       </div>
 
       {/* Search input (chỉ tab "service") */}
-      {activeTab === "service" && (
+      {/* {activeTab === "service" && ( */}
+      { true && (
         <div className="mb-4">
           <input
             type="text"

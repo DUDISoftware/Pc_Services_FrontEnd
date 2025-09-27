@@ -11,6 +11,7 @@ export interface Banner {
   position: number;
   layout?: LayoutOption; // FE dùng option
   size?: SizeOption; // FE hiển thị size
+  updatedAt?: string;
 }
 
 // API trả về từ backend (layout = number, size = 'large'|'small')
@@ -23,4 +24,5 @@ export interface BannerApi {
   position: number;
   layout?: number; // BE lưu số
   size?: SizeOption;
+  updatedAt?: string;
 }

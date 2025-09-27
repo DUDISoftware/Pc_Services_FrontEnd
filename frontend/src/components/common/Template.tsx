@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { Upload } from "lucide-react";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
@@ -18,115 +17,153 @@ type BannerItem = {
   _id: string;
   image: string;
   position: number;
+  updatedAt?: string;
 };
 
 export default function DragDropBannerLayout() {
   const [selectedTemplate, setSelectedTemplate] = useState<"template1" | "template2" | "template3">("template1");
-  const [items, setItems] = useState<BannerItem[]>([]);
-  const [activeSlot, setActiveSlot] = useState<string | null>(null);
+  const [holders, setHolders] = useState<(BannerItem | null)[]>([]);
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [showGallery, setShowGallery] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<BannerItem[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const pageSize = 15;
+
+  const maxSlots = selectedTemplate === "template2" ? 1 : selectedTemplate === "template3" ? 4 : 3;
+
+  const fetchBanners = async () => {
+    try {
+      const res = await bannerService.getAll();
+      const data = res.banners;
+      // const valid = data.filter((b) => b.position > 0);
+      const bannersWithPosition = data.filter((b) => b.position > 0);
+
+// Nhóm theo position
+const positionMap: Record<number, BannerItem[]> = {};
+for (const b of bannersWithPosition) {
+  if (!positionMap[b.position]) positionMap[b.position] = [];
+  positionMap[b.position].push(b);
+}
+
+const uniqueBanners: BannerItem[] = [];
+
+await Promise.all(
+  Object.entries(positionMap).map(async ([posStr, list]) => {
+    if (list.length === 1) {
+      uniqueBanners.push(list[0]);
+    } else {
+      // Sắp xếp theo updatedAt mới nhất
+      const sorted = list.sort(
+        (a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()
+      );
+      const [newest, ...rest] = sorted;
+      uniqueBanners.push(newest);
+
+      // Cập nhật các ảnh còn lại về position 0
+      await Promise.all(
+        rest.map((oldItem) =>
+          bannerService.update(oldItem._id, { position: 0 })
+        )
+      );
+    }
+  })
+);
+
+const initialHolders = uniqueBanners
+  .sort((a, b) => a.position - b.position)
+  .slice(0, maxSlots)
+  .map((b) => ({
+    id: b._id,
+    _id: b._id,
+    image: typeof b.image === "string" ? b.image : b.image?.url || "",
+    position: b.position,
+  }));
+
+
+      // const initialHolders = valid
+      //   .sort((a, b) => a.position - b.position)
+      //   .slice(0, maxSlots)
+      //   .map((b) => ({
+      //     id: b._id,
+      //     _id: b._id,
+      //     image: typeof b.image === "string" ? b.image : b.image?.url || "",
+      //     position: b.position,
+      //   }));
+
+      setHolders(Array.from({ length: maxSlots }, (_, i) => initialHolders[i] || null));
+    } catch (err) {
+      console.error("Lỗi khi tải banner:", err);
+    }
+  };
 
   useEffect(() => {
-    const fetchBanners = async () => {
-      try {
-        const res = await bannerService.getAll();
-        const data = res.banners;
-        const valid = data.filter((b) => b.position > 0 && b.position <= 4);
-
-        const mapped: BannerItem[] = valid
-          .sort((a, b) => a.position - b.position)
-          .map((b, index) => ({
-            id: (index + 1).toString(),
-            _id: b._id,
-            image: typeof b.image === "string" ? b.image : b.image?.url || "",
-            position: b.position,
-          }));
-
-        setItems(mapped);
-      } catch (err) {
-        console.error("Lỗi khi tải banner:", err);
-      }
-    };
-
     fetchBanners();
   }, [selectedTemplate]);
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = items.findIndex((i) => i.id === active.id);
-    const newIndex = items.findIndex((i) => i.id === over.id);
-    const newItems = arrayMove(items, oldIndex, newIndex);
-    setItems(newItems);
+    const fromIndex = holders.findIndex((h) => h?.id === active.id);
+    const toIndex = holders.findIndex((h) => h?.id === over.id);
+    if (fromIndex === -1 || toIndex === -1) return;
 
+    const newHolders = [...holders];
+    [newHolders[fromIndex], newHolders[toIndex]] = [newHolders[toIndex], newHolders[fromIndex]];
+    setHolders(newHolders);
+  };
+
+  const handleSlotDoubleClick = async (slotIndex: number) => {
+    setActiveSlot(slotIndex);
     try {
-      await Promise.all(
-        newItems.map((item, index) =>
-          bannerService.update(item._id, { position: index + 1 })
-        )
-      );
-      console.log("Đã cập nhật vị trí thành công.");
+      const res = await bannerService.getAll();
+      const gallery = res.banners.filter((b) => b.position === 0);
+      const galleryItems = gallery.map((b) => ({
+        id: b._id,
+        _id: b._id,
+        image: typeof b.image === "string" ? b.image : b.image?.url || "",
+        position: 0,
+      }));
+      setGalleryImages(galleryItems);
+      setShowGallery(true);
     } catch (err) {
-      console.error("Lỗi khi cập nhật position:", err);
+      console.error("❌ Lỗi tải gallery:", err);
     }
   };
 
-  const handleSlotClick = (id: string) => {
-    setActiveSlot(id);
-    setShowGallery(true);
-  };
-
-  const handleImageSelect = (src: string) => {
-    if (activeSlot) {
-      setItems((prev) =>
-        prev.map((item) =>
-          item.id === activeSlot ? { ...item, image: src } : item
-        )
-      );
-    }
+  const handleImageSelect = (newImage: BannerItem) => {
+    if (activeSlot === null) return;
+    const newHolders = [...holders];
+    newHolders[activeSlot] = { ...newImage };
+    setHolders(newHolders);
     setShowGallery(false);
     setActiveSlot(null);
   };
 
-  const renderTemplate = () => {
-    if (selectedTemplate === "template1") {
-      return (
-        <div className="grid grid-cols-3 gap-4 h-64">
-          <div className="col-span-2">
-            <SortableImage id="1" image={items[0]?.image} onClick={handleSlotClick} />
-          </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex-1">
-              <SortableImage id="2" image={items[1]?.image} onClick={handleSlotClick} />
-            </div>
-            <div className="flex-1">
-              <SortableImage id="3" image={items[2]?.image} onClick={handleSlotClick} />
-            </div>
-          </div>
-        </div>
+  const handleConfirm = async () => {
+    const layoutNum = selectedTemplate === "template1" ? 1 : selectedTemplate === "template2" ? 2 : 3;
+    try {
+      await Promise.all(
+        holders.map((item, index) =>
+          item
+            ? bannerService.update(item._id, {
+                position: index + 1,
+                layout: layoutNum,
+              })
+            : null
+        )
       );
-    } else if (selectedTemplate === "template2") {
-      return (
-        <div className="h-64">
-          <SortableImage id="1" image={items[0]?.image} onClick={handleSlotClick} />
-        </div>
-      );
-    } else {
-      return (
-        <div className="grid grid-cols-2 gap-4">
-          {items.map((item) => (
-            <SortableImage key={item.id} id={item.id} image={item.image} onClick={handleSlotClick} />
-          ))}
-        </div>
-      );
+      alert("✅ Đã cập nhật layout và vị trí thành công!");
+      await fetchBanners();
+    } catch (err) {
+      console.error("❌ Lỗi khi cập nhật:", err);
     }
   };
 
   return (
     <div className="p-4 max-w-xl mx-auto">
       <h2 className="text-xl font-semibold mb-4">Kéo thả để sắp xếp banner</h2>
-
       <div className="mb-4">
         <label className="block mb-2 text-sm font-medium">Chọn bố cục hiển thị:</label>
         <select
@@ -141,28 +178,93 @@ export default function DragDropBannerLayout() {
       </div>
 
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          {renderTemplate()}
+        <SortableContext items={holders.map((h) => h?.id || "empty") as string[]} strategy={verticalListSortingStrategy}>
+          {selectedTemplate === "template1" && (
+            <div className="grid grid-cols-3 gap-4 h-64">
+              <div className="col-span-2">
+                <SortableImage
+                  id={holders[0]?.id || `empty-0`}
+                  image={holders[0]?.image}
+                  onDoubleClick={() => handleSlotDoubleClick(0)}
+                />
+              </div>
+              <div className="flex flex-col gap-4">
+                <SortableImage
+                  id={holders[1]?.id || `empty-1`}
+                  image={holders[1]?.image}
+                  onDoubleClick={() => handleSlotDoubleClick(1)}
+                />
+                <SortableImage
+                  id={holders[2]?.id || `empty-2`}
+                  image={holders[2]?.image}
+                  onDoubleClick={() => handleSlotDoubleClick(2)}
+                />
+              </div>
+            </div>
+          )}
+
+          {selectedTemplate === "template2" && (
+            <div className="h-64">
+              <SortableImage
+                id={holders[0]?.id || `empty-0`}
+                image={holders[0]?.image}
+                onDoubleClick={() => handleSlotDoubleClick(0)}
+              />
+            </div>
+          )}
+
+          {selectedTemplate === "template3" && (
+            <div className="grid grid-cols-2 gap-4">
+              {holders.map((h, i) => (
+                <SortableImage
+                  key={i}
+                  id={h?.id || `empty-${i}`}
+                  image={h?.image}
+                  onDoubleClick={() => handleSlotDoubleClick(i)}
+                />
+              ))}
+            </div>
+          )}
         </SortableContext>
       </DndContext>
 
+      <div className="mt-6">
+        <button
+          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded"
+          onClick={handleConfirm}
+        >
+          ✅ Xác nhận sử dụng template này cho HomeBanner
+        </button>
+      </div>
+
       {showGallery && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-white p-4 rounded shadow max-w-md w-full">
+          <div className="bg-white p-4 rounded shadow max-w-lg w-[600px] max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-2">Chọn ảnh</h3>
-            <div className="grid grid-cols-3 gap-3">
-              {items.map((img, i) => (
+            <div className="grid grid-cols-5 gap-2">
+              {galleryImages.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((img, i) => (
                 <img
                   key={img._id}
                   src={img.image}
                   alt={`img-${i}`}
-                  onClick={() => handleImageSelect(img.image)}
-                  className="h-24 w-full object-cover rounded cursor-pointer hover:ring-2 hover:ring-blue-500"
+                  onClick={() => handleImageSelect(img)}
+                  className="h-20 object-cover rounded cursor-pointer hover:ring-2 hover:ring-blue-500"
                 />
               ))}
             </div>
+            <div className="flex justify-between mt-4">
+              <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>&larr; Trước</button>
+              <span>Trang {currentPage}</span>
+              <button
+                onClick={() => setCurrentPage((p) =>
+                  p * pageSize < galleryImages.length ? p + 1 : p
+                )}
+              >
+                Sau &rarr;
+              </button>
+            </div>
             <button
-              className="mt-4 px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+              className="mt-4 px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 w-full"
               onClick={() => setShowGallery(false)}
             >
               Đóng
@@ -174,14 +276,16 @@ export default function DragDropBannerLayout() {
   );
 }
 
-function SortableImage({ id, image, onClick }: {
+function SortableImage({
+  id,
+  image,
+  onDoubleClick,
+}: {
   id: string;
   image?: string;
-  onClick: (id: string) => void;
+  onDoubleClick?: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id });
-
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -194,16 +298,16 @@ function SortableImage({ id, image, onClick }: {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
+      onDoubleClick={onDoubleClick}
       style={style}
-      onClick={() => onClick(id)}
-      className="rounded-md border border-black bg-gray-100 flex items-center justify-center overflow-hidden cursor-pointer"
+      className="rounded-md border border-black bg-gray-100 flex items-center justify-center overflow-hidden cursor-pointer aspect-[4/3]"
     >
       {image ? (
         <img src={image} alt="Image" className="w-full h-full object-cover" />
       ) : (
         <div className="flex flex-col items-center text-gray-400 text-sm">
           <Upload className="h-6 w-6 mb-1" />
-          Ảnh {id}
+          Image
         </div>
       )}
     </div>
