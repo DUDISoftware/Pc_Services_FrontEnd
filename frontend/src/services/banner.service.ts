@@ -40,6 +40,8 @@ export const bannerService = {
   },
 
   update: async (id: string, data: FormData | Partial<Banner>): Promise<Banner> => {
+          console.log('Banner Data FormData:', data);
+
     if (data instanceof FormData) {
       if (data.has("layout")) {
         const raw = data.get("layout");

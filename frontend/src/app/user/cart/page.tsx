@@ -61,8 +61,8 @@ export default function CartPage() {
           >
             <div className="flex items-center gap-4">
               <Image
-                src={`/images/products/${item.product_id}.jpg`}
-                alt={`Product ${item.product_id}`}
+                src={item.image || "https://endlessicons.com/wp-content/uploads/2012/11/image-holder-icon-614x460.png"}
+                alt={`Product ${item.name}`}
                 width={60}
                 height={60}
                 className="rounded"

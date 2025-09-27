@@ -62,6 +62,7 @@ export const cartService = {
         name: product.name,
         quantity,
         price: product.price,
+        image: product.images[0].url || "",
       });
     }
 

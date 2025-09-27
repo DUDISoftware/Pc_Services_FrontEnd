@@ -21,7 +21,7 @@ type BannerItem = {
 };
 
 export default function DragDropBannerLayout() {
-  const [selectedTemplate, setSelectedTemplate] = useState<"template1" | "template2" | "template3">("template3");
+  const [selectedTemplate, setSelectedTemplate] = useState<"template1" | "template2" | "template3">("template1");
   const [items, setItems] = useState<BannerItem[]>([]);
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const [showGallery, setShowGallery] = useState(false);

@@ -48,9 +48,9 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
     // );
 
     try {
-      const res = await requestService.create({
+      const res = await requestService.createOrder({
         ...form,
-        items: items as { name: string; product_id: string; quantity: number; price: number }[],
+        items: items as { name: string; product_id: string; quantity: number; price: number, image: string }[],
       });
 
       alert("Đặt hàng thành công!");

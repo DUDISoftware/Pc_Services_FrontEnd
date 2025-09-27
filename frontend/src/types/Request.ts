@@ -1,4 +1,5 @@
 export type UploadedImage = { url: string; public_id: string };
+export type Items = { name: string; product_id: string; quantity: number; price: number }[];
 
 export interface Request {
   _id: string;
@@ -7,7 +8,7 @@ export interface Request {
   phone: string;
   address: string;
   problem_description?: string;
-  items?: { name: string; product_id: string; quantity: number; price: number }[];
+  items?: Items;
   note?: string;
   repair_type?: "at_home" | "at_store";
   estimated_time: string;
@@ -38,7 +39,7 @@ export interface RequestApi {
   phone: string;
   address: string;
   problem_description?: string;
-  items?: { name: string; product_id: string; quantity: number; price: number }[];
+  items?: Items;
   note?: string;
   repair_type?: "at_home" | "at_store";
   estimated_time: string;

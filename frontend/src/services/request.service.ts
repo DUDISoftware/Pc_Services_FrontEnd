@@ -3,22 +3,22 @@ import { Request, RequestApi } from "@/types/Request";
 import { mapRequest } from "@/lib/mappers";
 import { get } from "http";
 
-function isRepair (request: Request): boolean {
-    return request.repair_type !== undefined && request.service_id !== undefined;
-}
+// function isRepair (request: Request): boolean {
+//     return request.repair_type !== undefined && request.service_id !== undefined;
+// }
 
-function isOrder (request: Request): boolean {
-    return request.items !== undefined && request.items.length > 0;
-}
+// function isOrder (request: Request): boolean {
+//     return request.items !== undefined && request.items.length > 0;
+// }
 
-function findType (request: Request): "repair" | "order" | null {
-    if (isRepair(request)) {
-        return "repair";
-    } else if (isOrder(request)) {
-        return "order";
-    }
-    return null;
-}
+// function findType (request: Request): "repair" | "order" | null {
+//     if (isRepair(request)) {
+//         return "repair";
+//     } else if (isOrder(request)) {
+//         return "order";
+//     }
+//     return null;
+// }
 
 export const requestService = {
     createRepair: async (data: Partial<RequestApi>): Promise<Request> => {
@@ -42,50 +42,27 @@ export const requestService = {
         const res = await api.post("/requests/repairs", formData);
         return mapRequest(res.data.request);
     },
-
     createOrder: async (data: Partial<RequestApi>): Promise<Request> => {
         const res = await api.post("/requests/orders", data);
         return mapRequest(res.data.request);
-    },
-
-    create: async (data: Partial<Request>): Promise<unknown> => {
-        console.log("Creating request with data:", data);
-        const type = findType(data as Request);
-        console.log("Detected type:", type);
-        let res;
-        if (type === "repair") {
-            res = await requestService.createRepair(data);
-        } else if (type === "order") {
-            res = await requestService.createOrder(data);
-        } else {
-            throw new Error("Không thể xác định loại yêu cầu (sửa chữa hoặc đặt hàng)");
-        }
-        return res;
     },
 
     getAllRepairs: async (): Promise<Request[]> => {
         const res = await api.get("/requests/repairs");
         return res.data.requests.map((reqData: RequestApi) => mapRequest(reqData));
     },
-
     getAllOrders: async (): Promise<Request[]> => {
         const res = await api.get("/requests/orders");
         return res.data.requests.map((reqData: RequestApi) => mapRequest(reqData));
     },
 
-    getAll: async (): Promise<Request[]> => {
-        const repairs = await requestService.getAllRepairs();
-        const orders = await requestService.getAllOrders();
-        return [...repairs, ...orders];
-    },
-
     updateOrder: async (id: string, data: Partial<Request>): Promise<Request> => {
         const res = await api.put(`/requests/orders/${id}`, data);
-        return mapRequest(res.data.request);
+        return mapRequest(res.data);
     },
     updateRepair: async (id: string, data: Partial<Request>): Promise<Request> => {
         const res = await api.put(`/requests/repairs/${id}`, data);
-        return mapRequest(res.data.request);
+        return mapRequest(res.data);
     },
 
     getRepairById: async (id: string): Promise<Request> => {
@@ -97,31 +74,22 @@ export const requestService = {
         return mapRequest(res.data.request);
     },
 
-    // update: async (id: string, data: Partial<Request>): Promise<Request> => {
-    //     const repair = requestService.getRepairById(id).catch(() => null);
-    //     const order = requestService.getOrderById(id).catch(() => null);
-    //     const existingRequest = await repair || await order;
-    //     if (!existingRequest) {
-    //         throw new Error("Yêu cầu không tồn tại");
-    //     }
-    //     const type = findType(existingRequest as Request);
-    //     const endpoint = type === "repair" ? `/requests/repairs/${id}` : type === "order" ? `/requests/orders/${id}` : `/requests/${id}`;
-    //     const res = await api.put(endpoint, { id: id, status: data.status });
-    //     return mapRequest(res.data.updatedRequest);
-    // },
-
     hideRepair: async (id: string): Promise<void> => {
         await api.patch(`/requests/repairs/${id}`, { hidden: true });
     },
-
     hideOrder: async (id: string): Promise<void> => {
         await api.patch(`/requests/orders/${id}`, { hidden: true });
     },
 
-    hide: async (id: string, data: Partial<Request>): Promise<void> => {
-        const type = findType(data as Request);
-        const endpoint = type === "repair" ? `/requests/repairs/${id}` : type === "order" ? `/requests/orders/${id}` : `/requests/${id}`;
-        await api.patch(endpoint, { hidden: true });
-    }
+    // hide: async (id: string, data: Partial<Request>): Promise<void> => {
+    //     const type = findType(data as Request);
+    //     const endpoint = type === "repair" ? `/requests/repairs/${id}` : type === "order" ? `/requests/orders/${id}` : `/requests/${id}`;
+    //     await api.patch(endpoint, { hidden: true });
+    // },
+
+    deleteRepair: async (id: string): Promise<void> => {
+        await api.delete(`/requests/repairs/${id}`);
+    },
+
 
 };

@@ -54,8 +54,6 @@ export function mapBanner(apiData: BannerApi): Banner {
   };
 }
 
-
-
 export function mapCategory(apiData: CategoryApi): Category {
   return {
     _id: apiData._id,
@@ -144,25 +142,25 @@ export function mapService(apiData: ServiceApi): Service {
 
 export function mapRequest(apiData: RequestApi): Request {
   return {
-    _id: apiData._id,
-    name: apiData.name,
-    email: apiData.email,
-    phone: apiData.phone,
-    address: apiData.address,
-    problem_description: apiData.problem_description,
-    items: apiData.items,
-    note: apiData.note,
-    repair_type: apiData.repair_type,
-    estimated_time: apiData.estimated_time,
-    status: apiData.status,
-    service_id: apiData.service_id,
-    images: Array.isArray(apiData.images)
-      ? (apiData.images as UploadedImage[]).map((img) => ({
-          url: (img as UploadedImage).url,
-          public_id: (img as UploadedImage).public_id,
-        }))
-      : [],
-    createdAt: apiData.createdAt,
-    updatedAt: apiData.updatedAt,
-  };
+  _id: apiData._id,
+  name: apiData.name,
+  email: apiData.email,
+  phone: apiData.phone,
+  address: apiData.address,
+  problem_description: apiData.problem_description,
+  items: apiData.items,
+  note: apiData.note,
+  repair_type: apiData.repair_type,
+  estimated_time: apiData.estimated_time,
+  status: apiData.status,
+  service_id: apiData.service_id,
+  images: Array.isArray(apiData.images)
+    ? (apiData.images as UploadedImage[]).map((img) => ({
+      url: (img as UploadedImage).url,
+      public_id: (img as UploadedImage).public_id,
+    }))
+    : [],
+  createdAt: apiData.createdAt,
+  updatedAt: apiData.updatedAt,
+};
 }

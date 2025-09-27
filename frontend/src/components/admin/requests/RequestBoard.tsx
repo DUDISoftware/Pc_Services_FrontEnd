@@ -12,22 +12,10 @@ import { requestService } from "@/services/request.service";
 import { serviceService } from "@/services/service.service";
 import RequestCard from "./RequestCard";
 
-interface RequestPayload {
-  id: string;
-  customer: string;
-  description: string;
-  phone?: string;
-  address?: string;
-  email?: string;
-  date: string;
-  items?: { name: string; product_id: string; quantity: number; price: number }[];
-  service_id?: string;
-}
-
 interface Column {
   id: string;
   title: string;
-  requests: RequestPayload[];
+  requests: Request[];
 }
 
 export default function RequestBoard({
@@ -39,6 +27,7 @@ export default function RequestBoard({
 }) {
   const [columns, setColumns] = useState<Column[]>([]);
   const [services, setServices] = useState<{ _id: string; name: string }[]>([]);
+
 
   // Load danh sách dịch vụ (dùng cho title)
   useEffect(() => {
@@ -56,11 +45,6 @@ export default function RequestBoard({
     }
   }, [tab]);
 
-  const getServiceNameById = (id?: string): string => {
-    if (!id) return "Không rõ dịch vụ";
-    return services.find((s) => s._id === id)?.name ?? "Đơn đặt hàng";
-  };
-
   // Gộp request thành các column theo status
   function mapRequestsToColumns(requests: Request[]): Column[] {
     const columns: Column[] = [
@@ -73,15 +57,19 @@ export default function RequestBoard({
       const col = columns.find((c) => c.id === req.status);
       if (col) {
         col.requests.push({
-          id: req._id,
-          customer: req.name,
-          description: req.problem_description ?? req.items?.[0]?.name ?? "",
-          date: new Date(req.updatedAt).toLocaleDateString("vi-VN"),
+          _id: req._id,
+          name: req.name,
+          problem_description: req.problem_description ?? req.items?.[0]?.name ?? "",
+          updatedAt: new Date(req.updatedAt).toLocaleDateString("vi-VN"),
           phone: req.phone,
           address: req.address,
           email: req.email,
           items: req.items,
           service_id: req.service_id,
+          images: req.images,
+          estimated_time: "",
+          status: req.status,
+          createdAt: req.createdAt ?? ""
         });
       }
     }
@@ -124,7 +112,7 @@ export default function RequestBoard({
       (col) => col.id === destination.droppableId
     )!;
 
-    const [movedRequest] = sourceCol.requests.splice(source.index, 1);
+    const [movedRequest] = sourceCol.requests.splice(source.index, 1) as [Request];
     destCol.requests.splice(destination.index, 0, movedRequest);
 
     setColumns(updatedColumns);
@@ -132,13 +120,21 @@ export default function RequestBoard({
     // Gửi update trạng thái
     try {
       if (tab === "service") {
-        await requestService.updateRepair(movedRequest.id, {
-          status: destCol.id as Request["status"],
-        });
+        await requestService.updateRepair(
+          String(movedRequest._id),
+          {
+            status: destCol.id as Request["status"],
+            images: movedRequest.images,
+          }
+        );
       } else {
-        await requestService.updateOrder(movedRequest.id, {
-          status: destCol.id as Request["status"],
-        });
+        await requestService.updateOrder(
+          String(movedRequest._id),
+          {
+            status: destCol.id as Request["status"],
+            // Add other fields if needed, e.g. images, name, etc.
+          }
+        );
       }
     } catch (err) {
       console.error("❌ Lỗi khi cập nhật trạng thái:", err);
@@ -160,33 +156,52 @@ export default function RequestBoard({
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`p-4 rounded-xl shadow-md bg-white transition ${
-                    snapshot.isDraggingOver ? "bg-blue-50" : ""
-                  }`}
+                  className={`p-4 rounded-xl shadow-md bg-white transition ${snapshot.isDraggingOver ? "bg-blue-50" : ""
+                    }`}
                 >
                   <h3 className="text-lg font-semibold mb-3">{col.title}</h3>
                   <div className="space-y-4">
                     {col.requests.map((req, index) => (
-                      <Draggable key={req.id} draggableId={req.id} index={index}>
+                      <Draggable key={String(req._id)} draggableId={String(req._id)} index={index}>
                         {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className={`border rounded-lg shadow-sm bg-gray-50 p-2 transition ${
-                              snapshot.isDragging
+                            className={`border rounded-lg shadow-sm bg-gray-50 p-2 transition ${snapshot.isDragging
                                 ? "bg-blue-100 border-blue-400"
                                 : "hover:bg-gray-100"
-                            }`}
+                              }`}
                           >
                             <RequestCard
-                              title={getServiceNameById(req.service_id)}
-                              customer={req.customer}
-                              phone={req.phone ?? ""}
-                              address={req.address ?? ""}
-                              details={[req.description ?? ""]}
-                              date={req.date}
+                              req={{
+                                _id: String(req._id),
+                                name: req.name || "Khách hàng",
+                                problem_description: req.problem_description || req.note || "Không có mô tả",
+                                phone: req.phone || "",
+                                address: req.address || "",
+                                email: req.email || "",
+                                items: req.items,
+                                service_id: req.service_id,
+                                updatedAt: req.updatedAt,
+                                createdAt: req.createdAt,
+                                estimated_time: "",
+                                status: col.id as Request["status"],
+                                images: req.images || [],
+                              }}
+                              services={services}
+                              onDeleted={() => {
+                                // ✅ Gọi lại API để cập nhật
+                                const reload = async () => {
+                                  const updated = tab === "service"
+                                    ? await requestService.getAllRepairs()
+                                    : await requestService.getAllOrders();
+                                  setColumns(mapRequestsToColumns(updated));
+                                };
+                                reload();
+                              }}
                             />
+
                           </div>
                         )}
                       </Draggable>
