@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { Request } from "@/types/Request";
 import { requestService } from "@/services/request.service";
+import { serviceService } from "@/services/service.service";
 import RequestDetailModal from "./RequestDetailModal";
 import RequestEditModal from "./RequestEditModal";
 
@@ -11,15 +12,14 @@ interface RequestCardProps {
   req: Request;
   services: { _id: string; name: string }[];
   onDeleted?: () => void;
-
 }
 
 export default function RequestCard({ req, services, onDeleted }: RequestCardProps) {
   const [openMenu, setOpenMenu] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const [showEdit, setShowEdit] = useState(false);
-
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [servicePrice, setServicePrice] = useState<number | null>(null);
 
   const getServiceNameById = (id?: string): string => {
     if (!id) return "Không rõ dịch vụ";
@@ -37,6 +37,22 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // 🔄 Lấy giá dịch vụ nếu là yêu cầu sửa chữa (và service_id là string)
+  useEffect(() => {
+    const fetchServicePrice = async () => {
+      if (req.service_id && typeof req.service_id === "string") {
+        try {
+          const service = await serviceService.getById(req.service_id);
+          setServicePrice(service.price || 0);
+        } catch (error) {
+          console.error("❌ Không lấy được giá dịch vụ:", error);
+        }
+      }
+    };
+
+    fetchServicePrice();
+  }, [req.service_id]);
+
   return (
     <>
       {/* Modal chi tiết */}
@@ -46,13 +62,13 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
         request={req}
       />
 
+      {/* Modal cập nhật */}
       <RequestEditModal
         isOpen={showEdit}
         onClose={() => setShowEdit(false)}
         request={req}
-        onSuccess={onDeleted} // 👈 reload lại sau khi cập nhật
+        onSuccess={onDeleted}
       />
-
 
       <div className="bg-white shadow rounded-lg p-4 mb-4 relative">
         {/* Header */}
@@ -65,7 +81,7 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
             {/* Nếu là sửa chữa thì hiện tên dịch vụ */}
             {req.service_id && (
               <p className="text-sm text-gray-500">
-                📌 {getServiceNameById(req.service_id)}
+                📌 {getServiceNameById(typeof req.service_id === "string" ? req.service_id : req.service_id?._id)}
               </p>
             )}
           </div>
@@ -105,7 +121,7 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
                       } else {
                         await requestService.hideOrder(req._id);
                       }
-                      onDeleted?.(); // ✅ callback để reload
+                      onDeleted?.(); // ✅ callback reload danh sách
                     } catch (err) {
                       console.error("❌ Lỗi khi xóa:", err);
                       alert("Xóa thất bại");
@@ -118,7 +134,6 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
             )}
           </div>
         </div>
-
 
         {/* Info */}
         <div className="text-sm text-gray-600 space-y-1 mb-3">
@@ -138,8 +153,28 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
             </ul>
           )}
 
+          {/* Tổng tiền */}
+          <div className="text-xs text-gray-700 mt-1 font-semibold">
+            💰 Tổng tiền:{" "}
+            {req.service_id
+              ? `${(
+                  typeof req.service_id === "object"
+                    ? req.service_id.price
+                    : servicePrice || 0
+                ).toLocaleString()}₫`
+              : `${req.items?.reduce(
+                  (sum, item) =>
+                    sum +
+                    (item.quantity || 0) *
+                      (typeof item.product_id === "object"
+                        ? item.product_id.price || 0
+                        : item.price || 0),
+                  0
+                ).toLocaleString()}₫`}
+          </div>
+
           <div className="text-xs text-gray-400 mt-2">
-            📅 Ngày: { req.updatedAt }
+            📅 Ngày: {req.updatedAt}
           </div>
         </div>
       </div>

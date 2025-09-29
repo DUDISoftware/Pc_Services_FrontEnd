@@ -14,7 +14,8 @@ interface BannerData {
 
 export default function HomeBanner() {
   const [banners, setBanners] = useState<BannerData[]>([]);
-  const [layout, setLayout] = useState<string>("option1"); // default = "option1"
+  const [layout, setLayout] = useState<string>("option1");
+  const [currentIndex, setCurrentIndex] = useState(0); // Slide index cho option3
 
   useEffect(() => {
     const fetchBanners = async () => {
@@ -29,20 +30,26 @@ export default function HomeBanner() {
           .filter((b: any) => b.layout === layoutStr && b.position > 0)
           .sort((a: any, b: any) => a.position - b.position);
 
-        console.log("🟢 Tất cả banners:", all);
-        console.log("📌 Main banner (pos=1):", mainBanner);
-        console.log("📐 Layout string:", layoutStr);
-        console.log("✅ Banners hợp lệ:", valid);
-
         setLayout(layoutStr);
         setBanners(valid);
       } catch (err) {
-        console.error("❌ Lỗi khi tải banner trang chủ:", err);
+        console.error("❌ Lỗi khi tải banner:", err);
       }
     };
 
     fetchBanners();
   }, []);
+
+  // Auto slide mỗi 5s nếu layout === option3
+  useEffect(() => {
+    if (layout !== "option3" || banners.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % banners.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [layout, banners]);
 
   const getImage = (pos: number) => {
     const item = banners.find((b) => b.position === pos);
@@ -53,6 +60,7 @@ export default function HomeBanner() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Option 1: 1 ảnh lớn trái, 2 ảnh nhỏ phải */}
       {layout === "option1" && (
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-8">
@@ -85,6 +93,7 @@ export default function HomeBanner() {
         </div>
       )}
 
+      {/* Option 2: 1 ảnh lớn toàn banner */}
       {layout === "option2" && (
         <div className="w-full aspect-[3/1] rounded-lg overflow-hidden shadow">
           {getImage(1) && (
@@ -97,22 +106,30 @@ export default function HomeBanner() {
         </div>
       )}
 
+      {/* Option 3: Slide ngang tự động */}
       {layout === "option3" && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((pos) => (
-            <div
-              key={pos}
-              className="aspect-[3/2] rounded-lg overflow-hidden shadow"
-            >
-              {getImage(pos) && (
+        <div className="relative w-full overflow-hidden">
+          <div
+            className="flex transition-transform duration-700 ease-in-out"
+            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+          >
+            {banners.map((banner) => (
+              <div
+                key={banner._id}
+                className="min-w-full aspect-[3/1] px-2"
+              >
                 <img
-                  src={getImage(pos)}
-                  alt={`Banner ${pos}`}
-                  className="object-cover w-full h-full"
+                  src={
+                    typeof banner.image === "string"
+                      ? banner.image
+                      : banner.image?.url || ""
+                  }
+                  alt="Banner"
+                  className="object-cover w-full h-full rounded-lg shadow"
                 />
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

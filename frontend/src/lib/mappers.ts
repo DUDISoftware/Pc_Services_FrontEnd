@@ -3,6 +3,7 @@ import { Category, CategoryApi } from "@/types/Category";
 import { Rating, RatingApi } from "@/types/Rating";
 import { Service, ServiceApi } from "@/types/Service";
 import { Request, RequestApi } from "@/types/Request";
+import { Stats, StatsApi } from "@/types/Stats";
 // lib/mappers.ts
 import { Banner, BannerApi, LayoutOption } from "@/types/Banner";
 
@@ -164,4 +165,15 @@ export function mapRequest(apiData: RequestApi): Request {
   createdAt: apiData.createdAt,
   updatedAt: apiData.updatedAt,
 };
+}
+
+export function statsMapper(apiData: StatsApi): Stats {
+  return {
+    visits: apiData.visits || 0,
+    total_profit: apiData.total_profit || 0,
+    total_repairs: apiData.total_repairs || 0,
+    total_orders: apiData.total_orders || 0,
+    total_products: apiData.total_products || 0,
+    updatedAt: apiData.updatedAt || Date.now(),
+  }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import TableHeader from "@/components/admin/TableHeader";
-import { useState } from "react";
+import Button from "@/components/common/Button";
 import CountUp from "react-countup";
 import {
   LineChart,
@@ -12,51 +12,227 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import Button from "@/components/common/Button";
-
-const data = [
-  { name: "01", thángNày: 12000, thángTrước: 8000 },
-  { name: "05", thángNày: 10000, thángTrước: 14000 },
-  { name: "10", thángNày: 8000, thángTrước: 18000 },
-  { name: "15", thángNày: 15000, thángTrước: 12000 },
-  { name: "20", thángNày: 17000, thángTrước: 10000 },
-  { name: "25", thángNày: 25000, thángTrước: 16000 },
-  { name: "30", thángNày: 20000, thángTrước: 22000 },
-];
-
-const stats = [
-  { title: "Yêu cầu sửa chữa", value: 8276, change: "+11.01%", color: "bg-indigo-50" },
-  { title: "Lượt truy cập", value: 3781, change: "-0.03%", color: "bg-blue-50" },
-  { title: "Yêu cầu mua hàng", value: 167, change: "+15.03%", color: "bg-purple-50" },
-  { title: "Số sản phẩm", value: 2318, change: "+6.08%", color: "bg-sky-50" },
-];
+import { useEffect, useState } from "react";
+import { statsService } from "@/services/stats.service";
 
 export default function DashboardPage() {
   const [animate, setAnimate] = useState(true);
+  const [currentDay, setCurrentDay] = useState(new Date().getDate());
+
+  const [products, setProducts] = useState(0);
+  const [orderRequests, setOrderRequests] = useState(0);
+  const [repairRequests, setRepairRequests] = useState(0);
+  const [totalProfit, setTotalProfit] = useState(0);
+
+  const [previousProducts, setPreviousProducts] = useState(0);
+  const [previousOrderRequests, setPreviousOrderRequests] = useState(0);
+  const [previousRepairRequests, setPreviousRepairRequests] = useState(0);
+  const [previousProfit, setPreviousProfit] = useState(0);
+
+  const [monthlyProfit, setMonthlyProfit] = useState<number[]>([]);
+  const [previousMonth, setPreviousMonth] = useState<number[]>([]);
+
+  const [todayProfit, setTodayProfit] = useState(0);
+
+  const today = new Date().toISOString().split("T")[0];
+
+  useEffect(() => {
+    setAnimate(true);
+    const timer = setTimeout(() => setAnimate(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    setCurrentDay(new Date().getDate());
+
+    const fetchTodayProfit = async () => {
+      try {
+        const p = await statsService.calculateTodayProfit(today);
+        setTodayProfit(p);
+        setTotalProfit((prev) => prev + p);
+        await statsService.updateStats(
+          { total_profit: p},
+          today
+        );
+      } catch (err) {
+        console.error("Lỗi tính lợi nhuận hôm nay:", err);
+      }
+    };
+
+    const fetchCurrentMonthStats = async () => {
+      try {
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        const year = now.getFullYear();
+        const statsList = await statsService.getMonthStats(month, year);
+
+        let totalProfit = 0;
+        let totalOrders = 0;
+        let totalRepairs = 0;
+        let totalProducts = 0;
+
+        for (const s of statsList) {
+          const day = new Date(s.updatedAt ?? "").getDate();
+          if (day <= currentDay) {
+            totalProfit += s.total_profit || 0;
+            totalOrders += s.total_orders || 0;
+            totalRepairs += s.total_repairs || 0;
+            totalProducts += s.total_products || 0;
+          }
+        }
+
+        setTotalProfit(totalProfit);
+        setOrderRequests(totalOrders);
+        setRepairRequests(totalRepairs);
+        setProducts(totalProducts);
+      } catch (err) {
+        console.error("Lỗi lấy thống kê tháng này:", err);
+      }
+    };
+
+    const fetchPreviousMonthStats = async () => {
+      try {
+        const now = new Date();
+        let month = now.getMonth();
+        let year = now.getFullYear();
+        if (month === 0) {
+          month = 12;
+          year -= 1;
+        }
+
+        const statsList = await statsService.getMonthStats(month, year);
+
+        let totalProfit = 0;
+        let totalOrders = 0;
+        let totalRepairs = 0;
+        let totalProducts = 0;
+
+        for (const s of statsList) {
+          const day = s.updatedAt ? new Date(s.updatedAt).getDate() : 0;
+          if (day <= currentDay) {
+            totalProfit += s.total_profit || 0;
+            totalOrders += s.total_orders || 0;
+            totalRepairs += s.total_repairs || 0;
+            totalProducts += s.total_products || 0;
+          }
+        }
+
+        setPreviousProfit(totalProfit);
+        setPreviousOrderRequests(totalOrders);
+        setPreviousRepairRequests(totalRepairs);
+        setPreviousProducts(totalProducts);
+      } catch (err) {
+        console.error("Lỗi lấy thống kê tháng trước:", err);
+      }
+    };
+
+    const fetchMonthlyLineChart = async () => {
+      const days = [1, 5, 10, 15, 20, 25, currentDay];
+      const thisMonth: number[] = [];
+      const lastMonth: number[] = [];
+
+      for (const d of days) {
+        const date = new Date();
+        date.setDate(d);
+        const curDate = date.toISOString().split("T")[0];
+
+        const prev = new Date();
+        prev.setMonth(prev.getMonth() - 1);
+        prev.setDate(d);
+        const prevDate = prev.toISOString().split("T")[0];
+
+        try {
+          const curStat = await statsService.getStatsByDate(curDate);
+          thisMonth.push(curStat.total_profit || 0);
+        } catch {
+          thisMonth.push(0);
+        }
+
+        try {
+          const prevStat = await statsService.getStatsByDate(prevDate);
+          lastMonth.push(prevStat.total_profit || 0);
+        } catch {
+          lastMonth.push(0);
+        }
+      }
+
+      setMonthlyProfit(thisMonth);
+      setPreviousMonth(lastMonth);
+    };
+
+    // CALL ALL
+    fetchTodayProfit();
+    fetchCurrentMonthStats();
+    fetchPreviousMonthStats();
+    fetchMonthlyLineChart();
+  }, [currentDay]);
+
+  const safeChange = (curr: number, prev: number) =>
+    prev === 0 ? (curr > 0 ? 100 : 0) : ((curr / prev - 1) * 100);
+
+  const stats = [
+    {
+      title: "Tổng doanh thu",
+      value: totalProfit,
+      change: safeChange(totalProfit, previousProfit),
+      color: "bg-blue-100 text-blue-800",
+    },
+    {
+      title: "Yêu cầu đặt hàng",
+      value: orderRequests,
+      change: safeChange(orderRequests, previousOrderRequests),
+      color: "bg-green-100 text-green-800",
+    },
+    {
+      title: "Yêu cầu sửa chữa",
+      value: repairRequests,
+      change: safeChange(repairRequests, previousRepairRequests),
+      color: "bg-red-100 text-red-800",
+    },
+    {
+      title: "Tổng sản phẩm",
+      value: products,
+      change: safeChange(products, previousProducts),
+      color: "bg-yellow-100 text-yellow-800",
+    },
+  ];
+
+  const chartData = [1, 5, 10, 15, 20, 25, currentDay].map((day, idx) => ({
+    name: day.toString().padStart(2, "0"),
+    thángNày: monthlyProfit[idx] || 0,
+    thángTrước: previousMonth[idx] || 0,
+  }));
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <TableHeader
         title="Thống kê"
-        breadcrumb={["Admin", "Thống kê-báo cáo"]}
+        breadcrumb={["Admin", "Thống kê - báo cáo"]}
         actions={<Button variant="secondary">📤 Xuất file</Button>}
       />
 
-      {/* Cards */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((s) => (
-          <div key={s.title} className={`${s.color} rounded-2xl p-6 shadow flex flex-col`}>
+          <div
+            key={s.title}
+            className={`${s.color} rounded-2xl p-6 shadow flex flex-col`}
+          >
             <h2 className="text-sm text-gray-600">{s.title}</h2>
             <p className="text-3xl font-bold mt-2">
-              <CountUp start={animate ? 0 : s.value} end={s.value} duration={2} separator="," />
+              <CountUp
+                start={animate ? 0 : s.value}
+                end={s.value}
+                duration={2}
+                separator=","
+              />
             </p>
             <span
               className={`text-sm mt-2 ${
-                s.change.startsWith("+") ? "text-green-600" : "text-red-600"
+                s.change >= 0 ? "text-green-600" : "text-red-600"
               }`}
             >
-              {s.change}
+              {s.change.toFixed(2)}%
             </span>
           </div>
         ))}
@@ -79,13 +255,24 @@ export default function DashboardPage() {
         </div>
 
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={data}>
+          <LineChart data={chartData}>
             <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
             <XAxis dataKey="name" />
             <YAxis />
             <Tooltip />
-            <Line type="monotone" dataKey="thángNày" stroke="#2563EB" strokeWidth={3} />
-            <Line type="monotone" dataKey="thángTrước" stroke="#F59E0B" strokeWidth={3} strokeDasharray="5 5" />
+            <Line
+              type="monotone"
+              dataKey="thángNày"
+              stroke="#2563EB"
+              strokeWidth={3}
+            />
+            <Line
+              type="monotone"
+              dataKey="thángTrước"
+              stroke="#F59E0B"
+              strokeWidth={3}
+              strokeDasharray="5 5"
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
