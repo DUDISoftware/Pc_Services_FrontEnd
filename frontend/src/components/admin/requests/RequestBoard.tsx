@@ -10,7 +10,9 @@ import {
 import { Request } from "@/types/Request";
 import { requestService } from "@/services/request.service";
 import { serviceService } from "@/services/service.service";
+import { userService } from "@/services/user.service";
 import RequestCard from "./RequestCard";
+import { productService } from "@/services/product.service";
 
 interface Column {
   id: string;
@@ -127,14 +129,53 @@ export default function RequestBoard({
             images: movedRequest.images,
           }
         );
+        if (destCol.id === "completed" && movedRequest._id) {
+          // Gửi email thông báo hoàn thành
+          if (movedRequest.email) {
+            try {
+              await userService.sendEmail(
+                movedRequest.email,
+                "Yêu cầu của bạn đã được hoàn thành",
+                `<p>Xin chào ${movedRequest.name || "khách hàng"},</p>
+                <p>Yêu cầu của bạn với mã <strong>${movedRequest._id}</strong> đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+                <p>Trân trọng,<br/>Đội ngũ hỗ trợ</p>`
+              );
+            } catch (err) {
+              console.error("❌ Lỗi khi gửi email hoàn thành:", err);
+            }
+          }
+        }
       } else {
         await requestService.updateOrder(
           String(movedRequest._id),
           {
             status: destCol.id as Request["status"],
-            // Add other fields if needed, e.g. images, name, etc.
           }
         );
+        if (destCol.id === "completed" && movedRequest.items) {
+          // ✅ Giảm tồn kho
+          for (const item of movedRequest.items) {
+            if (typeof item.product_id._id === "string") {
+              const prod = await productService.getById(item.product_id._id);
+              const newStock = (prod.quantity || 0) - (item.quantity || 1);
+              await productService.updateQuantity(item.product_id._id, newStock);
+            }
+          }
+          // Gửi email thông báo hoàn thành
+          if (movedRequest.email) {
+            try {
+              await userService.sendEmail(
+                movedRequest.email,
+                "Yêu cầu của bạn đã được hoàn thành",
+                `<p>Xin chào ${movedRequest.name || "khách hàng"},</p>
+                <p>Yêu cầu của bạn với mã <strong>${movedRequest._id}</strong> đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+                <p>Trân trọng,<br/>Đội ngũ hỗ trợ</p>`
+              );
+            } catch (err) {
+              console.error("❌ Lỗi khi gửi email hoàn thành:", err);
+            }
+          }
+        }
       }
     } catch (err) {
       console.error("❌ Lỗi khi cập nhật trạng thái:", err);
@@ -169,8 +210,8 @@ export default function RequestBoard({
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             className={`border rounded-lg shadow-sm bg-gray-50 p-2 transition ${snapshot.isDragging
-                                ? "bg-blue-100 border-blue-400"
-                                : "hover:bg-gray-100"
+                              ? "bg-blue-100 border-blue-400"
+                              : "hover:bg-gray-100"
                               }`}
                           >
                             <RequestCard

@@ -1,17 +1,30 @@
 "use client";
 
 import { Facebook, Instagram, Twitter } from "lucide-react";
+import { infoService } from "@/services/info.services";
+import { Info } from "@/types/Info";
+import { useEffect, useState } from "react";
 
 export default function Footer() {
+  const [info, setInfo] = useState<Info | null>(null);
+
+  useEffect(() => {
+    const fetchInfo = async () => {
+      const data = await infoService.getInfo();
+      setInfo(data);
+    };
+    fetchInfo();
+  }, []);
+
   return (
     <footer className="border-t border-gray-200 bg-[#F9F9F9]">
       {/* Top Section */}
       <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         {/* Contact */}
         <div>
-          <h3 className="font-semibold text-gray-800 mb-2">CÔNG TY TNHH CÔNG NGHỆ PHẦN MỀM DUDI</h3>
-          <p className="text-sm text-gray-600">Số điện thoại: +84 20 123 4567</p>
-          <p className="text-sm text-gray-600">Email: support@nextpick.com</p>
+          <h3 className="font-semibold text-gray-800 mb-2">{info?.name}</h3>
+          <p className="text-sm text-gray-600">Số điện thoại: {info?.phone}</p>
+          <p className="text-sm text-gray-600">Email: {info?.email}</p>
         </div>
 
         {/* Working Hours */}

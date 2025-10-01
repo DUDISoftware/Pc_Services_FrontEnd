@@ -4,6 +4,7 @@ import { useState } from "react";
 import { User, Mail, MapPin, Phone, FileText } from "lucide-react";
 import { requestService } from "@/services/request.service";
 import { Cart, CartItem } from "@/types/Cart";
+import { userService } from "@/services/user.service";
 
 interface OrderFormProps {
   cart: Cart;
@@ -18,6 +19,8 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
     phone: "",
     note: "",
   });
+
+  const [isPopupOpen, setIsPopupOpen] = useState(false); // popup state
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -36,35 +39,72 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
     }
 
     const items = cartItems.map((item) => ({
-      // name: item.name,
       product_id: item.product_id,
       quantity: item.quantity,
-      // price: item.price,
     }));
 
-    // const totalPrice = items.reduce(
-    //   (sum, i) => sum + i.price * i.quantity,
-    //   0
-    // );
+    let verified = true;
+    if (form.email && form.email.trim() !== "") {
+        await userService.sendOTP(form.email);
 
+        let attempts = 0;
+        let isVerified = false;
+
+        while (attempts < 3 && !isVerified) {
+          const otp = prompt(
+            `Vui lòng nhập mã OTP đã gửi đến email của bạn:`
+          );
+          if (!otp) {
+            alert("Bạn phải nhập mã OTP để tiếp tục.");
+            return;
+          }
+          const verifyResponse = await userService.verifyOTP(form.email, otp);
+          isVerified = verifyResponse.data?.success === true;
+          if (!isVerified) {
+            attempts++;
+            if (attempts < 3) {
+              alert("Mã OTP không hợp lệ, vui lòng thử lại.");
+              verified = false;
+            }
+          } else {
+            verified = true;
+          }
+        }
+
+        if (!isVerified) {
+          alert("Bạn đã nhập sai OTP quá 3 lần. Vui lòng thử lại sau.");
+          return;
+        }
+
+        alert("Email đã được xác thực thành công.");
+      }
+    if (!verified) return;
     try {
-      const res = await requestService.createOrder({
+      await requestService.createOrder({
         ...form,
-        items: items as { name: string; product_id: string; quantity: number; price: number, image: string }[],
+        items: items as {
+          name: string;
+          product_id: string;
+          quantity: number;
+          price: number;
+          image: string;
+        }[],
       });
 
-      alert("Đặt hàng thành công!");
+      // Mở popup
+      setIsPopupOpen(true);
 
+      // Reset giỏ hàng
       const emptyCart: Cart = {
         _id: "",
         items: [],
         totalPrice: 0,
         updated_at: new Date().toISOString(),
       };
-
-      localStorage.removeItem("cart"); // Optional: vì setCart đã sync
+      localStorage.removeItem("cart");
       setCart(emptyCart);
 
+      // Reset form
       setForm({
         name: "",
         email: "",
@@ -94,8 +134,9 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
           name="email"
           value={form.email}
           onChange={handleChange}
-          placeholder="Email"
+          placeholder="Email (không bắt buộc)"
           type="email"
+          required={false} // email optional
         />
         <InputField
           icon={<MapPin />}
@@ -131,6 +172,24 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
           Gửi yêu cầu
         </button>
       </form>
+
+      {/* Popup modal */}
+      {isPopupOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white p-6 rounded-md shadow-md w-96 text-center">
+            <h3 className="text-xl font-semibold mb-4">Đặt hàng thành công 🎉</h3>
+            <p className="mb-6">
+              Cảm ơn bạn! Đơn hàng của bạn đã được ghi nhận.
+            </p>
+            <button
+              onClick={() => setIsPopupOpen(false)}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:opacity-90 transition"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -142,6 +201,7 @@ function InputField({
   onChange,
   placeholder,
   type = "text",
+  required = true, // mặc định là true
 }: {
   icon: React.ReactNode;
   name: string;
@@ -149,6 +209,7 @@ function InputField({
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
   type?: string;
+  required?: boolean;
 }) {
   return (
     <div className="relative">
@@ -160,7 +221,7 @@ function InputField({
         onChange={onChange}
         placeholder={placeholder}
         className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-1 focus:ring-blue-600"
-        required
+        required={required}
       />
     </div>
   );

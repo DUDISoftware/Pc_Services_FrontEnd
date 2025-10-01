@@ -28,7 +28,13 @@ export default function HomeBanner() {
 
         const valid = all
           .filter((b: any) => b.layout === layoutStr && b.position > 0)
-          .sort((a: any, b: any) => a.position - b.position);
+          .sort((a: any, b: any) => a.position - b.position)
+          .map((b: any) => ({
+            _id: b._id,
+            image: typeof b.image === "string" ? b.image : (b.image && typeof b.image.url === "string" ? b.image.url : ""),
+            position: b.position,
+            layout: b.layout,
+          }));
 
         setLayout(layoutStr);
         setBanners(valid);
@@ -53,9 +59,7 @@ export default function HomeBanner() {
 
   const getImage = (pos: number) => {
     const item = banners.find((b) => b.position === pos);
-    return typeof item?.image === "string"
-      ? item.image
-      : item?.image?.url || "";
+    return item?.image || "";
   };
 
   return (
@@ -119,11 +123,7 @@ export default function HomeBanner() {
                 className="min-w-full aspect-[3/1] px-2"
               >
                 <img
-                  src={
-                    typeof banner.image === "string"
-                      ? banner.image
-                      : banner.image?.url || ""
-                  }
+                  src={banner.image}
                   alt="Banner"
                   className="object-cover w-full h-full rounded-lg shadow"
                 />

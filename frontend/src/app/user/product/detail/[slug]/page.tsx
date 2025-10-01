@@ -49,17 +49,17 @@ export default function ProductDetailPage() {
     <>
       <CategoryNav
         selectedCategory={
-          typeof product.category === "object"
-            ? product.category.name
-            : (product.category as string)
+          typeof product.category_id === "object"
+            ? product.category_id.name
+            : (product.category_id as string)
         }
         onSelectCategory={() => {}}
       />
       <ProductBreadcrumb
         category={
-          typeof product.category === "object"
-            ? product.category.name
-            : (product.category as string)
+          typeof product.category_id === "object"
+            ? product.category_id.name
+            : (product.category_id as string)
         }
       />
 
@@ -98,7 +98,9 @@ export default function ProductDetailPage() {
               size: product.size || "Đang cập nhật",
               resolution: product.resolution || "Đang cập nhật",
               panel: product.panel || "Đang cập nhật",
-              ports: product.ports || "Đang cập nhật",
+              ports: Array.isArray(product.ports)
+                ? product.ports.join(", ")
+                : product.ports || "Đang cập nhật",
             }}
           />
         </div>

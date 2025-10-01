@@ -3,57 +3,63 @@
 import { useState } from "react";
 import { Upload } from "lucide-react";
 import { bannerService } from "@/services/banner.service";
-import Image from "next/image";
-import { mapLayoutToApi } from "@/lib/mappers";
-import type { LayoutOption } from "@/types/Banner";
 
 export default function BannerForm() {
   const [preview, setPreview] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [description, setDescription] = useState("");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
-  const [layout, setLayout] = useState<LayoutOption>("option1");
-  const [slot, setSlot] = useState<number>(0);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // chỉ chọn ảnh + preview
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
 
+    setFile(selected);
     const url = URL.createObjectURL(selected);
     setPreview(url);
+  };
+
+  // submit toàn bộ form
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!file) {
+      alert("Vui lòng chọn ảnh trước khi tạo banner.");
+      return;
+    }
 
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("image", selected);
+      formData.append("image", file);
       formData.append("description", description || "");
       formData.append("title", title || "");
       formData.append("link", link || "#");
-
-      // convert layout string -> number for backend validation
-      const layoutNum = mapLayoutToApi(layout);
-      if (layoutNum !== undefined) formData.append("layout", String(layoutNum));
-      formData.append("position", String(slot));
+      formData.append("layout", "1");
+      formData.append("position", "0");
 
       await bannerService.create(formData);
       alert("Tạo banner thành công!");
 
+      // reset form
       setPreview(null);
+      setFile(null);
       setDescription("");
       setTitle("");
       setLink("");
-      setSlot(0);
     } catch (err) {
       console.error("Upload error:", err);
-      alert("Có lỗi xảy ra khi tải lên.");
+      alert("Có lỗi xảy ra khi tạo banner.");
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <label className="block text-sm font-medium mb-2">Tiêu đề</label>
         <input
@@ -61,6 +67,7 @@ export default function BannerForm() {
           onChange={(e) => setTitle(e.target.value)}
           className="w-full rounded border px-3 py-2"
           placeholder="Nhập tiêu đề"
+          required
         />
       </div>
 
@@ -86,46 +93,36 @@ export default function BannerForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Layout</label>
-        <select
-          value={layout}
-          onChange={(e) => setLayout(e.target.value as LayoutOption)}
-          className="w-full rounded border px-3 py-2"
-        >
-          <option value="option1">Option 1: 1 lớn trái + 2 nhỏ phải</option>
-          <option value="option2">Option 2: 1 banner lớn</option>
-          <option value="option3">Option 3: 2 banner lớn (trái + phải)</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Vị trí (slot)</label>
-        <select
-          value={slot}
-          onChange={(e) => setSlot(Number(e.target.value))}
-          className="w-full rounded border px-3 py-2"
-        >
-          <option value={0}>Gallery (chưa gắn)</option>
-          <option value={1}>Slot 1</option>
-          <option value={2}>Slot 2</option>
-          <option value={3}>Slot 3</option>
-        </select>
-      </div>
-
-      <div>
         <label className="block text-sm font-medium mb-2">Hình ảnh</label>
         <label className="flex h-28 w-28 cursor-pointer items-center justify-center rounded-md border-2 border-dashed bg-gray-50 hover:bg-gray-100 relative">
           {preview ? (
-            <img src={preview} alt="Preview" className="h-full w-full object-cover rounded-md" />
+            <img
+              src={preview}
+              alt="Preview"
+              className="h-full w-full object-cover rounded-md"
+            />
           ) : (
             <div className="flex flex-col items-center text-gray-400 text-sm">
               <Upload className="h-6 w-6 mb-1" />
-              {uploading ? "Đang tải..." : "Tải ảnh lên"}
+              Chọn ảnh
             </div>
           )}
-          <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
         </label>
       </div>
-    </div>
+
+      <button
+        type="submit"
+        className="bg-blue-600 text-white px-6 py-2 rounded-md hover:opacity-90 transition"
+        disabled={uploading}
+      >
+        {uploading ? "Đang tải..." : "Tạo banner"}
+      </button>
+    </form>
   );
 }

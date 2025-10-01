@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronRightCircle, Star } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { Product } from "@/types/Product";
@@ -33,13 +34,25 @@ function getRandomProducts(products: ProductType[], count: number) {
 
 export default function FeaturedProducts() {
   const [products, setProducts] = useState<ProductType[]>([]);
+  const [featured, setFeatured] = useState<{ id: string, views: number }[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const featuredProduct = async () => {
+      try {
+        const featured = await productService.getFeatured(4);
+        setFeatured(featured.products);
+      } catch (error) {
+        console.error("Failed to fetch featured products:", error);
+      }
+    };
+    featuredProduct();
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const { products } = await productService.getAll();
-
         const mapped: ProductType[] = products.map((p: Product) => ({
           _id: p._id,
           title: p.name,
@@ -47,9 +60,14 @@ export default function FeaturedProducts() {
           price: p.price,
           rating: 4 + Math.random(), // random 4.0 - 5.0
           img: p.images?.[0]?.url || "/images/placeholder.png",
-        }));
-
-        setProducts(getRandomProducts(mapped, 4)); // ✅ random 4 sản phẩm
+        }))
+          .filter(p => featured.some(f => f.id === p._id)) // Lọc chỉ lấy sản phẩm trong danh sách featured
+          .sort((a, b) => {
+            const aViews = featured.find(f => f.id === a._id)?.views || 0;
+            const bViews = featured.find(f => f.id === b._id)?.views || 0;
+            return bViews - aViews; // Sắp xếp giảm dần theo views
+          });
+        setProducts(mapped); // ✅ random 4 sản phẩm
       } catch (err) {
         console.error("Failed to fetch featured products:", err);
       } finally {
@@ -58,7 +76,7 @@ export default function FeaturedProducts() {
     };
 
     fetchProducts();
-  }, []);
+  }, [featured]);
 
   if (loading) return <p className="px-4">Đang tải sản phẩm...</p>;
 
@@ -82,43 +100,45 @@ export default function FeaturedProducts() {
             key={item._id}
             className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative"
           >
-            {/* Badge */}
-            {item.discount && (
-              <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
-                {item.discount}
-              </span>
-            )}
-
-            {/* Image */}
-            <div className="relative w-full h-36 sm:h-40 mb-3">
-              <Image
-                src={item.img}
-                alt={item.title}
-                fill
-                className="object-contain rounded"
-              />
-            </div>
-
-            {/* Title */}
-            <h3 className="text-xs sm:text-sm font-medium line-clamp-2 flex-1 mb-2">
-              {item.title}
-            </h3>
-
-            {/* Price + Rating */}
-            <div className="flex items-center justify-between mt-auto">
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 line-through">
-                  {item.oldPrice.toLocaleString()}₫
+            <Link href={`/user/product/${item._id}`}>
+              {/* Badge */}
+              {item.discount && (
+                <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
+                  {item.discount}
                 </span>
-                <span className="text-red-500 font-semibold text-sm">
-                  {item.price.toLocaleString()}₫
-                </span>
+              )}
+
+              {/* Image */}
+              <div className="relative w-full h-36 sm:h-40 mb-3">
+                <Image
+                  src={item.img}
+                  alt={item.title}
+                  fill
+                  className="object-contain rounded"
+                />
               </div>
-              <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
-                <Star className="w-4 h-4 text-yellow-400 mr-1" />{" "}
-                {item.rating.toFixed(1)}
+
+              {/* Title */}
+              <h3 className="text-xs sm:text-sm font-medium line-clamp-2 flex-1 mb-2">
+                {item.title}
+              </h3>
+
+              {/* Price + Rating */}
+              <div className="flex items-center justify-between mt-auto">
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-gray-400 line-through">
+                    {item.oldPrice.toLocaleString()}₫
+                  </span>
+                  <span className="text-red-500 font-semibold text-sm">
+                    {item.price.toLocaleString()}₫
+                  </span>
+                </div>
+                <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
+                  <Star className="w-4 h-4 text-yellow-400 mr-1" />{" "}
+                  {item.rating.toFixed(1)}
+                </div>
               </div>
-            </div>
+            </Link>
           </div>
         ))}
 

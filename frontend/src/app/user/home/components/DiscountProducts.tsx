@@ -71,45 +71,48 @@ export default function DiscountProducts() {
             key={item._id}
             className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative"
           >
-            {/* Badge */}
-            {item.discount && (
-              <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
-                {item.discount}
-              </span>
-            )}
-
-            {/* Image */}
-            <div className="relative w-full h-36 sm:h-40 mb-3">
-              <Image
-                src={item.img}
-                alt={item.title}
-                fill
-                className="object-contain rounded"
-              />
-            </div>
-
-            {/* Title */}
             <Link href={`/user/product/${item._id}`}>
+
+              {/* Badge */}
+              {item.discount && (
+                <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
+                  {item.discount}
+                </span>
+              )}
+
+              {/* Image */}
+              <div className="relative w-full h-36 sm:h-40 mb-3">
+                <Image
+                  src={item.img}
+                  alt={item.title}
+                  fill
+                  className="object-contain rounded"
+                />
+              </div>
+
+              {/* Title */}
+              {/* <Link href={`/user/product/${item._id}`}> */}
               <h3 className="text-xs sm:text-sm font-medium line-clamp-2 flex-1 mb-2 hover:text-blue-600">
                 {item.title}
               </h3>
-            </Link>
+              {/* </Link> */}
 
-            {/* Price + Rating */}
-            <div className="flex items-center justify-between mt-auto">
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 line-through">
-                  {item.oldPrice.toLocaleString()}₫
-                </span>
-                <span className="text-red-500 font-semibold text-sm">
-                  {item.price.toLocaleString()}₫
-                </span>
+              {/* Price + Rating */}
+              <div className="flex items-center justify-between mt-auto">
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-gray-400 line-through">
+                    {item.oldPrice.toLocaleString()}₫
+                  </span>
+                  <span className="text-red-500 font-semibold text-sm">
+                    {item.price.toLocaleString()}₫
+                  </span>
+                </div>
+                <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
+                  <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                  {item.rating.toFixed(1)}
+                </div>
               </div>
-              <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
-                <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                {item.rating.toFixed(1)}
-              </div>
-            </div>
+            </Link>
           </div>
         ))}
 

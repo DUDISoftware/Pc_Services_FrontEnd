@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link"; // 👈 import Link
 import { ChevronRightCircle, Star } from "lucide-react";
-import { serviceApi } from "@/services/service.service";
+import { serviceService } from "@/services/service.service";
 import DefaultServiceImage from "@/assets/image/service/services.png";
 import { Service } from "@/types/Service";
 
@@ -15,7 +15,7 @@ export default function FeaturedServices() {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        const data = await serviceApi.getFeatured();
+        const data = await serviceService.getFeatured();
         setServices(data);
       } catch (err) {
         console.error("Lỗi khi tải dịch vụ nổi bật:", err);

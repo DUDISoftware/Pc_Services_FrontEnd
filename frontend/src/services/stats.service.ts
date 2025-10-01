@@ -80,6 +80,7 @@ export const statsService = {
                 total += item.price || 0;
             }
         }
+        console.log("Tổng lợi nhuận tháng này:", total);
 
         return total;
     },

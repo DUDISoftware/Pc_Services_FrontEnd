@@ -143,12 +143,12 @@ export default function Header() {
             </div>
           )}
 
-          <div className="relative cursor-pointer">
+          {/* <div className="relative cursor-pointer">
             <Heart size={20} />
             <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">
               2
             </span>
-          </div>
+          </div> */}
 
           <div className="relative cursor-pointer">
             <button onClick={() => (window.location.href = "/user/cart")}>

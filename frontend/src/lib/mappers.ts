@@ -6,6 +6,7 @@ import { Request, RequestApi } from "@/types/Request";
 import { Stats, StatsApi } from "@/types/Stats";
 // lib/mappers.ts
 import { Banner, BannerApi, LayoutOption } from "@/types/Banner";
+import { InfoApi, Info } from "@/types/Info";
 
 /** Convert FE layout -> BE numeric */
 export function mapLayoutToApi(layout?: LayoutOption | number): number | undefined {
@@ -175,5 +176,23 @@ export function statsMapper(apiData: StatsApi): Stats {
     total_orders: apiData.total_orders || 0,
     total_products: apiData.total_products || 0,
     updatedAt: apiData.updatedAt || Date.now(),
+  }
+}
+
+export function mapInfo(apiData: InfoApi): Info {
+  return {
+    _id: apiData._id,
+    name: apiData.name,
+    email: apiData.email,
+    phone: apiData.phone,
+    target: apiData.target,
+    scope: apiData.scope,
+    address: apiData.address,
+    facebook: apiData.facebook,
+    instagram: apiData.instagram,
+    youtube: apiData.youtube,
+    x: apiData.x,
+    termsOfService: apiData.termsOfService,
+    privacyPolicy: apiData.privacyPolicy,
   }
 }

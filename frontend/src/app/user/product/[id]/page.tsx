@@ -33,6 +33,18 @@ export default function ProductDetailPage() {
     if (id) fetchProduct();
   }, [id]);
 
+  useEffect(() => {
+    const countView = async () => {
+      try {
+        await productService.countViewRedis(id as string);
+        // console.log(`view: ${await productService.getView(id as string)}`);
+      } catch (err) {
+        console.error("Lỗi khi tăng view:", err);
+      }
+    };
+    if (id) countView();
+  }, [id]);
+
   if (loading) return <p className="text-center py-10">Đang tải...</p>;
   if (!product)
     return (

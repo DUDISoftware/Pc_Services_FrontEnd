@@ -3,6 +3,13 @@ import { Product, ProductApi } from "@/types/Product";
 import { mapProduct } from "@/lib/mappers";
 import { get } from "http";
 
+interface Featured {
+  products: {
+    id: string;
+    views: number;
+  }[];
+}
+
 export const productService = {
   getAll: async (): Promise<{ products: Product[] }> => {
     const res = await api.get("/products");
@@ -13,9 +20,9 @@ export const productService = {
     const res = await api.get(`/products/slug/${slug}`);
     return mapProduct(res.data.product);
   },
-  getFeatured: async (): Promise<Product[]> => {
-    const res = await api.get("/products/featured");
-    return res.data.products.map((p: ProductApi) => mapProduct(p));
+  getFeatured: async (limit: number): Promise<Featured> => {
+    const res = await api.get(`/products/featured?limit=${limit}`);
+    return res.data as Featured;
   },
   getRelated: async (id: string, limit = 4): Promise<Product[]> => {
     const res = await api.get(`/products/${id}/related?limit=${limit}`);
@@ -118,7 +125,22 @@ export const productService = {
     return mapProduct(res.data.product);
   },
 
+  updateQuantity: async (id: string, quantity: number): Promise<Product> => {
+    const res = await api.patch(`/products/${id}/quantity`, { quantity });
+    return mapProduct(res.data.product);
+  },
+
   delete: async (id: string): Promise<void> => {
     await api.delete(`/products/${id}`);
   },
+
+  getView: async(id: string): Promise<number> => {
+    const res = await api.get(`/products/${id}/views`);
+    return res.data.views;
+  },
+
+  countViewRedis: async(id: string): Promise<void> => {
+    await api.post(`/products/${id}/views`);
+  }
+
 };
