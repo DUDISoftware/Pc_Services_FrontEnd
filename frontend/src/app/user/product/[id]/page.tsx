@@ -37,7 +37,6 @@ export default function ProductDetailPage() {
     const countView = async () => {
       try {
         await productService.countViewRedis(id as string);
-        // console.log(`view: ${await productService.getView(id as string)}`);
       } catch (err) {
         console.error("Lỗi khi tăng view:", err);
       }

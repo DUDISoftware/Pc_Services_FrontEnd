@@ -33,10 +33,10 @@ export default function AllProductsPage() {
     category === "all"
       ? products
       : products.filter((p) => {
-          const productCategorySlug =
-            typeof p.category_id === "object" ? p.category_id.slug : p.category_id.toString();
-          return productCategorySlug?.toLowerCase() === category.toLowerCase();
-        });
+        const productCategorySlug =
+          typeof p.category_id === "object" ? p.category_id.slug : p.category_id.toString();
+        return productCategorySlug?.toLowerCase() === category.toLowerCase();
+      });
 
   if (loading) return <p className="text-center">Đang tải sản phẩm...</p>;
 
@@ -62,24 +62,26 @@ export default function AllProductsPage() {
               key={item._id}
               className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition"
             >
-              <div className="relative w-full h-40 mb-3">
-                <Image
-                  src={item.images?.[0]?.url || "/images/product.png"}
-                  alt={item.name}
-                  fill
-                  className="object-contain rounded"
-                />
-              </div>
-              <h3 className="text-sm font-medium line-clamp-2">{item.name}</h3>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-red-500 font-semibold text-sm">
-                  {item.price.toLocaleString()}₫
-                </span>
-                <div className="flex items-center text-xs text-gray-500">
-                  <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                  4.5
+              <a href={`/user/product/detail/${item.slug}`}>
+                <div className="relative w-full h-40 mb-3">
+                  <Image
+                    src={item.images?.[0]?.url || "/images/product.png"}
+                    alt={item.name}
+                    fill
+                    className="object-contain rounded"
+                  />
                 </div>
-              </div>
+                <h3 className="text-sm font-medium line-clamp-2">{item.name}</h3>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-red-500 font-semibold text-sm">
+                    {item.price.toLocaleString()}₫
+                  </span>
+                  <div className="flex items-center text-xs text-gray-500">
+                    <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                    4.5
+                  </div>
+                </div>
+              </a>
             </div>
           ))}
 

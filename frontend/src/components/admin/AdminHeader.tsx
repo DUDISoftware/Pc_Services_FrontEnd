@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { User, ChevronDown, LogOut, Settings } from "lucide-react";
+import { Menu, User, ChevronDown, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 
-export default function AdminHeader() {
+export default function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -16,19 +16,22 @@ export default function AdminHeader() {
   };
 
   const handleProfile = () => {
-    router.push("/admin/profile"); // hoặc "/profile" tuỳ bạn muốn
+    router.push("/admin/profile");
   };
 
   return (
-    <header className="flex justify-end items-center p-4 bg-white border-b relative">
-      {/* User avatar + dropdown */}
+    <header className="flex items-center justify-between p-4 bg-white border-b relative">
+      <button className="md:hidden" onClick={onToggleSidebar}>
+        <Menu />
+      </button>
+      <div className="flex-1" />
       <div
         className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 px-3 py-2 rounded"
         onClick={() => setOpen(!open)}
       >
         <User className="w-6 h-6 text-gray-700" />
-        <span className="font-medium">{user?.username || "Unknown User"}</span>
         <ChevronDown className="w-4 h-4 text-gray-600" />
+        <span className="ml-2 font-medium">{user?.username || "Unknown"}</span>
       </div>
 
       {/* Dropdown menu */}
@@ -39,7 +42,7 @@ export default function AdminHeader() {
             className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-100"
           >
             <Settings className="w-4 h-4" />
-            <span>Chỉnh sửa thông tin</span>
+            <span>Chỉnh sửa</span>
           </button>
           <button
             onClick={handleLogout}

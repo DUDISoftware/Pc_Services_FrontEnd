@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const [previousMonth, setPreviousMonth] = useState<number[]>([]);
 
   const [todayProfit, setTodayProfit] = useState(0);
+  const [tab, setTab] = useState<"sampled" | "full">("sampled");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -50,10 +51,7 @@ export default function DashboardPage() {
         const p = await statsService.calculateTodayProfit(today);
         setTodayProfit(p);
         setTotalProfit((prev) => prev + p);
-        await statsService.updateStats(
-          { total_profit: p},
-          today
-        );
+        await statsService.updateStats({ total_profit: p }, today);
       } catch (err) {
         console.error("Lỗi tính lợi nhuận hôm nay:", err);
       }
@@ -109,12 +107,10 @@ export default function DashboardPage() {
 
         for (const s of statsList) {
           const day = s.updatedAt ? new Date(s.updatedAt).getDate() : 0;
-          if (day <= currentDay) {
-            totalProfit += s.total_profit || 0;
-            totalOrders += s.total_orders || 0;
-            totalRepairs += s.total_repairs || 0;
-            totalProducts += s.total_products || 0;
-          }
+          totalProfit += s.total_profit || 0;
+          totalOrders += s.total_orders || 0;
+          totalRepairs += s.total_repairs || 0;
+          totalProducts += s.total_products || 0;
         }
 
         setPreviousProfit(totalProfit);
@@ -127,19 +123,17 @@ export default function DashboardPage() {
     };
 
     const fetchMonthlyLineChart = async () => {
-      const days = [1, 5, 10, 15, 20, 25, currentDay];
+      const sampledDays = [1, 5, 10, 15, 20, 25, currentDay];
+      const fullDays = Array.from({ length: currentDay }, (_, i) => i + 1);
+      const lastMonthFull = Array.from({ length: 30 }, (_, i) => i + 1); // hoặc fetch max ngày tháng trước
+
       const thisMonth: number[] = [];
       const lastMonth: number[] = [];
 
-      for (const d of days) {
+      for (const d of fullDays) {
         const date = new Date();
         date.setDate(d);
         const curDate = date.toISOString().split("T")[0];
-
-        const prev = new Date();
-        prev.setMonth(prev.getMonth() - 1);
-        prev.setDate(d);
-        const prevDate = prev.toISOString().split("T")[0];
 
         try {
           const curStat = await statsService.getStatsByDate(curDate);
@@ -147,6 +141,13 @@ export default function DashboardPage() {
         } catch {
           thisMonth.push(0);
         }
+      }
+
+      for (const d of lastMonthFull) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - 1);
+        date.setDate(d);
+        const prevDate = date.toISOString().split("T")[0];
 
         try {
           const prevStat = await statsService.getStatsByDate(prevDate);
@@ -160,7 +161,6 @@ export default function DashboardPage() {
       setPreviousMonth(lastMonth);
     };
 
-    // CALL ALL
     fetchTodayProfit();
     fetchCurrentMonthStats();
     fetchPreviousMonthStats();
@@ -197,10 +197,15 @@ export default function DashboardPage() {
     },
   ];
 
-  const chartData = [1, 5, 10, 15, 20, 25, currentDay].map((day, idx) => ({
+  const days =
+    tab === "sampled"
+      ? [1, 5, 10, 15, 20, 25, currentDay]
+      : Array.from({ length: currentDay }, (_, i) => i + 1);
+
+  const chartData = days.map((day, idx) => ({
     name: day.toString().padStart(2, "0"),
-    thángNày: monthlyProfit[idx] || 0,
-    thángTrước: previousMonth[idx] || 0,
+    thángNày: monthlyProfit[day - 1] || 0,
+    thángTrước: previousMonth[day - 1] || 0,
   }));
 
   return (
@@ -236,6 +241,30 @@ export default function DashboardPage() {
             </span>
           </div>
         ))}
+      </div>
+
+      {/* Tab Selector */}
+      <div className="flex gap-4">
+        <button
+          onClick={() => setTab("sampled")}
+          className={`px-4 py-2 rounded ${
+            tab === "sampled"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-100 text-gray-600"
+          }`}
+        >
+          Ngày mẫu
+        </button>
+        <button
+          onClick={() => setTab("full")}
+          className={`px-4 py-2 rounded ${
+            tab === "full"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-100 text-gray-600"
+          }`}
+        >
+          Tất cả ngày
+        </button>
       </div>
 
       {/* Chart */}

@@ -8,12 +8,42 @@ export const getInfo = async (): Promise<Info> => {
     return mapInfo(response.data);
 };
 
-export const updateInfo = async (infoData: Partial<Info>): Promise<Info> => {
-    const response = await api.put<InfoApi>("/info", infoData);
+export const updateInfo = async (
+    data: Partial<Info> & { termsFile?: File; policyFile?: File }
+): Promise<Info> => {
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+        if (key !== "termsFile" && key !== "policyFile" && value !== undefined) {
+            formData.append(key, value as string);
+        }
+    });
+
+    // Add files
+    if (data.termsFile) {
+        formData.append("terms", data.termsFile);
+    }
+    if (data.policyFile) {
+        formData.append("policy", data.policyFile);
+    }
+
+    const response = await api.request<InfoApi>({
+        method: "PUT",
+        url: "/info",
+        data: formData,
+        headers: {
+            // 'Content-Type': 'multipart/form-data', do NOT manually add
+        },
+    });
+
     return mapInfo(response.data);
+};
+
+export const sendEmail = async (email: string, subject: string, message: string): Promise<void> => {
+    return await api.post("/info/contact", { email, subject, message });
 };
 
 export const infoService = {
     getInfo,
     updateInfo,
+    sendEmail
 };

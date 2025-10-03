@@ -81,7 +81,7 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
             {/* Nếu là sửa chữa thì hiện tên dịch vụ */}
             {req.service_id && (
               <p className="text-sm text-gray-500">
-                📌 {getServiceNameById(typeof req.service_id === "string" ? req.service_id : req.service_id?._id)}
+                📌 {getServiceNameById(typeof req.service_id === "string" ? req.service_id : req.service_id._id)}
               </p>
             )}
           </div>
@@ -119,6 +119,7 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
                       if (req.service_id) {
                         await requestService.deleteRepair(req._id);
                       } else {
+                        console.log(req);
                         await requestService.hideOrder(req._id);
                       }
                       onDeleted?.(); // ✅ callback reload danh sách
@@ -140,7 +141,6 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
           {req.name && <p>👤 {req.name}</p>}
           {req.phone && <p>📞 {req.phone}</p>}
           {req.address && <p>📍 {req.address}</p>}
-
           {req.items && req.items.length > 0 && (
             <ul className="list-disc list-inside mt-1">
               {req.items.map((item, i) => (

@@ -20,7 +20,7 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
     note: "",
   });
 
-  const [isPopupOpen, setIsPopupOpen] = useState(false); // popup state
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -43,42 +43,56 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
       quantity: item.quantity,
     }));
 
-    let verified = true;
+    // Validate phone theo regex
+    const phoneRegex = /^(?:\+84|84|0)[0-9]{1,9}$/;
+    if (!phoneRegex.test(form.phone)) {
+      alert("Số điện thoại không hợp lệ. Vui lòng nhập theo định dạng +84xxxx hoặc 0xxxx.");
+      return;
+    }
+
+    // Nếu có email thì yêu cầu xác thực OTP
     if (form.email && form.email.trim() !== "") {
+      try {
         await userService.sendOTP(form.email);
+      } catch (err) {
+        console.error("Không thể gửi OTP:", err);
+        alert("Không thể gửi mã OTP đến email. Vui lòng thử lại.");
+        return;
+      }
 
-        let attempts = 0;
-        let isVerified = false;
+      let attempts = 0;
+      let verified = false;
 
-        while (attempts < 3 && !isVerified) {
-          const otp = prompt(
-            `Vui lòng nhập mã OTP đã gửi đến email của bạn:`
-          );
-          if (!otp) {
-            alert("Bạn phải nhập mã OTP để tiếp tục.");
-            return;
-          }
-          const verifyResponse = await userService.verifyOTP(form.email, otp);
-          isVerified = verifyResponse.data?.success === true;
-          if (!isVerified) {
-            attempts++;
-            if (attempts < 3) {
-              alert("Mã OTP không hợp lệ, vui lòng thử lại.");
-              verified = false;
-            }
-          } else {
-            verified = true;
-          }
-        }
-
-        if (!isVerified) {
-          alert("Bạn đã nhập sai OTP quá 3 lần. Vui lòng thử lại sau.");
+      while (attempts < 3 && !verified) {
+        const otp = prompt(`Nhập mã OTP đã gửi đến email của bạn (lần ${attempts + 1}/3):`);
+        if (!otp) {
+          alert("Bạn phải nhập mã OTP để tiếp tục.");
           return;
         }
+        try {
+          const verifyResponse = await userService.verifyOTP(form.email, otp);
+          verified = verifyResponse.status === 200;
+        } catch {
+          verified = false;
+        }
 
-        alert("Email đã được xác thực thành công.");
+        if (!verified) {
+          attempts++;
+          if (attempts < 3) {
+            alert(`Mã OTP không hợp lệ, bạn còn ${3 - attempts} lần thử.`);
+          }
+        }
       }
-    if (!verified) return;
+
+      if (!verified) {
+        alert("Bạn đã nhập sai OTP quá 3 lần. Vui lòng thử lại sau.");
+        return;
+      }
+
+      alert("Email đã được xác thực thành công ✅");
+    }
+
+    // Nếu tới đây tức là OTP ok hoặc không cần OTP
     try {
       await requestService.createOrder({
         ...form,
@@ -102,6 +116,7 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
         updated_at: new Date().toISOString(),
       };
       localStorage.removeItem("cart");
+      window.dispatchEvent(new Event("cart_updated"));
       setCart(emptyCart);
 
       // Reset form
@@ -136,7 +151,7 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
           onChange={handleChange}
           placeholder="Email (không bắt buộc)"
           type="email"
-          required={false} // email optional
+          required={false}
         />
         <InputField
           icon={<MapPin />}
@@ -175,7 +190,7 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
 
       {/* Popup modal */}
       {isPopupOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-opacity-40 z-50">
           <div className="bg-white p-6 rounded-md shadow-md w-96 text-center">
             <h3 className="text-xl font-semibold mb-4">Đặt hàng thành công 🎉</h3>
             <p className="mb-6">
@@ -201,7 +216,7 @@ function InputField({
   onChange,
   placeholder,
   type = "text",
-  required = true, // mặc định là true
+  required = true,
 }: {
   icon: React.ReactNode;
   name: string;
@@ -211,6 +226,7 @@ function InputField({
   type?: string;
   required?: boolean;
 }) {
+  const isPhone = name === "phone";
   return (
     <div className="relative">
       <div className="absolute left-3 top-3 w-5 h-5 text-gray-400">{icon}</div>
@@ -222,6 +238,14 @@ function InputField({
         placeholder={placeholder}
         className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-1 focus:ring-blue-600"
         required={required}
+        onKeyPress={(e) => {
+          if (name === "phone" && !/[0-9+]/.test(e.key)) {
+            e.preventDefault();
+          }
+        }}
+        inputMode={isPhone ? "numeric" : undefined}
+        pattern={isPhone ? "^(\\+84|84|0)[0-9]{1,9}$" : undefined}
+        maxLength={isPhone ? 11 : undefined}
       />
     </div>
   );

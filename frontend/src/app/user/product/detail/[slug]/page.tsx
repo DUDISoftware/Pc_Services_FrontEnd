@@ -20,11 +20,9 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("Slug from params:", slug);
     const fetchProduct = async () => {
       try {
         const data = await productService.getBySlug(slug as string);
-        console.log("Fetched product data:", data);
         setProduct(data);
       } catch (err) {
         console.error("Lỗi khi tải chi tiết sản phẩm:", err);
@@ -34,6 +32,19 @@ export default function ProductDetailPage() {
     };
     if (slug) fetchProduct();
   }, [slug]);
+
+  useEffect(() => {
+    const countView = async () => {
+      try {
+        if (product && product._id) {
+          await productService.countViewRedis(product._id as string);
+        }
+      } catch (err) {
+        console.error("Lỗi khi tăng view:", err);
+      }
+    };
+    if (slug && product) countView();
+  }, [slug, product]);
 
   if (loading) return <p className="text-center py-10">Đang tải...</p>;
   if (!product)
@@ -99,8 +110,10 @@ export default function ProductDetailPage() {
               resolution: product.resolution || "Đang cập nhật",
               panel: product.panel || "Đang cập nhật",
               ports: Array.isArray(product.ports)
-                ? product.ports.join(", ")
-                : product.ports || "Đang cập nhật",
+                ? product.ports
+                : typeof product.ports === "string"
+                ? [product.ports]
+                : ["Đang cập nhật"],
             }}
           />
         </div>

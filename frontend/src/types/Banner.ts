@@ -2,7 +2,7 @@
 export type LayoutOption = "option1" | "option2" | "option3";
 export type SizeOption = "large" | "small";
 
-export interface Banner {
+export type Banner = {
   _id: string;
   title: string;
   description: string;

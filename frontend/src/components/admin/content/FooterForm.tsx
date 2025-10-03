@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -78,10 +79,23 @@ export default function FooterForm() {
     reader.readAsArrayBuffer(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await infoService.updateInfo(formData);
-  };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  try {
+    await infoService.updateInfo({
+      ...formData,
+      termsFile: termsFile ?? undefined,
+      policyFile: policyFile ?? undefined,
+    });
+
+    alert("Cập nhật thành công!");
+  } catch (error) {
+    console.error("Cập nhật thất bại", error);
+    alert("Đã xảy ra lỗi khi cập nhật");
+  }
+};
+
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>

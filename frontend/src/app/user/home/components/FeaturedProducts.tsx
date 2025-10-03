@@ -16,6 +16,7 @@ type ProductType = {
   discount?: string;
   rating: number;
   img: string;
+  slug: string;
 };
 
 // Danh sách discount có sẵn
@@ -53,21 +54,37 @@ export default function FeaturedProducts() {
     const fetchProducts = async () => {
       try {
         const { products } = await productService.getAll();
+
+        // Tạo danh sách sản phẩm đã map
         const mapped: ProductType[] = products.map((p: Product) => ({
           _id: p._id,
           title: p.name,
-          oldPrice: Math.round(p.price * 1.2), // giả định giá gốc cao hơn 20%
+          oldPrice: Math.round(p.price * 1.2),
           price: p.price,
-          rating: 4 + Math.random(), // random 4.0 - 5.0
+          rating: 4 + Math.random(), // 4.0–5.0
           img: p.images?.[0]?.url || "/images/placeholder.png",
-        }))
-          .filter(p => featured.some(f => f.id === p._id)) // Lọc chỉ lấy sản phẩm trong danh sách featured
+          slug: p.slug,
+        }));
+
+        // Lọc sản phẩm featured
+        const featuredProducts = mapped
+          .filter(p => featured.some(f => f.id === p._id))
           .sort((a, b) => {
             const aViews = featured.find(f => f.id === a._id)?.views || 0;
             const bViews = featured.find(f => f.id === b._id)?.views || 0;
-            return bViews - aViews; // Sắp xếp giảm dần theo views
+            return bViews - aViews;
           });
-        setProducts(mapped); // ✅ random 4 sản phẩm
+
+        // Nếu featured chưa đủ 4, thêm ngẫu nhiên từ non-featured
+        if (featuredProducts.length < 4) {
+          const nonFeatured = mapped.filter(p => !featured.some(f => f.id === p._id));
+          const shuffled = nonFeatured.sort(() => 0.5 - Math.random());
+          const needed = 4 - featuredProducts.length;
+          const extra = shuffled.slice(0, needed);
+          setProducts([...featuredProducts, ...extra]);
+        } else {
+          setProducts(featuredProducts.slice(0, 4));
+        }
       } catch (err) {
         console.error("Failed to fetch featured products:", err);
       } finally {
@@ -75,8 +92,9 @@ export default function FeaturedProducts() {
       }
     };
 
-    fetchProducts();
+    if (featured.length > 0) fetchProducts();
   }, [featured]);
+
 
   if (loading) return <p className="px-4">Đang tải sản phẩm...</p>;
 
@@ -100,7 +118,7 @@ export default function FeaturedProducts() {
             key={item._id}
             className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative"
           >
-            <Link href={`/user/product/${item._id}`}>
+            <Link href={`/user/product/detail/${item.slug}`}>
               {/* Badge */}
               {item.discount && (
                 <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">

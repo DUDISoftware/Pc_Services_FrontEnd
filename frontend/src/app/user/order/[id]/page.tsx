@@ -33,6 +33,7 @@ export default function OrderPage() {
   useEffect(() => {
     if (isFirstLoad) return;
     localStorage.setItem("cart", JSON.stringify(cart));
+    window.dispatchEvent(new Event("cart_updated"));
   }, [cart]);
 
   return (

@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable react/jsx-no-undef */
 "use client";
 
 import { Cart } from "@/types/Cart";
@@ -71,8 +73,7 @@ export default function OrderSummary({ cart, setCart }: OrderSummaryProps) {
 
           <div className="flex items-center gap-3">
             <div className="w-20 h-20 relative border rounded-md overflow-hidden">
-              {/* Nếu bạn muốn dùng image, truyền thêm item.image */}
-              {/* <Image src={...} alt="..." /> */}
+              <img src={item.image} alt="..." />
             </div>
             <div className="flex-1">
               <p className="text-gray-400 text-sm line-through">

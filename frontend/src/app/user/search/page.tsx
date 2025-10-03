@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { Star } from 'lucide-react';
+import { Link, Star } from 'lucide-react';
 import { searchProducts } from '@/services/search.service';
 import { Product } from '@/types/Product';
 
@@ -28,10 +28,10 @@ export default function SearchPage() {
     fetchProducts();
   }, [query]);
 
-const filtered =
-  query === ''
-    ? []
-    : products.filter((p) =>
+  const filtered =
+    query === ''
+      ? []
+      : products.filter((p) =>
         p.name.toLowerCase().includes(query) ||
         p.description?.toLowerCase().includes(query) ||
         p.tags?.some((tag) => tag.toLowerCase().includes(query))
@@ -54,6 +54,7 @@ const filtered =
             key={item._id}
             className='border border-gray-200 rounded-lg p-3 hover:shadow-md transition'
           >
+          <a href={`/user/product/detail/${item.slug}`}>
             <div className='relative w-full h-40 mb-3'>
               <Image
                 src={item.images?.[0]?.url || '/images/product.png'}
@@ -72,15 +73,16 @@ const filtered =
                 4.5
               </div>
             </div>
+            </a>
           </div>
         ))}
 
-        {filtered.length === 0 && (
-          <p className='text-gray-500 text-sm col-span-full'>
-            Không tìm thấy sản phẩm phù hợp với từ khóa.
-          </p>
-        )}
-      </div>
+      {filtered.length === 0 && (
+        <p className='text-gray-500 text-sm col-span-full'>
+          Không tìm thấy sản phẩm phù hợp với từ khóa.
+        </p>
+      )}
     </div>
+    </div >
   );
 }

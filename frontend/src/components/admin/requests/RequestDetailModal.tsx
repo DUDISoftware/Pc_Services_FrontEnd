@@ -41,11 +41,11 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
       {request.service_id ? (
         <>
           <h3 className="font-semibold text-blue-600 mt-4">🛠 Yêu cầu sửa chữa</h3>
-          <p>🔧 <strong>Dịch vụ:</strong> {getServiceName(request.service_id)}</p>
+          <p>🔧 <strong>Dịch vụ:</strong> {getServiceName(request.name)}</p>
           {request.problem_description && (
             <p>📋 <strong>Vấn đề:</strong> {request.problem_description}</p>
           )}
-          {request.images?.length > 0 && (
+          {Array.isArray(request.images) && request.images.length > 0 && (
             <div>
               <strong>🖼 Ảnh đính kèm:</strong>
               <div className="flex flex-wrap gap-2 mt-1">
@@ -64,7 +64,7 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
       ) : (
         <>
           <h3 className="font-semibold text-green-600 mt-4">📦 Đơn đặt hàng</h3>
-          {request.items?.length > 0 && (
+          {Array.isArray(request.items) && request.items.length > 0 && (
             <ul className="list-disc list-inside text-gray-700">
               {request.items.map((item, index) => (
                 <li key={index}>

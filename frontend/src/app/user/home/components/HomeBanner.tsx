@@ -10,6 +10,8 @@ interface BannerData {
   image: string;
   position: number;
   layout: string;
+  link: string;
+  alt: string;
 }
 
 export default function HomeBanner() {
@@ -31,9 +33,16 @@ export default function HomeBanner() {
           .sort((a: any, b: any) => a.position - b.position)
           .map((b: any) => ({
             _id: b._id,
-            image: typeof b.image === "string" ? b.image : (b.image && typeof b.image.url === "string" ? b.image.url : ""),
+            image:
+              typeof b.image === "string"
+                ? b.image
+                : b.image && typeof b.image.url === "string"
+                ? b.image.url
+                : "",
             position: b.position,
             layout: b.layout,
+            link: b.link || "#",
+            alt: b.alt || "Banner",
           }));
 
         setLayout(layoutStr);
@@ -57,9 +66,8 @@ export default function HomeBanner() {
     return () => clearInterval(interval);
   }, [layout, banners]);
 
-  const getImage = (pos: number) => {
-    const item = banners.find((b) => b.position === pos);
-    return item?.image || "";
+  const getBanner = (pos: number) => {
+    return banners.find((b) => b.position === pos);
   };
 
   return (
@@ -69,30 +77,37 @@ export default function HomeBanner() {
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-8">
             <div className="relative w-full h-full aspect-[3/2] rounded-lg overflow-hidden shadow">
-              {getImage(1) && (
-                <img
-                  src={getImage(1)}
-                  alt="Banner 1"
-                  className="object-cover w-full h-full"
-                />
+              {getBanner(1) && (
+                <a href={getBanner(1)?.link} target="_blank" rel="noopener noreferrer">
+                  <img
+                    src={getBanner(1)?.image}
+                    alt={getBanner(1)?.alt || "Banner 1"}
+                    className="object-cover w-full h-full"
+                  />
+                </a>
               )}
             </div>
           </div>
           <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
-            {[2, 3].map((pos) => (
-              <div
-                key={pos}
-                className="relative flex-1 w-full rounded-lg overflow-hidden shadow aspect-[3/2]"
-              >
-                {getImage(pos) && (
-                  <img
-                    src={getImage(pos)}
-                    alt={`Banner ${pos}`}
-                    className="object-cover w-full h-full"
-                  />
-                )}
-              </div>
-            ))}
+            {[2, 3].map((pos) => {
+              const banner = getBanner(pos);
+              return (
+                <div
+                  key={pos}
+                  className="relative flex-1 w-full rounded-lg overflow-hidden shadow aspect-[3/2]"
+                >
+                  {banner && (
+                    <a href={banner.link} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={banner.image}
+                        alt={banner.alt || `Banner ${pos}`}
+                        className="object-cover w-full h-full"
+                      />
+                    </a>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -100,12 +115,14 @@ export default function HomeBanner() {
       {/* Option 2: 1 ảnh lớn toàn banner */}
       {layout === "option2" && (
         <div className="w-full aspect-[3/1] rounded-lg overflow-hidden shadow">
-          {getImage(1) && (
-            <img
-              src={getImage(1)}
-              alt="Banner 1"
-              className="object-cover w-full h-full"
-            />
+          {getBanner(1) && (
+            <a href={getBanner(1)?.link} target="_blank" rel="noopener noreferrer">
+              <img
+                src={getBanner(1)?.image}
+                alt={getBanner(1)?.alt || "Banner 1"}
+                className="object-cover w-full h-full"
+              />
+            </a>
           )}
         </div>
       )}
@@ -118,15 +135,14 @@ export default function HomeBanner() {
             style={{ transform: `translateX(-${currentIndex * 100}%)` }}
           >
             {banners.map((banner) => (
-              <div
-                key={banner._id}
-                className="min-w-full aspect-[3/1] px-2"
-              >
-                <img
-                  src={banner.image}
-                  alt="Banner"
-                  className="object-cover w-full h-full rounded-lg shadow"
-                />
+              <div key={banner._id} className="min-w-full aspect-[3/1] px-2">
+                <a href={banner.link} target="_blank" rel="noopener noreferrer">
+                  <img
+                    src={banner.image}
+                    alt={banner.alt || "Banner"}
+                    className="object-cover w-full h-full rounded-lg shadow"
+                  />
+                </a>
               </div>
             ))}
           </div>

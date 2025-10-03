@@ -7,6 +7,20 @@ import { useEffect, useState } from "react";
 
 export default function Footer() {
   const [info, setInfo] = useState<Info | null>(null);
+  const [socialLinks, setSocialLinks] = useState<{ facebook: string; instagram: string; twitter: string } | null>(null);
+
+  useEffect(() => {
+    const fetchSocialLinks = async () => {
+      if (info) {
+        setSocialLinks({
+          facebook: info.facebook || "",
+          instagram: info.instagram || "",
+          twitter: info.x || ""
+        });
+      };
+    }
+    fetchSocialLinks();
+  }, [info]);
 
   useEffect(() => {
     const fetchInfo = async () => {
@@ -72,13 +86,13 @@ export default function Footer() {
             </button>
           </div>
           <div className="flex space-x-3">
-            <a href="#" className="text-gray-600 hover:text-blue-500">
+            <a href={socialLinks?.facebook} className="text-gray-600 hover:text-blue-500">
               <Facebook size={20} />
             </a>
-            <a href="#" className="text-gray-600 hover:text-pink-500">
+            <a href={socialLinks?.instagram} className="text-gray-600 hover:text-pink-500">
               <Instagram size={20} />
             </a>
-            <a href="#" className="text-gray-600 hover:text-sky-500">
+            <a href={socialLinks?.twitter} className="text-gray-600 hover:text-sky-500">
               <Twitter size={20} />
             </a>
           </div>
@@ -90,10 +104,10 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
           <p>© 2024 DUDI. All Rights Reserved.</p>
           <div className="flex space-x-6 mt-2 md:mt-0">
-            <a href="#" className="hover:text-gray-800">Chính sách bảo mật</a>
-            <a href="#" className="hover:text-gray-800">Cài đặt cookie</a>
-            <a href="#" className="hover:text-gray-800">Điều khoản và điều kiện</a>
-            <a href="#" className="hover:text-gray-800">dấu ấn</a>
+            <a href="/user/terms-and-policy" className="hover:text-gray-800">Chính sách bảo mật</a>
+            <a href="/user/cookie-settings" className="hover:text-gray-800">Cài đặt cookie</a>
+            <a href="/user/terms-and-policy" className="hover:text-gray-800">Điều khoản và điều kiện</a>
+            <a href="/user/imprint" className="hover:text-gray-800">dấu ấn</a>
           </div>
         </div>
       </div>

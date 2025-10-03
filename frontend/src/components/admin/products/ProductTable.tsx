@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Edit, Trash, Eye, X } from "lucide-react";
 import TableHeader from "../TableHeader";
 import Button from "@/components/common/Button";
@@ -19,6 +19,8 @@ export default function ProductTable() {
   const [loading, setLoading] = useState(true);
 
   // State cho form modal
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<{
@@ -39,10 +41,31 @@ export default function ProductTable() {
     images?: (File | UploadedImage)[];
   }>({ images: [], status: "available" });
 
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const displayedProducts = products.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   useEffect(() => {
     fetchProducts();
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    const updateItemsPerPage = () => {
+      if (window.innerWidth < 1024) {
+        setItemsPerPage(5);
+      } else {
+        setItemsPerPage(10);
+      }
+    };
+    updateItemsPerPage();
+    window.addEventListener("resize", updateItemsPerPage);
+    return () => window.removeEventListener("resize", updateItemsPerPage);
+  }, []);
+
+
 
   const fetchProducts = async () => {
     try {
@@ -147,7 +170,7 @@ export default function ProductTable() {
 
   const openAddForm = () => {
     setEditingProduct(null);
-    setFormData({ images: [], status: "available"});
+    setFormData({ images: [], status: "available" });
     setShowForm(true);
   };
 
@@ -193,7 +216,7 @@ export default function ProductTable() {
         <p>Đang tải...</p>
       ) : (
         <table className="w-full text-left border-collapse mt-4">
-          <thead className="bg-gray-100">
+          <thead className="bg-gray-100 hidden lg:table-header-group">
             <tr>
               <th className="p-2">Hình ảnh</th>
               <th className="p-2">Sản phẩm</th>
@@ -206,61 +229,103 @@ export default function ProductTable() {
             </tr>
           </thead>
           <tbody>
-            {products.map((p) => (
-              <tr key={p._id} className="border-b hover:bg-gray-50">
-                <td className="p-2">
-                  {p.images && p.images.length > 0 ? (
-                    <img
-                      src={p.images[0].url}
-                      alt={p.name}
-                      className="w-16 h-16 object-cover rounded"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
-                      No Img
-                    </div>
-                  )}
-                </td>
-                <td className="p-2">{p.name}</td>
-                <td className="p-2">{p.description}</td>
-                <td className="p-2">{p.price.toLocaleString()} đ</td>
-                <td className="p-2">
-                  {typeof p.category_id === "object"
-                    ? p.category_id.name
-                    : p.category_id}
-                </td>
-                <td className="p-2">{p.quantity}</td>
-                <td className="p-2">
-                  <span
-                    className={`px-2 py-1 rounded text-sm ${
-                      p.status === "available"
-                        ? "bg-green-100 text-green-600"
-                        : p.status === "out_of_stock"
+            {displayedProducts.map((p) => (
+              <React.Fragment key={p._id}>
+                <tr
+                  key={p._id}
+                  className="border-b hover:bg-gray-50 hidden lg:table-row"
+                >
+                  {/* TABLE VIEW FOR LARGE SCREENS */}
+                  <td className="p-2">
+                    {p.images?.[0] ? (
+                      <img
+                        src={p.images[0].url}
+                        alt={p.name}
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-200 flex items-center justify-center text-gray-500 text-xs">No Img</div>
+                    )}
+                  </td>
+                  <td className="p-2">{p.name}</td>
+                  <td className="p-2">{p.description}</td>
+                  <td className="p-2">{p.price.toLocaleString()} đ</td>
+                  <td className="p-2">
+                    {typeof p.category_id === "object" ? p.category_id.name : p.category_id}
+                  </td>
+                  <td className="p-2">{p.quantity}</td>
+                  <td className="p-2">
+                    <span className={`px-2 py-1 rounded text-sm ${p.status === "available"
+                      ? "bg-green-100 text-green-600"
+                      : p.status === "out_of_stock"
                         ? "bg-red-100 text-red-600"
                         : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {p.status === "available"
-                      ? "Còn hàng"
-                      : p.status === "out_of_stock"
-                      ? "Hết hàng"
-                      : "Ẩn"}
-                  </span>
-                </td>
-                <td className="p-2 flex gap-2">
-                  <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
-                  <Edit
-                    className="w-4 h-4 cursor-pointer text-yellow-600"
-                    onClick={() => openEditForm(p)}
-                  />
-                  <Trash
-                    className="w-4 h-4 cursor-pointer text-red-600"
-                    onClick={() => handleDelete(p._id)}
-                  />
-                </td>
-              </tr>
+                      }`}>
+                      {p.status === "available"
+                        ? "Còn hàng"
+                        : p.status === "out_of_stock"
+                          ? "Hết hàng"
+                          : "Ẩn"}
+                    </span>
+                  </td>
+                  <td className="p-2 flex gap-2">
+                    <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
+                    <Edit className="w-4 h-4 cursor-pointer text-yellow-600" onClick={() => openEditForm(p)} />
+                    <Trash className="w-4 h-4 cursor-pointer text-red-600" onClick={() => handleDelete(p._id)} />
+                  </td>
+                </tr>
+
+                {/* RESPONSIVE MOBILE VIEW */}
+                <tr key={p._id + "-mobile"} className="lg:hidden">
+                  <td colSpan={8} className="py-4 px-2 border-b">
+                    <div className="flex gap-4">
+                      <div className="w-24 h-24 flex-shrink-0">
+                        {p.images?.[0] ? (
+                          <img
+                            src={p.images[0].url}
+                            alt={p.name}
+                            className="w-full h-full object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">No Img</div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 space-y-1 text-sm break-words">
+                        <p><span className="font-semibold">Tên:</span> {p.name}</p>
+                        <p><span className="font-semibold">Mô tả:</span> {p.description}</p>
+                        <p><span className="font-semibold">Giá:</span> {p.price.toLocaleString()} đ</p>
+                        <p><span className="font-semibold">Danh mục:</span> {typeof p.category_id === "object" ? p.category_id.name : p.category_id}</p>
+                        <p><span className="font-semibold">Số lượng:</span> {p.quantity}</p>
+                        <p className="flex items-center gap-2">
+                          <span className="font-semibold">Trạng thái:</span>
+                          <span className={`px-2 py-1 rounded text-sm ${p.status === "available"
+                            ? "bg-green-100 text-green-600"
+                            : p.status === "out_of_stock"
+                              ? "bg-red-100 text-red-600"
+                              : "bg-gray-100 text-gray-600"
+                            }`}>
+                            {p.status === "available"
+                              ? "Còn hàng"
+                              : p.status === "out_of_stock"
+                                ? "Hết hàng"
+                                : "Ẩn"}
+                          </span>
+                        </p>
+
+                        <div className="flex gap-4 pt-2">
+                          <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
+                          <Edit className="w-4 h-4 cursor-pointer text-yellow-600" onClick={() => openEditForm(p)} />
+                          <Trash className="w-4 h-4 cursor-pointer text-red-600" onClick={() => handleDelete(p._id)} />
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </React.Fragment>
             ))}
           </tbody>
+
         </table>
       )}
 
@@ -476,6 +541,27 @@ export default function ProductTable() {
           </div>
         </div>
       )}
+      {/* Pagination */}
+      <div className="mt-4 flex justify-center gap-2">
+        <button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((prev) => prev - 1)}
+          className="px-3 py-1 border rounded disabled:opacity-50"
+        >
+          ← Trước
+        </button>
+        <span className="px-3 py-1">
+          Trang {currentPage} / {totalPages}
+        </span>
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage((prev) => prev + 1)}
+          className="px-3 py-1 border rounded disabled:opacity-50"
+        >
+          Sau →
+        </button>
+      </div>
+
     </div>
   );
 }

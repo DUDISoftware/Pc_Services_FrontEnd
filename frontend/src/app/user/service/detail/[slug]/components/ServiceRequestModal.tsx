@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable react-hooks/rules-of-hooks */
 "use client";
 
 import { useState } from "react";
-import { X, Upload, FlagIcon } from "lucide-react";
+import { X, Upload, FlagIcon, Trash } from "lucide-react";
 import { Service } from "@/types/Service";
-import { Request, RepairRequestPayload } from "@/types/Request";
+import { RepairRequestPayload, UploadedImage } from "@/types/Request";
 import { requestService } from "@/services/request.service";
 
 interface ServiceRequestModalProps {
@@ -13,49 +15,87 @@ interface ServiceRequestModalProps {
   onClose: () => void;
 }
 
-export default function ServiceRequestModal({serviceData, isOpen, onClose }: ServiceRequestModalProps) {
+export default function ServiceRequestModal({
+  serviceData,
+  isOpen,
+  onClose,
+}: ServiceRequestModalProps) {
   if (!isOpen || !serviceData) return null;
 
-  // State lưu form
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     service_id: serviceData._id,
     name: "",
     email: "",
     phone: "",
     address: "",
     problem_description: "",
-    repair_type: serviceData.type || "at_store", // Giá trị mặc định
+    repair_type: serviceData.type || "at_store",
     estimated_time: serviceData.estimated_time || "1 ngày",
-    status: "new",
-    images: [],
+    status: "new" as "new" | "in_progress" | "completed" | "cancelled",
+    images: [] as (File | UploadedImage)[],
   });
 
   const [submitting, setSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const newFiles = Array.from(e.target.files);
+
+    if (formData.images.length + newFiles.length > 3) {
+      alert("Chỉ được upload tối đa 3 ảnh.");
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images, ...newFiles].slice(0, 3),
+    }));
+  };
+
+  const removeImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+
     try {
-      console.log("Service Data:", serviceData);
-      console.log("Gửi yêu cầu với dữ liệu:", form);
-      await requestService.createRepair(
-        {...form, service_id: serviceData._id} as Partial<Request>
-      );
+      const form = new FormData();
+      form.append("service_id", formData.service_id);
+      form.append("name", formData.name);
+      form.append("email", formData.email);
+      form.append("phone", formData.phone);
+      form.append("address", formData.address);
+      form.append("problem_description", formData.problem_description);
+      form.append("repair_type", formData.repair_type);
+      form.append("estimated_time", formData.estimated_time);
+      form.append("status", formData.status);
+      formData.images.forEach((UploadImage, i) => {
+        form.append("images", UploadImage as File);
+      });
+
+      await requestService.createRepair(formData as unknown as RepairRequestPayload);
       alert("Yêu cầu đã được gửi thành công!");
-      setForm({
+      setFormData({
         service_id: serviceData._id,
         name: "",
         email: "",
         phone: "",
         address: "",
         problem_description: "",
-        repair_type: serviceData.type || "at_store", // Giá trị mặc định
+        repair_type: serviceData.type || "at_store",
         estimated_time: serviceData.estimated_time || "1 ngày",
-        status: "new",
+        status: "new" as "new" | "in_progress" | "completed" | "cancelled",
         images: [],
       });
       onClose();
@@ -70,16 +110,16 @@ export default function ServiceRequestModal({serviceData, isOpen, onClose }: Ser
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white w-full max-w-lg rounded-xl shadow-lg relative p-6">
-        {/* Flag */}
-        <button onClick={onClose} className="absolute top-3 left-3 text-gray-500 hover:text-gray-800">
+        <button onClick={onClose} className="absolute top-3 left-3 text-gray-500">
           <FlagIcon className="w-5 h-5" />
         </button>
-        {/* Close */}
-        <button onClick={onClose} className="absolute top-3 right-3 text-gray-500 hover:text-gray-800">
+        <button onClick={onClose} className="absolute top-3 right-3 text-gray-500">
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-lg font-semibold mb-4 mt-4">ĐĂNG KÝ DỊCH VỤ SỬA CHỮA</h2>
+        <h2 className="text-lg font-semibold mb-4 mt-4">
+          ĐĂNG KÝ DỊCH VỤ SỬA CHỮA
+        </h2>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           {[
@@ -89,24 +129,31 @@ export default function ServiceRequestModal({serviceData, isOpen, onClose }: Ser
             { label: "Địa chỉ", name: "address", type: "text" },
           ].map((field) => (
             <div key={field.name}>
-              <label className="block text-sm font-medium mb-1">{field.label}</label>
+              <label className="block text-sm font-medium mb-1">
+                {field.label}
+              </label>
               <input
                 type={field.type}
                 name={field.name}
-                value={form[field.name as keyof typeof form]}
+                value={
+                  typeof formData[field.name as keyof typeof formData] === "string"
+                    ? (formData[field.name as keyof typeof formData] as string)
+                    : ""
+                }
                 onChange={handleChange}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                placeholder={`Nhập ${field.label.toLowerCase()}...`}
                 required
               />
             </div>
           ))}
 
           <div>
-            <label className="block text-sm font-medium mb-1">Mô tả chi tiết</label>
+            <label className="block text-sm font-medium mb-1">
+              Mô tả chi tiết
+            </label>
             <textarea
               name="problem_description"
-              value={form.problem_description}
+              value={formData.problem_description}
               onChange={handleChange}
               className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
               placeholder="Nhập mô tả chi tiết vấn đề..."
@@ -114,18 +161,38 @@ export default function ServiceRequestModal({serviceData, isOpen, onClose }: Ser
             />
           </div>
 
-          {/* Upload hình ảnh (chưa xử lý thực tế) */}
+          {/* Upload hình ảnh */}
           <div>
-            <label className="block text-sm font-medium mb-2">Hình ảnh mô tả</label>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 cursor-pointer hover:bg-gray-50">
-                <Upload className="w-6 h-6 text-gray-400 mb-1" />
-                <span className="text-xs text-gray-500">Tải ảnh lên</span>
-              </div>
-              <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 cursor-pointer hover:bg-gray-50">
-                <Upload className="w-6 h-6 text-gray-400 mb-1" />
-                <span className="text-xs text-gray-500">Tải ảnh lên</span>
-              </div>
+            <label className="block text-sm font-medium mb-2">
+              Hình ảnh mô tả (tối đa 3 ảnh)
+            </label>
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleImageChange}
+              disabled={formData.images.length >= 3}
+            />
+            <div className="flex flex-wrap gap-3 mt-3">
+              {formData.images.map((img, index) => (
+                <div
+                  key={index}
+                  className="relative w-24 h-24 border rounded overflow-hidden"
+                >
+                  <img
+                    src={URL.createObjectURL(img as File)}
+                    alt="preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"
+                  >
+                    <Trash size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 

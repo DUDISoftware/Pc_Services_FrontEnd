@@ -15,6 +15,9 @@ interface Info {
 
 export default function PdfReaderPage() {
   const [info, setInfo] = useState<Info | null>(null);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
+  const url = "https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
 
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
@@ -31,24 +34,33 @@ export default function PdfReaderPage() {
     fetchInfo();
   }, []);
 
-  if (!info) return <p>Đang tải dữ liệu PDF...</p>;
+  if (!info) return <p className="px-4 py-10">Đang tải dữ liệu PDF...</p>;
 
   return (
-    <div className="max-w-5xl mx-auto py-10 space-y-12">
-      <h1 className="text-2xl font-bold mb-4">📄 Xem file PDF</h1>
-
+    <div className="max-w-5xl mx-auto py-10 space-y-10">
       {/* Điều khoản */}
       <section>
-        <h2 className="text-xl font-semibold mb-2">Điều khoản sử dụng</h2>
+        <h2 className="text-xl font-semibold mb-2">📘 Điều khoản sử dụng</h2>
         {info.terms ? (
-          <div className="border rounded-md shadow-md">
-            <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-              <Viewer
-                fileUrl={info.terms}
-                plugins={[defaultLayoutPluginInstance]}
-              />
-            </Worker>
-          </div>
+          <>
+            <button
+              className="text-sm text-white bg-blue-600 px-4 py-1 rounded hover:bg-blue-700 transition"
+              onClick={() => setShowTerms(!showTerms)}
+            >
+              {showTerms ? "Ẩn PDF" : "Xem PDF"}
+            </button>
+
+            {showTerms && (
+              <div className="mt-4 border rounded-md shadow-md overflow-hidden">
+                <Worker workerUrl={url}>
+                  <Viewer
+                    fileUrl={info.terms}
+                    plugins={[defaultLayoutPluginInstance]}
+                  />
+                </Worker>
+              </div>
+            )}
+          </>
         ) : (
           <p className="text-sm text-gray-500">Chưa có file điều khoản.</p>
         )}
@@ -56,16 +68,27 @@ export default function PdfReaderPage() {
 
       {/* Chính sách */}
       <section>
-        <h2 className="text-xl font-semibold mb-2">Chính sách</h2>
+        <h2 className="text-xl font-semibold mb-2">📕 Chính sách</h2>
         {info.policy ? (
-          <div className="border rounded-md shadow-md">
-            <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-              <Viewer
-                fileUrl={info.policy}
-                plugins={[defaultLayoutPluginInstance]}
-              />
-            </Worker>
-          </div>
+          <>
+            <button
+              className="text-sm text-white bg-green-600 px-4 py-1 rounded hover:bg-green-700 transition"
+              onClick={() => setShowPolicy(!showPolicy)}
+            >
+              {showPolicy ? "Ẩn PDF" : "Xem PDF"}
+            </button>
+
+            {showPolicy && (
+              <div className="mt-4 border rounded-md shadow-md overflow-hidden">
+                <Worker workerUrl={url}>
+                  <Viewer
+                    fileUrl={info.policy}
+                    plugins={[defaultLayoutPluginInstance]}
+                  />
+                </Worker>
+              </div>
+            )}
+          </>
         ) : (
           <p className="text-sm text-gray-500">Chưa có file chính sách.</p>
         )}

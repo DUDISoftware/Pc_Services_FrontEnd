@@ -1,4 +1,4 @@
-export interface Stats{
+export type Stats = {
     visits?: number;
     total_profit?: number;
     total_repairs?: number;

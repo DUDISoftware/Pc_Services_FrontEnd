@@ -10,6 +10,7 @@ import DefaultServiceImage from "@/assets/image/service/services.png"; // 👈 i
 export default function ServiceList() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [slug, setSlug] = useState<string>("");
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -41,7 +42,8 @@ export default function ServiceList() {
               price: s.price,
               discount: "Giảm 20%",
               rating: 4.5,
-              img: DefaultServiceImage, // 👈 luôn dùng ảnh mặc định
+              slug: s.slug,
+              img: (Array.isArray(s.images) && s.images.length > 0 ? s.images[0].url : DefaultServiceImage), // 👈 nếu s.images có ít nhất 1 ảnh thì lấy url ảnh đầu tiên, nếu không thì dùng ảnh mặc định
             }}
           />
         ))}

@@ -15,6 +15,7 @@ type ProductType = {
   discount?: string;
   rating: number;
   img: string;
+  slug: string;
 };
 
 export default function DiscountProducts() {
@@ -41,6 +42,7 @@ export default function DiscountProducts() {
             discount: `${discountPercent}%`,
             rating: 4 + Math.random(), // random 4.0 - 5.0
             img: p.images?.[0]?.url || "/images/placeholder.png",
+            slug: p.slug,
           };
         });
 
@@ -71,7 +73,7 @@ export default function DiscountProducts() {
             key={item._id}
             className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative"
           >
-            <Link href={`/user/product/${item._id}`}>
+            <Link href={`/user/product/detail/${item.slug}`}>
 
               {/* Badge */}
               {item.discount && (

@@ -2,9 +2,10 @@ import api from "@/lib/api";
 import { Service } from "@/types/Service";
 import { mapService } from "@/lib/mappers";
 
-interface Featured {
+type Featured = {
   services: {
-    id: string; views: number;
+    id: string; 
+    views: number;
   }[];
 }
 
@@ -38,9 +39,9 @@ export const serviceService = {
     await api.delete(`/services/${id}`);
   },
 
-  getFeatured: async (limit: number = 5): Promise<Featured[]> => {
+  getFeatured: async (limit: number = 5): Promise<Featured> => {
     const res = await api.get(`/services/featured?limit=${limit}`);
-    return res.data.services;
+    return res.data as Featured;
   },
 
   getView: async(id: string): Promise<number> => {

@@ -22,6 +22,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
       try {
         const data = await serviceService.getBySlug(slug);
         setService(data);
+        const views = await serviceService.countViewRedis(data._id);
       } catch (err) {
         console.error("Lỗi khi tải chi tiết dịch vụ:", err);
       } finally {

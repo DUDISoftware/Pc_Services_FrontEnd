@@ -3,7 +3,7 @@ import { Product, ProductApi } from "@/types/Product";
 import { mapProduct } from "@/lib/mappers";
 import { get } from "http";
 
-interface Featured {
+type Featured = {
   products: {
     id: string;
     views: number;

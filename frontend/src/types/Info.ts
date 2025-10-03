@@ -1,4 +1,4 @@
-export interface Info {
+export type Info = {
     _id: string;
     name: string;
     email: string;

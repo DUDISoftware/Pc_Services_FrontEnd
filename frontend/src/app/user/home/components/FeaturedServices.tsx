@@ -1,22 +1,23 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronRightCircle } from "lucide-react";
+import { ChevronRightCircle, Star } from "lucide-react";
 import Link from "next/link";
 import { serviceService } from "@/services/service.service";
 import { useState, useEffect } from "react";
+import { Service } from "@/types/Service";
+import DefaultServiceImage from "@/assets/image/service/services.png"; // 👈 import ảnh mặc định
 
 
-export default function FeaturedFixServices() {
-  const [services, setServices] = useState<ServiceType[]>([]);
+export default function FeaturedServices() {
+  const [services, setServices] = useState<Service[]>([]);
   const [featured, setFeatured] = useState<{ id: string; views: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // lấy danh sách featured ids + views
   useEffect(() => {
     const fetchFeaturedServices = async () => {
       try {
-        const res = await serviceService.getFeatured(5); 
+        const res = await serviceService.getFeatured(5);
         setFeatured(res.services || []);
       } catch (error) {
         console.error("Failed to fetch featured services:", error);
@@ -25,32 +26,37 @@ export default function FeaturedFixServices() {
     fetchFeaturedServices();
   }, []);
 
-  // fetch tất cả service, lọc & sort theo featured
   useEffect(() => {
     if (featured.length === 0) return;
 
     const fetchServices = async () => {
       try {
-        const { services } = await serviceService.getAll();
+        const allServices = await serviceService.getAll();
 
-        const mapped: ServiceType[] = services
-          .map((s: any) => ({
-            _id: s._id,
-            title: s.name,
+        const mapped = allServices
+          .map((s) => ({
+            ...s,
+            oldPrice: s.price * 1.2 || 0,
             price: s.price || 0,
             rating: 4 + Math.random(),
-            img: s.images?.[0]?.url || "/images/placeholder.png",
+            images: s.images?.length
+              ? s.images
+              : [{ url: DefaultServiceImage.src, public_id: "default" }],
+            slug: s.slug || "",
           }))
-          .filter((s) => featured.some((f) => f.id === s._id)) // lọc chỉ featured
           .sort((a, b) => {
-            const aViews = featured.find((f) => f.id === a._id)?.views || 0;
-            const bViews = featured.find((f) => f.id === b._id)?.views || 0;
-            return bViews - aViews; // sort giảm dần theo views
+            const aFeatured = featured.find((f) => f.id === a._id);
+            const bFeatured = featured.find((f) => f.id === b._id);
+
+            if (aFeatured && bFeatured) return bFeatured.views - aFeatured.views;
+            if (aFeatured) return -1;
+            if (bFeatured) return 1;
+            return 0;
           });
 
-        setServices(mapped);
+        setServices(mapped.slice(0, 5));
       } catch (err) {
-        console.error("Failed to fetch featured services:", err);
+        console.error("Failed to fetch services:", err);
       } finally {
         setLoading(false);
       }
@@ -79,16 +85,27 @@ export default function FeaturedFixServices() {
             key={item._id}
             className="flex flex-col items-center rounded-lg border border-gray-200 p-3 hover:shadow transition"
           >
-            <Link href={`/user/service/${item._id}`}>
+            <Link href={`/user/service/detail/${item.slug}`}>
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-2">
                 <Image
-                  src={item.img}
-                  alt={item.title}
+                  src={item.images?.[0]?.url || "/images/placeholder.png"}
+                  alt={item.description || item.name || "Dịch vụ"}
                   fill
                   className="object-cover"
                 />
               </div>
-              <p className="text-xs sm:text-sm text-center">{item.title}</p>
+              <p className="text-xs sm:text-sm text-center">{item.name}</p>
+              {/* Price + Rating */}
+              <div className="flex items-center justify-between mt-auto">
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-gray-400 line-through">
+                    {(item.price * 1.2).toLocaleString()}₫
+                  </span>
+                  <span className="text-red-500 font-semibold text-sm">
+                    {item.price.toLocaleString()}₫
+                  </span>
+                </div>
+              </div>
             </Link>
           </div>
         ))}

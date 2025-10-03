@@ -35,7 +35,7 @@ export default function RequestBoard({
   useEffect(() => {
     const loadServices = async () => {
       try {
-        const data = await serviceService.getAll();
+        const data = (await serviceService.getAll());
         setServices(data);
       } catch (err) {
         console.error("❌ Lỗi khi tải danh sách dịch vụ:", err);
@@ -131,19 +131,19 @@ export default function RequestBoard({
         );
         if (destCol.id === "completed" && movedRequest._id) {
           // Gửi email thông báo hoàn thành
-          if (movedRequest.email) {
-            try {
-              await userService.sendEmail(
-                movedRequest.email,
-                "Yêu cầu của bạn đã được hoàn thành",
-                `<p>Xin chào ${movedRequest.name || "khách hàng"},</p>
-                <p>Yêu cầu của bạn với mã <strong>${movedRequest._id}</strong> đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-                <p>Trân trọng,<br/>Đội ngũ hỗ trợ</p>`
-              );
-            } catch (err) {
-              console.error("❌ Lỗi khi gửi email hoàn thành:", err);
-            }
-          }
+          // if (movedRequest.email) {
+          //   try {
+          //     await userService.sendEmail(
+          //       movedRequest.email,
+          //       "Yêu cầu của bạn đã được hoàn thành",
+          //       `<p>Xin chào ${movedRequest.name || "khách hàng"},</p>
+          //       <p>Yêu cầu của bạn với mã <strong>${movedRequest._id}</strong> đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+          //       <p>Trân trọng,<br/>Đội ngũ hỗ trợ</p>`
+          //     );
+          //   } catch (err) {
+          //     console.error("❌ Lỗi khi gửi email hoàn thành:", err);
+          //   }
+          // }
         }
       } else {
         await requestService.updateOrder(

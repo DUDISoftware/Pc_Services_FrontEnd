@@ -1,4 +1,6 @@
-/* eslint-disable @next/next/no-img-element */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @next/next/no-img-element */ 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -30,67 +32,56 @@ export default function DragDropBannerLayout() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const pageSize = 15;
-
   const maxSlots = selectedTemplate === "template2" ? 1 : selectedTemplate === "template3" ? 4 : 3;
 
   const fetchBanners = async () => {
     try {
       const res = await bannerService.getAll();
       const data = res.banners;
-      // const valid = data.filter((b) => b.position > 0);
       const bannersWithPosition = data.filter((b) => b.position > 0);
 
-// Nhóm theo position
-const positionMap: Record<number, BannerItem[]> = {};
-for (const b of bannersWithPosition) {
-  if (!positionMap[b.position]) positionMap[b.position] = [];
-  positionMap[b.position].push(b);
-}
+      const positionMap: Record<number, BannerItem[]> = {};
+      for (const b of bannersWithPosition) {
+        if (!positionMap[b.position]) positionMap[b.position] = [];
+        positionMap[b.position].push({
+          id: b._id,
+          _id: b._id,
+          image: typeof b.image === "string" ? b.image : b.image?.url || "",
+          position: b.position,
+          updatedAt: b.updatedAt,
+        });
+      }
 
-const uniqueBanners: BannerItem[] = [];
+      const uniqueBanners: BannerItem[] = [];
 
-await Promise.all(
-  Object.entries(positionMap).map(async ([posStr, list]) => {
-    if (list.length === 1) {
-      uniqueBanners.push(list[0]);
-    } else {
-      // Sắp xếp theo updatedAt mới nhất
-      const sorted = list.sort(
-        (a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()
-      );
-      const [newest, ...rest] = sorted;
-      uniqueBanners.push(newest);
-
-      // Cập nhật các ảnh còn lại về position 0
       await Promise.all(
-        rest.map((oldItem) =>
-          bannerService.update(oldItem._id, { position: 0 })
-        )
+        Object.entries(positionMap).map(async ([posStr, list]) => {
+          if (list.length === 1) {
+            uniqueBanners.push(list[0]);
+          } else {
+            const sorted = list.sort(
+              (a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()
+            );
+            const [newest, ...rest] = sorted;
+            uniqueBanners.push(newest);
+            await Promise.all(
+              rest.map((oldItem) =>
+                bannerService.update(oldItem._id, { position: 0 })
+              )
+            );
+          }
+        })
       );
-    }
-  })
-);
 
-const initialHolders = uniqueBanners
-  .sort((a, b) => a.position - b.position)
-  .slice(0, maxSlots)
-  .map((b) => ({
-    id: b._id,
-    _id: b._id,
-    image: typeof b.image === "string" ? b.image : b.image?.url || "",
-    position: b.position,
-  }));
-
-
-      // const initialHolders = valid
-      //   .sort((a, b) => a.position - b.position)
-      //   .slice(0, maxSlots)
-      //   .map((b) => ({
-      //     id: b._id,
-      //     _id: b._id,
-      //     image: typeof b.image === "string" ? b.image : b.image?.url || "",
-      //     position: b.position,
-      //   }));
+      const initialHolders = uniqueBanners
+        .sort((a, b) => a.position - b.position)
+        .slice(0, maxSlots)
+        .map((b) => ({
+          id: b._id,
+          _id: b._id,
+          image: typeof b.image === "string" ? b.image : b.image?.url || "",
+          position: b.position,
+        }));
 
       setHolders(Array.from({ length: maxSlots }, (_, i) => initialHolders[i] || null));
     } catch (err) {
@@ -174,7 +165,7 @@ const initialHolders = uniqueBanners
         >
           <option value="template1">Template 1: 1 ảnh lớn trái, 2 ảnh nhỏ phải</option>
           <option value="template2">Template 2: 1 ảnh lớn toàn banner</option>
-          <option value="template3">Template 3: 4 ảnh vừa</option>
+          <option value="template3">Template 3: 4 ảnh nhỏ slide ngang</option>
         </select>
       </div>
 
@@ -215,7 +206,7 @@ const initialHolders = uniqueBanners
           )}
 
           {selectedTemplate === "template3" && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               {holders.map((h, i) => (
                 <SortableImage
                   key={i}
@@ -257,9 +248,9 @@ const initialHolders = uniqueBanners
               <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>&larr; Trước</button>
               <span>Trang {currentPage}</span>
               <button
-                onClick={() => setCurrentPage((p) =>
-                  p * pageSize < galleryImages.length ? p + 1 : p
-                )}
+                onClick={() =>
+                  setCurrentPage((p) => (p * pageSize < galleryImages.length ? p + 1 : p))
+                }
               >
                 Sau &rarr;
               </button>

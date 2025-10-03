@@ -1,6 +1,6 @@
 export type UploadedImage = { url: string; public_id: string };
 
-export interface Service {
+export type Service = {
   _id: string;
   name: string;
   description: string;
