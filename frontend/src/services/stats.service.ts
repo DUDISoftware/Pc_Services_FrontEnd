@@ -26,7 +26,9 @@ export const statsService = {
             const response = await api.put(`/stats?date=${today}`, data);
             return statsMapper(response.data.stats);
         } catch (error) {
-            if (error.response && error.response.status === 404) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const message = error as any || {};
+            if (message.response && message.response.status === 404) {
                 return this.createStats(data, today);
             }
             console.error("Lỗi cập nhật thống kê:", error);

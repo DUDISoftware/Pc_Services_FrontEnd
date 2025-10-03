@@ -37,7 +37,7 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 🔄 Lấy giá dịch vụ nếu là yêu cầu sửa chữa (và service_id là string)
+  // 🔄 Lấy giá dịch vụ nếu là yêu cầu sửa chữa
   useEffect(() => {
     const fetchServicePrice = async () => {
       if (req.service_id && typeof req.service_id === "string") {
@@ -70,18 +70,23 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
         onSuccess={onDeleted}
       />
 
-      <div className="bg-white shadow rounded-lg p-4 mb-4 relative">
+      <div className="bg-white shadow rounded-lg p-4 mb-4 relative break-words w-full">
         {/* Header */}
         <div className="flex justify-between items-start mb-2">
-          <div>
+          <div className="break-words">
             <h3 className="font-semibold text-gray-800 mb-1">
               {req.service_id ? "🔧 Yêu cầu sửa chữa" : "📦 Đơn đặt hàng"}
             </h3>
 
             {/* Nếu là sửa chữa thì hiện tên dịch vụ */}
             {req.service_id && (
-              <p className="text-sm text-gray-500">
-                📌 {getServiceNameById(typeof req.service_id === "string" ? req.service_id : req.service_id._id)}
+              <p className="text-sm text-gray-500 break-words">
+                📌{" "}
+                {getServiceNameById(
+                  typeof req.service_id === "string"
+                    ? req.service_id
+                    : req.service_id._id
+                )}
               </p>
             )}
           </div>
@@ -117,9 +122,9 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
                     setOpenMenu(false);
                     try {
                       if (req.service_id) {
-                        await requestService.deleteRepair(req._id);
+                        await requestService.hideRepair(req._id);
                       } else {
-                        console.log(req);
+                        console.log("Hiding order", req);
                         await requestService.hideOrder(req._id);
                       }
                       onDeleted?.(); // ✅ callback reload danh sách
@@ -137,14 +142,15 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
         </div>
 
         {/* Info */}
-        <div className="text-sm text-gray-600 space-y-1 mb-3">
-          {req.name && <p>👤 {req.name}</p>}
-          {req.phone && <p>📞 {req.phone}</p>}
-          {req.address && <p>📍 {req.address}</p>}
+        <div className="text-sm text-gray-600 space-y-1 mb-3 break-words">
+          {req.name && <p className="break-words">👤 {req.name}</p>}
+          {req.phone && <p className="break-words">📞 {req.phone}</p>}
+          {req.address && <p className="break-words">📍 {req.address}</p>}
+
           {req.items && req.items.length > 0 && (
-            <ul className="list-disc list-inside mt-1">
+            <ul className="list-disc list-inside mt-1 max-h-32 overflow-y-auto pr-1 text-xs break-words">
               {req.items.map((item, i) => (
-                <li key={i}>
+                <li key={i} className="break-words">
                   {typeof item.product_id === "object"
                     ? `${item.product_id.name}: ${item.quantity} x ${item.product_id.price}₫`
                     : `${item.name}: ${item.quantity} x ${item.price}₫`}
@@ -154,26 +160,26 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
           )}
 
           {/* Tổng tiền */}
-          <div className="text-xs text-gray-700 mt-1 font-semibold">
+          <div className="text-xs text-gray-700 mt-1 font-semibold break-words">
             💰 Tổng tiền:{" "}
             {req.service_id
               ? `${(
-                  typeof req.service_id === "object"
-                    ? req.service_id.price
-                    : servicePrice || 0
-                ).toLocaleString()}₫`
-              : `${req.items?.reduce(
-                  (sum, item) =>
-                    sum +
-                    (item.quantity || 0) *
-                      (typeof item.product_id === "object"
-                        ? item.product_id.price || 0
-                        : item.price || 0),
-                  0
-                ).toLocaleString()}₫`}
+                typeof req.service_id === "object"
+                ? req.service_id.price ?? 0
+                : servicePrice ?? 0
+              ).toLocaleString()}₫`
+              : `${(req.items?.reduce(
+                (sum, item) =>
+                sum +
+                (item.quantity ?? 0) *
+                  (typeof item.product_id === "object"
+                  ? item.product_id.price ?? 0
+                  : item.price ?? 0),
+                0
+              ) ?? 0).toLocaleString()}₫`}
           </div>
 
-          <div className="text-xs text-gray-400 mt-2">
+          <div className="text-xs text-gray-400 mt-2 break-words">
             📅 Ngày: {req.updatedAt}
           </div>
         </div>

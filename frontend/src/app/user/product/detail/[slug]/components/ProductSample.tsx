@@ -85,9 +85,9 @@ export default function ProductSample({ productId }: { productId: string }) {
                       {item.price.toLocaleString()}₫
                     </span>
                   </div>
-                  <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
+                  {/* <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
                     <Star className="w-4 h-4 text-yellow-400 mr-1" /> 4.5
-                  </div>
+                  </div> */}
                 </div>
               </Link>
 

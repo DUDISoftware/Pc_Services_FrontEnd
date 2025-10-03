@@ -3,14 +3,20 @@
 import { Star, ThumbsUp, ThumbsDown } from "lucide-react";
 import Image from "next/image";
 import bannerImg from "@/assets/image/banner/bannerdetailproduct.png"; // bạn thay ảnh này
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, RefObject } from "react";
 import { ratingService } from "@/services/rating.service";
 import { Rating } from "@/types/Rating";
 
-export default function ProductReviewSection({ productId }: { productId: string }) {
+interface ProductReviewSectionProps {
+  productId: string;
+  scrollToFormRef: RefObject<HTMLFormElement | null>;
+}
+
+export default function ProductReviewSection({ productId, scrollToFormRef }: ProductReviewSectionProps) {
   const [loading, setLoading] = useState(true);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const reviews = ratings;
+  const reviewFormRef = useRef<HTMLDivElement>(null);
 
   const calculateAverageRating = () => {
     if (reviews.length === 0) return 0;
@@ -93,11 +99,19 @@ export default function ProductReviewSection({ productId }: { productId: string 
             Hãy chia sẻ phản hồi của bạn và tạo ra trải nghiệm mua sắm tốt hơn
             cho mọi người. Cảm ơn bạn đã dành thời gian chia sẻ ý kiến.
           </p>
-
-          <button className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:opacity-90 transition">
+          <button
+            onClick={() => {
+              scrollToFormRef?.current?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
             Viết đánh giá
           </button>
+
+          {/* Review Form Placeholder */}
+          <div ref={reviewFormRef}></div>
         </div>
+
 
         {/* Review list */}
         <div className="lg:col-span-2 space-y-4">
@@ -112,11 +126,10 @@ export default function ProductReviewSection({ productId }: { productId: string 
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-4 h-4 ${
-                        i < Math.round(review.score)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
-                      }`}
+                      className={`w-4 h-4 ${i < Math.round(review.score)
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-gray-300"
+                        }`}
                     />
                   ))}
                   <span className="ml-2 font-medium">

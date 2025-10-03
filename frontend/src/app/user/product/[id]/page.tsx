@@ -86,6 +86,7 @@ export default function ProductDetailPage() {
               id: product._id,
               title: product.name,
               rating: product.rating || 4.5,
+              quantity: product.quantity || 0,
               reviews: 34,
               oldPrice,
               price: product.price,

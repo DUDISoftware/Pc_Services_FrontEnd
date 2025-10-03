@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronRightCircle, Star } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { Product } from "@/types/Product";
+import { ratingService } from "@/services/rating.service";
 
 // ✅ type cho sản phẩm hiển thị
 type ProductType = {
@@ -61,7 +62,7 @@ export default function FeaturedProducts() {
           title: p.name,
           oldPrice: Math.round(p.price * 1.2),
           price: p.price,
-          rating: 4 + Math.random(), // 4.0–5.0
+          rating: Number(ratingService.getByProductId(p._id)) || 5.0,
           img: p.images?.[0]?.url || "/images/placeholder.png",
           slug: p.slug,
         }));

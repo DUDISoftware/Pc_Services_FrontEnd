@@ -1,9 +1,9 @@
 export type UploadedImage = { url: string; public_id: string };
 export type Items = { name: string; product_id: {
-_id: string;
-name: string;
-price: number
-}; quantity: number; price: number }[];
+                    _id: string;
+                    name: string;
+                    price: number;
+                    }; quantity: number; price: number }[];
 
 export type Request = {
   _id: string;
@@ -25,6 +25,7 @@ export type Request = {
   images?: UploadedImage[];
   createdAt: string;
   updatedAt: string;
+  hidden?: boolean | false;
 }
 
 export interface RepairRequestPayload {
@@ -56,4 +57,5 @@ export interface RequestApi {
   images?: (File | UploadedImage)[];
   createdAt: string;
   updatedAt: string;
+  hidden?: boolean | false;
 }

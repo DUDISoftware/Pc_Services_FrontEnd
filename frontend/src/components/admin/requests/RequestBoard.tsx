@@ -13,6 +13,8 @@ import { serviceService } from "@/services/service.service";
 import { userService } from "@/services/user.service";
 import RequestCard from "./RequestCard";
 import { productService } from "@/services/product.service";
+import { infoService } from "@/services/info.services";
+import { Info } from "@/types/Info";
 
 interface Column {
   id: string;
@@ -29,7 +31,20 @@ export default function RequestBoard({
 }) {
   const [columns, setColumns] = useState<Column[]>([]);
   const [services, setServices] = useState<{ _id: string; name: string }[]>([]);
+  const [info, setInfo] = useState<Info>({} as Info);
 
+  // Load thông tin cửa hàng (dùng cho email)
+  useEffect(() => {
+    const loadInfo = async () => {
+      try {
+        const data = await infoService.getInfo();
+        setInfo(data);
+      } catch (err) {
+        console.error("❌ Lỗi khi tải thông tin cửa hàng:", err);
+      }
+    };
+    loadInfo();
+  }, []);
 
   // Load danh sách dịch vụ (dùng cho title)
   useEffect(() => {
@@ -71,7 +86,8 @@ export default function RequestBoard({
           images: req.images,
           estimated_time: "",
           status: req.status,
-          createdAt: req.createdAt ?? ""
+          createdAt: req.createdAt ?? "",
+          hidden: req.hidden
         });
       }
     }
@@ -89,8 +105,8 @@ export default function RequestBoard({
       } else {
         data =
           tab === "service"
-            ? await requestService.getAllRepairs()
-            : await requestService.getAllOrders();
+            ? (await requestService.getAllRepairs()).filter(r => r.hidden !== true)
+            : (await requestService.getAllOrders()).filter(r => r.hidden !== true);
       }
 
       const cols = mapRequestsToColumns(data);
@@ -131,19 +147,25 @@ export default function RequestBoard({
         );
         if (destCol.id === "completed" && movedRequest._id) {
           // Gửi email thông báo hoàn thành
-          // if (movedRequest.email) {
-          //   try {
-          //     await userService.sendEmail(
-          //       movedRequest.email,
-          //       "Yêu cầu của bạn đã được hoàn thành",
-          //       `<p>Xin chào ${movedRequest.name || "khách hàng"},</p>
-          //       <p>Yêu cầu của bạn với mã <strong>${movedRequest._id}</strong> đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-          //       <p>Trân trọng,<br/>Đội ngũ hỗ trợ</p>`
-          //     );
-          //   } catch (err) {
-          //     console.error("❌ Lỗi khi gửi email hoàn thành:", err);
-          //   }
-          // }
+          if (movedRequest.email) {
+            try {
+              await userService.sendEmail(
+                movedRequest.email,
+                "Yêu cầu của bạn đã được hoàn thành",
+                `Xin chào ${movedRequest.name || "khách hàng"},
+                Yêu cầu của bạn với mã <strong>${movedRequest._id}</strong> đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!
+                Trân trọng,
+                Đội ngũ hỗ trợ`
+              );
+              await userService.sendEmail(
+                info.email,
+                `Yêu cầu ${movedRequest._id} đã hoàn thành`,
+                `Yêu cầu sửa chữa với mã ${movedRequest._id} của khách hàng ${movedRequest.name || "khách hàng"} đã được hoàn thành.`
+              );
+            } catch (err) {
+              console.error("❌ Lỗi khi gửi email hoàn thành:", err);
+            }
+          }
         }
       } else {
         await requestService.updateOrder(
@@ -167,9 +189,15 @@ export default function RequestBoard({
               await userService.sendEmail(
                 movedRequest.email,
                 "Yêu cầu của bạn đã được hoàn thành",
-                `<p>Xin chào ${movedRequest.name || "khách hàng"},</p>
-                <p>Yêu cầu của bạn với mã <strong>${movedRequest._id}</strong> đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-                <p>Trân trọng,<br/>Đội ngũ hỗ trợ</p>`
+                `Xin chào ${movedRequest.name || "khách hàng"},
+                Yêu cầu của bạn với mã ${movedRequest._id} đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!
+                Trân trọng,
+                Đội ngũ hỗ trợ`
+              );
+              await userService.sendEmail(
+                info.email,
+                `Yêu cầu ${movedRequest._id} đã hoàn thành`,
+                `Yêu cầu sửa chữa với mã ${movedRequest._id} của khách hàng ${movedRequest.name || "khách hàng"} đã được hoàn thành.`
               );
             } catch (err) {
               console.error("❌ Lỗi khi gửi email hoàn thành:", err);
@@ -184,41 +212,48 @@ export default function RequestBoard({
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h2 className="text-2xl font-bold mb-6 text-center">
+    <div className="p-4 bg-gray-100 min-h-screen w-full">
+      <h2 className="text-xl md:text-2xl font-bold mb-4 text-center">
         📋 Bảng quản lý yêu cầu khách hàng
       </h2>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {columns.map((col) => (
-            <Droppable key={col.id} droppableId={col.id}>
-              {(provided, snapshot) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={`p-4 rounded-xl shadow-md bg-white transition ${snapshot.isDraggingOver ? "bg-blue-50" : ""
+        <div className="flex flex-col md:grid md:grid-cols-1 lg:flex lg:flex-row gap-8 items-center lg:items-start">
+  {columns.map((col) => (
+    <Droppable key={col.id} droppableId={col.id}>
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.droppableProps}
+          className={`w-full lg:w-[32%] max-w-2xl p-4 rounded-xl shadow-md bg-white transition-all ${
+            snapshot.isDraggingOver ? "bg-blue-50" : ""
+          }`}
+        >
+          <h3 className="text-lg font-semibold mb-4">{col.title}</h3>
+          <div className="flex flex-col items-center gap-4">
+            {col.requests.map((req, index) => (
+              <Draggable
+                key={String(req._id)}
+                draggableId={String(req._id)}
+                index={index}
+              >
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                    className={`w-full max-w-md border rounded-lg shadow-sm bg-gray-50 p-3 transition ${
+                      snapshot.isDragging
+                        ? "bg-blue-100 border-blue-400"
+                        : "hover:bg-gray-100"
                     }`}
-                >
-                  <h3 className="text-lg font-semibold mb-3">{col.title}</h3>
-                  <div className="space-y-4">
-                    {col.requests.map((req, index) => (
-                      <Draggable key={String(req._id)} draggableId={String(req._id)} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={`border rounded-lg shadow-sm bg-gray-50 p-2 transition ${snapshot.isDragging
-                              ? "bg-blue-100 border-blue-400"
-                              : "hover:bg-gray-100"
-                              }`}
-                          >
+                  >
                             <RequestCard
                               req={{
                                 _id: String(req._id),
                                 name: req.name || "Khách hàng",
-                                problem_description: req.problem_description || req.note || "Không có mô tả",
+                                problem_description:
+                                  req.problem_description || req.note || "Không có mô tả",
                                 phone: req.phone || "",
                                 address: req.address || "",
                                 email: req.email || "",
@@ -231,18 +266,14 @@ export default function RequestBoard({
                                 images: req.images || [],
                               }}
                               services={services}
-                              onDeleted={() => {
-                                // ✅ Gọi lại API để cập nhật
-                                const reload = async () => {
-                                  const updated = tab === "service"
-                                    ? await requestService.getAllRepairs()
-                                    : await requestService.getAllOrders();
-                                  setColumns(mapRequestsToColumns(updated));
-                                };
-                                reload();
+                              onDeleted={async () => {
+                                const updated =
+                                  tab === "service"
+                                    ? (await requestService.getAllRepairs()).filter(r => r.hidden !== true)
+                                    : (await requestService.getAllOrders()).filter(r => r.hidden !== true);
+                                setColumns(mapRequestsToColumns(updated));
                               }}
                             />
-
                           </div>
                         )}
                       </Draggable>
@@ -254,7 +285,9 @@ export default function RequestBoard({
             </Droppable>
           ))}
         </div>
+
       </DragDropContext>
     </div>
   );
+
 }

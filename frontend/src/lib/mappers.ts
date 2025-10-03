@@ -71,7 +71,7 @@ export function mapCategory(apiData: CategoryApi): Category {
 
 export function mapRating(apiData: RatingApi): Rating {
   return {
-    _id: apiData._id,
+    _id: apiData._id as string,
     product_id: apiData.product_id,
     service_id: apiData.service_id,
     name: apiData.name,
@@ -165,6 +165,7 @@ export function mapRequest(apiData: RequestApi): Request {
     : [],
   createdAt: apiData.createdAt,
   updatedAt: apiData.updatedAt,
+  hidden: apiData.hidden ?? false,
 };
 }
 

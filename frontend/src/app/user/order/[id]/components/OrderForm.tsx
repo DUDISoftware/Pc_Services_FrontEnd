@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -102,7 +103,7 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
           quantity: number;
           price: number;
           image: string;
-        }[],
+        }[] as any,
       });
 
       // Mở popup

@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminSidebar from "@/components/admin/AdminSideBar";
 import AdminHeader from "@/components/admin/AdminHeader";
-import AdminFooter from "@/components/admin/AdminFooter";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [isSidebarOpen, setSidebarOpen] = useState(false); // 🔹 responsive sidebar
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && (!user || (user.role !== "admin" && user.role !== "staff"))) {
@@ -23,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <p className="p-6">Không có quyền truy cập</p>;
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen min-w-[360px] sm:min-w-[640px]">
       <AdminSidebar
         isOpen={isSidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -32,7 +31,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col bg-gray-50">
         <AdminHeader onToggleSidebar={() => setSidebarOpen(true)} />
         <main className="flex-1 p-4 sm:p-6 overflow-x-auto">{children}</main>
-        <AdminFooter />
       </div>
     </div>
   );

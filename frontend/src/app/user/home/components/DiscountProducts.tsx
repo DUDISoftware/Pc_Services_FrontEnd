@@ -6,6 +6,8 @@ import Link from "next/link";
 import { ChevronRightCircle, Star } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { Product } from "@/types/Product";
+import { Rating } from "@/types/Rating";
+import { ratingService } from "@/services/rating.service";
 
 type ProductType = {
   _id: string;
@@ -30,7 +32,7 @@ export default function DiscountProducts() {
         // ✅ lấy 4 sản phẩm đầu tiên và gán discount theo mảng cố định
         const discountList = [25, 30, 20, 30];
 
-        const mapped = products.slice(0, 4).map((p: Product, idx: number) => {
+        const mappedPromises = products.slice(0, 4).map(async (p: Product, idx: number) => {
           const discountPercent = discountList[idx] || 20; // fallback = 20%
           const oldPrice = Math.round(p.price / (1 - discountPercent / 100));
 
@@ -40,12 +42,13 @@ export default function DiscountProducts() {
             oldPrice,
             price: p.price,
             discount: `${discountPercent}%`,
-            rating: 4 + Math.random(), // random 4.0 - 5.0
+            rating: Number(await ratingService.getScoreByProductId(p._id)) || 5.0,
             img: p.images?.[0]?.url || "/images/placeholder.png",
             slug: p.slug,
           };
         });
 
+        const mapped = await Promise.all(mappedPromises);
         setProducts(mapped);
       } catch (err) {
         console.error("Lỗi khi fetch sản phẩm:", err);

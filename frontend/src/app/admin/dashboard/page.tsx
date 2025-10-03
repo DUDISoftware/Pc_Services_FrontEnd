@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [previousMonth, setPreviousMonth] = useState<number[]>([]);
 
   const [todayProfit, setTodayProfit] = useState(0);
-  const [tab, setTab] = useState<"sampled" | "full">("sampled");
+  const [tab, setTab] = useState<"monthly" | "full">("monthly");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -123,7 +123,7 @@ export default function DashboardPage() {
     };
 
     const fetchMonthlyLineChart = async () => {
-      const sampledDays = [1, 5, 10, 15, 20, 25, currentDay];
+      const monthlyDays = [1, 5, 10, 15, 20, 25, currentDay];
       const fullDays = Array.from({ length: currentDay }, (_, i) => i + 1);
       const lastMonthFull = Array.from({ length: 30 }, (_, i) => i + 1); // hoặc fetch max ngày tháng trước
 
@@ -198,15 +198,18 @@ export default function DashboardPage() {
   ];
 
   const days =
-    tab === "sampled"
-      ? [1, 5, 10, 15, 20, 25, currentDay]
+    tab === "monthly"
+      ? [1, 5, 10, 15, 20, 25, 30, currentDay]
       : Array.from({ length: currentDay }, (_, i) => i + 1);
 
-  const chartData = days.map((day, idx) => ({
+const chartData = days
+  .map((day) => ({
     name: day.toString().padStart(2, "0"),
     thángNày: monthlyProfit[day - 1] || 0,
     thángTrước: previousMonth[day - 1] || 0,
-  }));
+  }))
+  .sort((a, b) => parseInt(a.name) - parseInt(b.name)); // Sort tăng dần theo ngày
+
 
   return (
     <div className="p-6 space-y-6">
@@ -246,14 +249,14 @@ export default function DashboardPage() {
       {/* Tab Selector */}
       <div className="flex gap-4">
         <button
-          onClick={() => setTab("sampled")}
+          onClick={() => setTab("monthly")}
           className={`px-4 py-2 rounded ${
-            tab === "sampled"
+            tab === "monthly"
               ? "bg-blue-600 text-white"
               : "bg-gray-100 text-gray-600"
           }`}
         >
-          Ngày mẫu
+          Theo tháng
         </button>
         <button
           onClick={() => setTab("full")}
@@ -263,7 +266,7 @@ export default function DashboardPage() {
               : "bg-gray-100 text-gray-600"
           }`}
         >
-          Tất cả ngày
+          Theo ngày
         </button>
       </div>
 

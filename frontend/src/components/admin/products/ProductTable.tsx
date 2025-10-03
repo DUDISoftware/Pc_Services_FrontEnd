@@ -199,17 +199,26 @@ export default function ProductTable() {
     <div className="bg-white shadow rounded p-4">
       {/* Header */}
       <TableHeader
-        title="Quản lý sản phẩm"
-        breadcrumb={["Admin", "Sản phẩm"]}
-        actions={
-          <>
-            <Button variant="secondary">📤 Xuất file</Button>
-            <Button variant="primary" onClick={openAddForm}>
-              + Thêm sản phẩm
-            </Button>
-          </>
-        }
-      />
+  title="Quản lý sản phẩm"
+  breadcrumb={["Admin", "Sản phẩm"]}
+  actions={
+    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 gap-2 w-full sm:w-auto">
+      <Button
+        className="h-10 px-4 text-sm w-full sm:w-auto"
+        variant="secondary"
+      >
+        📤 Xuất file
+      </Button>
+      <Button
+        className="h-10 px-4 text-sm w-full sm:w-auto"
+        variant="primary"
+        onClick={openAddForm}
+      >
+        + Thêm sản phẩm
+      </Button>
+    </div>
+  }
+/>
 
       {/* Table */}
       {loading ? (
