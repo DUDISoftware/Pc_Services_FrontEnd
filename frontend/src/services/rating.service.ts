@@ -2,33 +2,74 @@
 import api from "@/lib/api";
 import { Rating, RatingApi } from "@/types/Rating";
 import { mapRating } from "@/lib/mappers";
-import { get } from "http";
 
 export const ratingService = {
     getAll: async (): Promise<{ ratings: Rating[] }> => {
-        const res = await api.get("/ratings");
-        return { ratings: res.data.ratings.map((r: RatingApi) => mapRating(r)) };
+        try {
+            const res = await api.get("/ratings");
+            return {
+                ratings: res.data.ratings.map((r: RatingApi) => mapRating(r)),
+            };
+        } catch (error) {
+            console.error("Error fetching all ratings:", error);
+            throw error;
+        }
     },
 
     getByProductId: async (productId: string): Promise<{ ratings: Rating[] }> => {
-        const res = await api.get(`/ratings/product/${productId}`);
-        return {
-            ratings: res.data.map((r: RatingApi) => mapRating(r)),
-        };
+        try {
+            const res = await api.get(`/ratings/product/${productId}`);
+            return {
+                ratings: res.data.ratings.map((r: RatingApi) => mapRating(r)),
+            };
+        } catch (error) {
+            console.error("Error fetching ratings by product ID:", error);
+            throw error;
+        }
+    },
+
+    getByServiceId: async (serviceId: string): Promise<{ ratings: Rating[] }> => {
+        try {
+            const res = await api.get(`/ratings/service/${serviceId}`);
+            return {
+                ratings: res.data.ratings.map((r: RatingApi) => mapRating(r)),
+            };
+        } catch (error) {
+            console.error("Error fetching ratings by service ID:", error);
+            throw error;
+        }
     },
 
     getScoreByProductId: async (productId: string): Promise<number> => {
-        const res = await api.get(`/ratings/product/${productId}`);
-        return res.data.score;
+        try {
+            const res = await api.get(`/ratings/product/${productId}`);
+            const ratings: ({ score: number } | null)[] = res.data.ratings;
+            if (!ratings || ratings.length === 0) {
+                return 0;
+            }
+            let total = 0;
+            ratings.forEach((rating) => {
+                if (rating && typeof rating.score === "number") {
+                    total += rating.score;
+                }
+            });
+            const average = total / ratings.length;
+            return average;
+        } catch (error) {
+            console.error("Error fetching score by product ID:", error);
+            throw error;
+        }
     },
-    getByServiceId: async (serviceId: string): Promise<{ ratings: Rating[] }> => {
-        const res = await api.get(`/ratings/service/${serviceId}`);
-        return { ratings: res.data.ratings.map((r: RatingApi) => mapRating(r)) };
-    },
+    
     create: async (data: any) => {
-        const res = await api.post("/ratings", data);
-        console.log("Response from creating rating:", res.data);
-        return res.data;
+        try {
+            const res = await api.post("/ratings", data);
+            console.log("Response from creating rating:", res.data);
+            return res.data;
+        } catch (error) {
+            console.error("Error creating rating:", error);
+            throw error;
+        }
     },
     delete: async (id: string): Promise<void> => {
         await api.delete(`/ratings/${id}`);

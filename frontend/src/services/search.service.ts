@@ -4,6 +4,7 @@ import { Request, RequestApi } from "@/types/Request";
 import { mapRequest } from "@/lib/mappers";
 import { Service, ServiceApi } from "@/types/Service";
 import { mapService } from "@/lib/mappers";
+import api from "@/lib/api";
 
 /**
  * Gọi API tìm kiếm sản phẩm theo query.
@@ -11,19 +12,8 @@ import { mapService } from "@/lib/mappers";
  */
 export async function searchProducts(query: string): Promise<Product[]> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/products/search?query=${encodeURIComponent(query)}`,
-      {
-        next: { revalidate: 0 }, // 👈 optional: disable caching (Next.js 13+)
-      }
-    );
-
-    if (!res.ok) {
-      console.error("❌ API trả về lỗi", res.status);
-      throw new Error("Search failed");
-    }
-
-    const json = await res.json();
+    const res = await api.get(`/products/search?query=${decodeURIComponent(query)}`);
+    const json = res.data;
     const products = json.products;
 
     if (!Array.isArray(products)) {
@@ -32,7 +22,6 @@ export async function searchProducts(query: string): Promise<Product[]> {
     }
 
     // 🟩 Ghi log sản phẩm đầu tiên nếu cần
-    // console.log("✅ Sản phẩm đầu tiên:", products[0]);
 
     return products.map((item: ProductApi) => mapProduct(item));
   } catch (err) {
@@ -41,22 +30,10 @@ export async function searchProducts(query: string): Promise<Product[]> {
   }
 }
 
-export async function seachRequests(query: string): Promise<Request[]> {
+export async function searchRequests(query: string): Promise<Request[]> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/requests/search?query=${encodeURIComponent(query)}`,
-      {
-        next: { revalidate: 0 }, // 🧠 Không cache
-      }
-    );
-
-    if (!res.ok) {
-      console.error("❌ API trả về lỗi", res.status);
-      throw new Error("Search failed");
-    }
-
-    const json = await res.json();
-
+    const res = await api.get(`/requests/search?query=${encodeURIComponent(query)}`);
+    const json = res.data;
     const allRequests = [...(json.repair || []), ...(json.order || [])];
 
     if (!Array.isArray(allRequests)) {
@@ -66,24 +43,15 @@ export async function seachRequests(query: string): Promise<Request[]> {
 
     return allRequests.map((item: RequestApi) => mapRequest(item));
   } catch (err) {
-    console.error("🔥 Lỗi khi gọi searchRequests:", err);
+    console.error("Lỗi khi gọi searchRequests:", err);
     return [];
   }
 }
 
 export async function searchServices(query: string): Promise<Service[]> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/services/search?query=${encodeURIComponent(query)}`,
-      {
-        next: { revalidate: 0 }, // 👈 optional: disable caching (Next.js 13+)
-      }
-    );
-    if (!res.ok) {
-      console.error("❌ API trả về lỗi", res.status);
-      throw new Error("Search failed");
-    }
-    const json = await res.json();
+    const res = await api.get(`/services/search?query=${encodeURIComponent(query)}`);
+    const json = res.data;
     const services = json.services;
     if (!Array.isArray(services)) {
       console.error("❌ Dữ liệu trả về không đúng định dạng:", json);
@@ -91,7 +59,7 @@ export async function searchServices(query: string): Promise<Service[]> {
     }
     return services.map((item: ServiceApi) => mapService(item));
   } catch (err) {
-    console.error("🔥 Lỗi khi gọi searchServices:", err);
+    console.error("Lỗi khi gọi searchServices:", err);
     return []; // fallback an toàn
   } 
 }

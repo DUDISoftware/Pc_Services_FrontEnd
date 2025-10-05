@@ -22,7 +22,7 @@ export default function CategoryNav({ selectedCategory, onSelectCategory }: Prop
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await categoryService.getAll(1, 20);
+        const res = await categoryService.getAll(20, 1);
         setCategories(res.categories.map((cat) => ({
           name: cat.name,
           slug: cat.slug,

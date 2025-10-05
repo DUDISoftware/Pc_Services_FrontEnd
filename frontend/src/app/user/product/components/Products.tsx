@@ -1,11 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRightCircle, Star } from "lucide-react";
+import {
+  ChevronRightCircle,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { productService } from "@/services/product.service";
 import { Product } from "@/types/Product";
+import { categoryService } from "@/services/category.service";
+import { ratingService } from "@/services/rating.service";
 
 type ProductType = {
   slug: string;
@@ -25,40 +33,60 @@ type ProductsProps = {
   category: string;
 };
 
+const PAGE_SIZE = 8;
+
 export default function Products({ category }: ProductsProps) {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [category_ids, setCategory_ids] = useState<string | undefined>();
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true);
       try {
-        const { products } = await productService.getAll();
+        let products: Product[] = [];
+        let totalProducts = 0;
 
-        const mapped: ProductType[] = products.map((p: Product) => {
-          const oldPrice = Math.round(p.price * 1.2);
+        if (category !== "all") {
+          const catRes = await categoryService.getBySlug(category);
+          const category_id = catRes._id;
+          const res = await productService.getByCategory(category_id);
+          products = res;
+          totalProducts = res.length || 0;
+        }
 
-          return {
-            _id: p._id,
-            title: p.name,
-            brand: typeof p.brand === "string" ? p.brand : undefined,
-            oldPrice,
-            price: p.price,
-            slug: p.slug,
-            inStock: p.status === "available",
-            discount:
+        const mapped = await Promise.all(
+          products.map(async (p) => {
+            const oldPrice = Math.round(p.price * 1.2);
+            const discount =
               oldPrice > p.price
                 ? `${Math.round(((oldPrice - p.price) / oldPrice) * 100)}%`
-                : undefined,
-            rating: 4.5,
-            img: p.images?.[0]?.url || "/images/placeholder.png",
-            category:
-              typeof p.category_id === "object"
-                ? p.category_id.slug
-                : p.category_id || "Khác",
-          };
-        });
+                : undefined;
+
+            return {
+              _id: p._id,
+              title: p.name,
+              brand: typeof p.brand === "string" ? p.brand : undefined,
+              price: p.price,
+              oldPrice,
+              slug: p.slug,
+              img: p.images?.[0]?.url || "/images/placeholder.png",
+              inStock: p.status === "available",
+              category:
+                typeof p.category_id === "object"
+                  ? p.category_id.slug
+                  : p.category_id || "Khác",
+              rating: await ratingService.getScoreByProductId(p._id) || 5.0,
+              discount,
+            };
+          })
+        );
 
         setProducts(mapped);
+        setTotal(totalProducts);
+
       } catch (err) {
         console.error(err);
       } finally {
@@ -66,12 +94,35 @@ export default function Products({ category }: ProductsProps) {
       }
     };
     fetchProducts();
-  }, []);
+  }, [category, page]);
 
-  const filteredProducts = //products.slice(0, 4);
-    category === "all"
-      ? products.slice(0, 4)
-      : products.filter((p) => p.category.toLowerCase() === category.toLowerCase()).slice(0, 4);
+  useEffect(() => {
+    setPage(1); // Reset to first page when category changes
+    if (category === "all") {
+      setCategory_ids(undefined);
+      return;
+    }
+    const fetchCategories = async () => {
+      try {
+        // category = decodeURIComponent(category.toLowerCase().trim());
+        const res = await categoryService.getBySlug(category);
+        setCategory_ids(res._id);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    if (category !== "all") {
+      fetchCategories();
+    }
+  }, [category]);
+
+  useEffect(() => {
+    // scroll back to top when page changes
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [page]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   if (loading) return <p>Đang tải sản phẩm...</p>;
 
@@ -94,13 +145,12 @@ export default function Products({ category }: ProductsProps) {
 
       {/* Grid Products */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredProducts.map((item) => (
+        {products.map((item) => (
           <div
-            key={item._id} // ✅ sửa lại cho đúng
+            key={item._id}
             className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative"
           >
             <Link href={`/user/product/detail/${item.slug}`}>
-
               {/* Badge */}
               {item.discount && (
                 <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
@@ -139,16 +189,44 @@ export default function Products({ category }: ProductsProps) {
                 </div>
               </div>
             </Link>
-
           </div>
         ))}
 
-        {filteredProducts.length === 0 && (
+        {products.length === 0 && (
           <p className="text-gray-500 text-sm col-span-full">
             Chưa có sản phẩm nào trong danh mục này.
           </p>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center mt-6 gap-2">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className={`px-3 py-1 rounded border ${page === 1
+              ? "bg-gray-200 text-gray-400"
+              : "bg-white text-blue-600 hover:bg-blue-50"
+              }`}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="px-2 text-sm">
+            Trang {page} / {totalPages}
+          </span>
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className={`px-3 py-1 rounded border ${page === totalPages
+              ? "bg-gray-200 text-gray-400"
+              : "bg-white text-blue-600 hover:bg-blue-50"
+              }`}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

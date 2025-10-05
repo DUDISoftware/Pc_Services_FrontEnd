@@ -41,22 +41,23 @@ export const cartService = {
 
   // Thêm sản phẩm vào giỏ hàng
   addToCart: async (productId: string, quantity: number): Promise<Cart> => {
-    let cart = await cartService.getCart();
+    try {
+      let cart = await cartService.getCart();
 
-    // Kiểm tra lại lần nữa
-    if (!cart || !Array.isArray(cart.items)) {
+      // Kiểm tra lại lần nữa
+      if (!cart || !Array.isArray(cart.items)) {
       cart = { _id: "", items: [], totalPrice: 0, updated_at: "" };
-    }
+      }
 
-    const existingProduct = cart.items.find(
+      const existingProduct = cart.items.find(
       (p) => p.product_id === productId
-    );
+      );
 
-    const product = await productService.getById(productId);
+      const product = await productService.getById(productId);
 
-    if (existingProduct) {
+      if (existingProduct) {
       existingProduct.quantity += quantity;
-    } else {
+      } else {
       cart.items.push({
         product_id: productId,
         name: product.name,
@@ -64,35 +65,57 @@ export const cartService = {
         price: product.price,
         image: product.images[0].url || "",
       });
-    }
+      }
 
-    cart.totalPrice = cart.items.reduce(
+      cart.totalPrice = cart.items.reduce(
       (total, item) => total + item.quantity * item.price,
       0
-    );
-    cart.updated_at = new Date().toISOString();
+      );
+      cart.updated_at = new Date().toISOString();
 
-    await cartService.saveCart(cart);
-    return cart;
+      await cartService.saveCart(cart);
+      return cart;
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      // fallback: return empty cart
+      const emptyCart: Cart = {
+      _id: "",
+      items: [],
+      totalPrice: 0,
+      updated_at: new Date().toISOString(),
+      };
+      return emptyCart;
+    }
   },
 
   // Xóa sản phẩm khỏi giỏ hàng
   removeFromCart: async (productId: string): Promise<Cart> => {
-    let cart = await cartService.getCart();
+    try {
+      let cart = await cartService.getCart();
 
-    if (!cart || !Array.isArray(cart.items)) {
+      if (!cart || !Array.isArray(cart.items)) {
       cart = { _id: "", items: [], totalPrice: 0, updated_at: "" };
-    }
+      }
 
-    cart.items = cart.items.filter((p) => p.product_id !== productId);
+      cart.items = cart.items.filter((p) => p.product_id !== productId);
 
-    cart.totalPrice = cart.items.reduce(
+      cart.totalPrice = cart.items.reduce(
       (total, item) => total + item.quantity * item.price,
       0
-    );
-    cart.updated_at = new Date().toISOString();
+      );
+      cart.updated_at = new Date().toISOString();
 
-    await cartService.saveCart(cart);
-    return cart;
+      await cartService.saveCart(cart);
+      return cart;
+    } catch (err) {
+      console.error("Error removing from cart:", err);
+      const emptyCart: Cart = {
+      _id: "",
+      items: [],
+      totalPrice: 0,
+      updated_at: new Date().toISOString(),
+      };
+      return emptyCart;
+    }
   },
 };

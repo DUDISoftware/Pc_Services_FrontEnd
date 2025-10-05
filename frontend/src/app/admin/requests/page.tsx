@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import TableHeader from "@/components/admin/TableHeader";
 import RequestBoard from "@/components/admin/requests/RequestBoard";
 import Button from "@/components/common/Button";
-import { seachRequests } from "@/services/search.service";
+import { searchRequests } from "@/services/search.service";
 import { Request } from "@/types/Request";
 
 export default function RequestsPage() {
@@ -25,7 +25,7 @@ export default function RequestsPage() {
 
       try {
         setLoading(true);
-        const data = await seachRequests(query);
+        const data = await searchRequests(query);
         setRequests(data || []);
       } catch (err) {
         console.error("❌ Lỗi khi tìm kiếm:", err);

@@ -1,5 +1,4 @@
 import api from "@/lib/api";
-import { create } from "domain";
 // import { User } from "@/types/user";
 
 // export const userService = {
@@ -11,47 +10,79 @@ import { create } from "domain";
 
 export const userService = {
   async sendOTP(email: string) {
-    return await api.post("/auth/send-email-otp", { email })
+    try {
+      return await api.post("/auth/send-otp", { email });
+    } catch (error) {
+      throw error;
+    }
   },
 
   async verifyOTP(email: string, otp: string) {
-    return await api.post("/auth/verify-email", { email, otp })
+    try {
+      return await api.post("/auth/verify-email", { email, otp });
+    } catch (error) {
+      throw error;
+    }
   },
 
   async sendEmail(email: string, subject: string, text: string) {
-    return await api.post("/auth/send-email", { email, subject, text })
+    try {
+      return await api.post("/auth/send-email", { email, subject, text });
+    } catch (error) {
+      throw error;
+    }
   },
 
   async createAccount(data: { username: string; password: string; role: string }) {
-    return await api.post("/auth/register", data);
+    try {
+      return await api.post("/auth/register", data);
+    } catch (error) {
+      throw error;
+    }
   },
 
   async getProfile() {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) {
-      throw new Error("User not found in localStorage");
+    try {
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        throw new Error("User not found in localStorage");
+      }
+      const user = JSON.parse(userStr);
+      const userId = user._id;
+      return await api.get(`/users/${userId}`);
+    } catch (error) {
+      throw error;
     }
-    const user = JSON.parse(userStr);
-    const userId = user._id;
-    return await api.get(`/users/${userId}`);
   },
 
   async updateProfile(data: { name?: string; phone?: string; password?: string }) {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) {
-      throw new Error("User not found in localStorage");
+    try {
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        throw new Error("User not found in localStorage");
+      }
+      const user = JSON.parse(userStr);
+      const userId = user._id;
+      return await api.put(`/users/${userId}`, data);
+    } catch (error) {
+      throw error;
     }
-    const user = JSON.parse(userStr);
-    const userId = user._id;
-    return await api.put(`/users/${userId}`, data);
   },
 
   async getAllUsers() {
-    const data = await api.get("/users");
-    return data;
+    try {
+      const data = await api.get("/users");
+      return data;
+    } catch (error) {
+      throw error;
+    }
   },
 
   async deleteUser(id: string) {
-    return await api.delete(`/users/${id}`);
+    try {
+      return await api.delete(`/users/${id}`);
+    } catch (error) {
+      throw error;
+    }
   }
 }

@@ -17,6 +17,8 @@ export default function SearchPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+          console.log(`search: ${query}`);
+
         const fetchedProducts = await searchProducts(query);
         setProducts(fetchedProducts);
       } catch (err) {
@@ -26,7 +28,8 @@ export default function SearchPage() {
       }
     };
     fetchProducts();
-  }, [query]);
+  }, []);
+
 
 const filtered =
   query === ''

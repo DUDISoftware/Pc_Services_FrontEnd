@@ -42,7 +42,7 @@ export default function DiscountProducts() {
             oldPrice,
             price: p.price,
             discount: `${discountPercent}%`,
-            rating: Number(await ratingService.getScoreByProductId(p._id)) || 5.0,
+            rating: await ratingService.getScoreByProductId(p._id) || 5.0,
             img: p.images?.[0]?.url || "/images/placeholder.png",
             slug: p.slug,
           };

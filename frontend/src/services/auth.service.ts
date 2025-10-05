@@ -3,11 +3,21 @@ import  api  from "../lib/api";
 
 export const authService = {
   login: async (username: string, password: string) => {
-    const res = await api.post("/auth/login", { username, password });
-    return res.data;
+    try {
+      const res = await api.post("/auth/login", { username, password });
+      return res.data;
+    } catch (error) {
+      // Optionally handle/log error here
+      throw error;
+    }
   },
   logout: () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch (error) {
+      // Optionally handle/log error here
+      throw error;
+    }
   },
 };

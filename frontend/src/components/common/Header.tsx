@@ -49,7 +49,7 @@ export default function Header() {
 
   const links = [
     { href: "/user/home", label: "Trang chủ" },
-    { href: "/user/product", label: "Sản phẩm" },
+    { href: "/user/product/allproduct?category=all", label: "Sản phẩm" },
     { href: "/user/service", label: "Dịch vụ" },
     { href: "/user/about", label: "Về chúng tôi" },
   ];

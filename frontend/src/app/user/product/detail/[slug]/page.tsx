@@ -51,7 +51,7 @@ export default function ProductDetailPage() {
           await productService.countViewRedis(product._id);
           const ratingData = await ratingService.getByProductId(product._id);
           if (ratingData && ratingData.ratings) {
-            setRatings(ratingData.ratings);
+            setRatings(ratingData.ratings || [0]);
           }
         }
       } catch (err) {

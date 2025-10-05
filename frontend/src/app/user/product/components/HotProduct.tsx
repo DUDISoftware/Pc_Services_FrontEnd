@@ -46,7 +46,7 @@ export default function HotProduct() {
   useEffect(() => {
     const fetchAllProducts = async () => {
       try {
-        const { products: all } = await productService.getAll();
+        const { products: all } = await productService.getAll(10, 1);
 
         const mapped: ProductType[] = all.map((p: Product) => ({
           _id: p._id,

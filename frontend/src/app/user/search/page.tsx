@@ -28,14 +28,16 @@ export default function SearchPage() {
     fetchProducts();
   }, [query]);
 
-  const filtered =
-    query === ''
-      ? []
-      : products.filter((p) =>
-        p.name.toLowerCase().includes(query) ||
-        p.description?.toLowerCase().includes(query) ||
-        p.tags?.some((tag) => tag.toLowerCase().includes(query))
-      );
+  const filtered = products;
+    // query === ''
+    //   ? []
+    //   : products.filter((p) =>
+    //     p.name.toLowerCase().includes(query) ||
+    //     p.description?.toLowerCase().includes(query) ||
+    //     p.tags?.some((tag) => tag.toLowerCase().includes(query))
+    //   );
+
+  
 
   if (loading) {
     return <p className='text-center py-8'>Đang tải sản phẩm...</p>;

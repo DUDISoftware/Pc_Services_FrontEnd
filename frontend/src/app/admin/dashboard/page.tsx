@@ -106,7 +106,6 @@ export default function DashboardPage() {
         let totalProducts = 0;
 
         for (const s of statsList) {
-          const day = s.updatedAt ? new Date(s.updatedAt).getDate() : 0;
           totalProfit += s.total_profit || 0;
           totalOrders += s.total_orders || 0;
           totalRepairs += s.total_repairs || 0;
@@ -123,9 +122,8 @@ export default function DashboardPage() {
     };
 
     const fetchMonthlyLineChart = async () => {
-      const monthlyDays = [1, 5, 10, 15, 20, 25, currentDay];
       const fullDays = Array.from({ length: currentDay }, (_, i) => i + 1);
-      const lastMonthFull = Array.from({ length: 30 }, (_, i) => i + 1); // hoặc fetch max ngày tháng trước
+      const lastMonthFull = Array.from({ length: 30 }, (_, i) => i + 1);
 
       const thisMonth: number[] = [];
       const lastMonth: number[] = [];
@@ -197,19 +195,19 @@ export default function DashboardPage() {
     },
   ];
 
+  const baseDays = [1, 5, 10, 15, 20, 25, 30];
   const days =
     tab === "monthly"
-      ? [1, 5, 10, 15, 20, 25, 30, currentDay]
+      ? [...baseDays.filter((d) => d !== currentDay), currentDay]
       : Array.from({ length: currentDay }, (_, i) => i + 1);
 
-const chartData = days
-  .map((day) => ({
-    name: day.toString().padStart(2, "0"),
-    thángNày: monthlyProfit[day - 1] || 0,
-    thángTrước: previousMonth[day - 1] || 0,
-  }))
-  .sort((a, b) => parseInt(a.name) - parseInt(b.name)); // Sort tăng dần theo ngày
-
+  const chartData = days
+    .map((day) => ({
+      name: day.toString().padStart(2, "0"),
+      thángNày: monthlyProfit[day - 1] || 0,
+      thángTrước: previousMonth[day - 1] || 0,
+    }))
+    .sort((a, b) => parseInt(a.name) - parseInt(b.name));
 
   return (
     <div className="p-6 space-y-6">

@@ -34,7 +34,7 @@ export default function HeroSection() {
                 </div>
 
                 {/* Button */}
-                <Link href="/user/product" className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm md:text-base px-4 sm:px-5 py-2 rounded-md font-medium shadow shrink-0">
+                <Link href="/user/product/allproduct?category=Laptop" className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm md:text-base px-4 sm:px-5 py-2 rounded-md font-medium shadow shrink-0">
                   Xem ngay
                 </Link>
               </div>
