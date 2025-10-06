@@ -3,8 +3,10 @@ import { Category, CategoryApi } from "@/types/Category";
 import { Rating, RatingApi } from "@/types/Rating";
 import { Service, ServiceApi } from "@/types/Service";
 import { Request, RequestApi } from "@/types/Request";
+import { Stats, StatsApi } from "@/types/Stats";
 // lib/mappers.ts
 import { Banner, BannerApi, LayoutOption } from "@/types/Banner";
+import { InfoApi, Info } from "@/types/Info";
 
 /** Convert FE layout -> BE numeric */
 export function mapLayoutToApi(layout?: LayoutOption | number): number | undefined {
@@ -51,10 +53,9 @@ export function mapBanner(apiData: BannerApi): Banner {
     position: apiData.position,
     layout: mapLayoutFromApi(apiData.layout),
     size: apiData.size ?? undefined,
+    updatedAt: apiData.updatedAt,
   };
 }
-
-
 
 export function mapCategory(apiData: CategoryApi): Category {
   return {
@@ -70,7 +71,7 @@ export function mapCategory(apiData: CategoryApi): Category {
 
 export function mapRating(apiData: RatingApi): Rating {
   return {
-    _id: apiData._id,
+    _id: apiData._id as string,
     product_id: apiData.product_id,
     service_id: apiData.service_id,
     name: apiData.name,
@@ -138,37 +139,61 @@ export function mapService(apiData: ServiceApi): Service {
     status: apiData.status,
     created_at: apiData.created_at,
     updated_at: apiData.updated_at,
-    category_id: apiData.category_id,
-    images: Array.isArray(apiData.images)
-      ? (apiData.images as UploadedImage[]).map((img) => ({
-          url: (img as UploadedImage).url,
-          public_id: (img as UploadedImage).public_id,
-        }))
-      : [],
-  };
+    category_id: apiData.category_id
+  }
 }
 
 export function mapRequest(apiData: RequestApi): Request {
+  return {
+  _id: apiData._id,
+  name: apiData.name,
+  email: apiData.email,
+  phone: apiData.phone,
+  address: apiData.address,
+  problem_description: apiData.problem_description,
+  items: apiData.items,
+  note: apiData.note,
+  repair_type: apiData.repair_type,
+  estimated_time: apiData.estimated_time,
+  status: apiData.status,
+  service_id: apiData.service_id,
+  images: Array.isArray(apiData.images)
+    ? (apiData.images as UploadedImage[]).map((img) => ({
+      url: (img as UploadedImage).url,
+      public_id: (img as UploadedImage).public_id,
+    }))
+    : [],
+  createdAt: apiData.createdAt,
+  updatedAt: apiData.updatedAt,
+  hidden: apiData.hidden ?? false,
+};
+}
+
+export function statsMapper(apiData: StatsApi): Stats {
+  return {
+    visits: apiData.visits || 0,
+    total_profit: apiData.total_profit || 0,
+    total_repairs: apiData.total_repairs || 0,
+    total_orders: apiData.total_orders || 0,
+    total_products: apiData.total_products || 0,
+    updatedAt: apiData.updatedAt || Date.now(),
+  }
+}
+
+export function mapInfo(apiData: InfoApi): Info {
   return {
     _id: apiData._id,
     name: apiData.name,
     email: apiData.email,
     phone: apiData.phone,
+    target: apiData.target,
+    scope: apiData.scope,
     address: apiData.address,
-    problem_description: apiData.problem_description,
-    items: apiData.items,
-    note: apiData.note,
-    repair_type: apiData.repair_type,
-    estimated_time: apiData.estimated_time,
-    status: apiData.status,
-    service_id: apiData.service_id,
-    images: Array.isArray(apiData.images)
-      ? (apiData.images as UploadedImage[]).map((img) => ({
-          url: (img as UploadedImage).url,
-          public_id: (img as UploadedImage).public_id,
-        }))
-      : [],
-    createdAt: apiData.createdAt,
-    updatedAt: apiData.updatedAt,
-  };
+    facebook: apiData.facebook,
+    instagram: apiData.instagram,
+    youtube: apiData.youtube,
+    x: apiData.x,
+    termsOfService: apiData.termsOfService,
+    privacyPolicy: apiData.privacyPolicy,
+  }
 }

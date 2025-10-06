@@ -1,8 +1,43 @@
 "use client";
 
 import { Phone, Mail, MapPin } from "lucide-react";
+import { infoService } from "@/services/info.services";
+import { useEffect, useState } from "react";
+import { Info } from "@/types/Info";
 
 export default function UserAboutPage() {
+  const [info, setInfo] = useState<Info | null>(null);
+  const [contact, setContact] = useState({
+    name: "",
+    phone: "",
+    message: ""
+  });
+
+  useEffect(() => {
+    const fetchInfo = async () => {
+      const data = await infoService.getInfo();
+      setInfo(data);
+    };
+    fetchInfo();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (!info?.email) {
+        alert("Không tìm thấy địa chỉ email liên hệ.");
+        return;
+      }
+      await infoService.sendEmail(info.email, `Liên hệ từ khách hàng ${contact.name}`, contact.message + "\nSố điện thoại: " + contact.phone);
+      alert("Gửi liên hệ thành công! Chúng tôi sẽ phản hồi sớm.");
+      setContact({ name: "", phone: "", message: "" });
+    } catch (err) {
+      console.error("Lỗi khi gửi liên hệ:", err);
+      alert("Có lỗi xảy ra khi gửi liên hệ. Vui lòng thử lại.");
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Thông tin liên hệ */}
@@ -13,16 +48,16 @@ export default function UserAboutPage() {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <Phone className="w-5 h-5" />
-            <span>(+84) 909 163 821</span>
+            <span>{info?.phone}</span>
           </div>
           <div className="flex items-center gap-3">
             <Mail className="w-5 h-5" />
-            <span>contact@diudsoftware.com</span>
+            <span>{info?.email}</span>
           </div>
           <div className="flex items-start gap-3">
             <MapPin className="w-5 h-5 mt-1" />
             <span>
-              49/2 đường số 14, phường Thủ Đức, <br /> Thành phố Hồ Chí Minh
+              {info?.address}
             </span>
           </div>
         </div>
@@ -39,7 +74,7 @@ export default function UserAboutPage() {
           Hãy để lại thông tin, chúng tôi sẽ liên hệ với bạn sớm nhất
         </p>
 
-        <form className="space-y-4">
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-medium mb-1">
               Họ và tên
@@ -48,6 +83,8 @@ export default function UserAboutPage() {
               type="text"
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Nhập họ và tên"
+              value={contact.name}
+              onChange={(e) => setContact({ ...contact, name: e.target.value })}
             />
           </div>
           <div>
@@ -58,7 +95,17 @@ export default function UserAboutPage() {
               type="tel"
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Nhập số điện thoại"
+              value={contact.phone}
+              maxLength={11}
+              pattern="\d*"
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^\d*$/.test(value)) {
+                  setContact({ ...contact, phone: value });
+                }
+              }}
             />
+
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -68,6 +115,8 @@ export default function UserAboutPage() {
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={4}
               placeholder="Gửi tin nhắn cho chúng tôi"
+              value={contact.message}
+              onChange={(e) => setContact({ ...contact, message: e.target.value })}
             ></textarea>
           </div>
           <button

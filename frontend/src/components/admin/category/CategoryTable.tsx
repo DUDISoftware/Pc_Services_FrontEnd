@@ -5,7 +5,7 @@ import { Edit, Trash, Eye } from "lucide-react";
 import TableHeader from "../TableHeader";
 import Button from "@/components/common/Button";
 import { categoryService } from "@/services/category.service";
-import { Category, CategoryApi } from "@/types/Category";
+import { Category } from "@/types/Category";
 import { mapCategory } from "@/lib/mappers";
 
 export default function CategoryTable() {
@@ -15,13 +15,11 @@ export default function CategoryTable() {
   const [editing, setEditing] = useState<Category | null>(null);
   const [form, setForm] = useState({ name: "", description: "", slug: "" });
 
-  // Fetch
   const fetchCategories = async () => {
     try {
       setLoading(true);
       const data = await categoryService.getAll();
-      const mapped: Category[] = data.categories.map(mapCategory);
-      setCategories(mapped);
+      setCategories(data.categories.map(mapCategory));
     } catch (err) {
       console.error("Error fetching categories", err);
     } finally {
@@ -33,18 +31,16 @@ export default function CategoryTable() {
     fetchCategories();
   }, []);
 
-  // Save (create or update)
   const handleSave = async () => {
     try {
+      form.slug = form.name.toLowerCase().replace(/\s+/g, "-");
       if (editing) {
-        form.slug = form.name.toLowerCase().replace(/\s+/g, "-");
         await categoryService.update(editing._id, form);
       } else {
-        form.slug = form.name.toLowerCase().replace(/\s+/g, "-");
         await categoryService.create(form);
       }
       setShowForm(false);
-      setForm({ name: "", description: "", slug:"" });
+      setForm({ name: "", description: "", slug: "" });
       setEditing(null);
       fetchCategories();
     } catch (err) {
@@ -52,7 +48,6 @@ export default function CategoryTable() {
     }
   };
 
-  // Delete
   const handleDelete = async (id: string) => {
     if (!confirm("Bạn có chắc muốn xóa danh mục này?")) return;
     try {
@@ -88,30 +83,76 @@ export default function CategoryTable() {
       {loading ? (
         <p>Đang tải...</p>
       ) : (
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2">Tên danh mục</th>
-              <th className="p-2">Mô tả</th>
-              <th className="p-2">Ngày tạo</th>
-              <th className="p-2">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div className="overflow-x-auto">
+          <table className="min-w-[800px] w-full text-left border-collapse hidden lg:table">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-2">Tên danh mục</th>
+                <th className="p-2">Mô tả</th>
+                <th className="p-2">Ngày tạo</th>
+                <th className="p-2">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((c) => (
+                <tr key={c._id} className="border-b hover:bg-gray-50">
+                  <td className="p-2">{c.name}</td>
+                  <td className="p-2">{c.description}</td>
+                  <td className="p-2">
+                    {new Date(c.createdAt).toLocaleDateString("vi-VN")}
+                  </td>
+                  <td className="p-2 flex gap-2">
+                    <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
+                    <Edit
+                      className="w-4 h-4 cursor-pointer text-yellow-600"
+                      onClick={() => {
+                        setEditing(c);
+                        setForm({
+                          name: c.name,
+                          description: c.description,
+                          slug: c.name.toLowerCase().replace(/\s+/g, "-"),
+                        });
+                        setShowForm(true);
+                      }}
+                    />
+                    <Trash
+                      className="w-4 h-4 cursor-pointer text-red-600"
+                      onClick={() => handleDelete(c._id)}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Responsive CARD view for small & medium screens */}
+          <div className="lg:hidden space-y-4 mt-4">
             {categories.map((c) => (
-              <tr key={c._id} className="border-b hover:bg-gray-50">
-                <td className="p-2">{c.name}</td>
-                <td className="p-2">{c.description}</td>
-                <td className="p-2">
+              <div
+                key={c._id}
+                className="border rounded p-4 shadow-sm flex flex-col gap-2"
+              >
+                <p>
+                  <span className="font-semibold">Tên:</span> {c.name}
+                </p>
+                <p>
+                  <span className="font-semibold">Mô tả:</span> {c.description}
+                </p>
+                <p>
+                  <span className="font-semibold">Ngày tạo:</span>{" "}
                   {new Date(c.createdAt).toLocaleDateString("vi-VN")}
-                </td>
-                <td className="p-2 flex gap-2">
+                </p>
+                <div className="flex gap-4 pt-2">
                   <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
                   <Edit
                     className="w-4 h-4 cursor-pointer text-yellow-600"
                     onClick={() => {
                       setEditing(c);
-                      setForm({ name: c.name, description: c.description, slug: c.name.toLowerCase().replace(/\s+/g, "-") });
+                      setForm({
+                        name: c.name,
+                        description: c.description,
+                        slug: c.name.toLowerCase().replace(/\s+/g, "-"),
+                      });
                       setShowForm(true);
                     }}
                   />
@@ -119,16 +160,16 @@ export default function CategoryTable() {
                     className="w-4 h-4 cursor-pointer text-red-600"
                     onClick={() => handleDelete(c._id)}
                   />
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
       )}
 
       {/* Modal Form */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-md w-96">
             <h2 className="text-lg font-bold mb-4">
               {editing ? "Sửa danh mục" : "Thêm danh mục"}
@@ -146,7 +187,9 @@ export default function CategoryTable() {
               <textarea
                 className="w-full border p-2 rounded"
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
               />
             </div>
             <div className="flex justify-end gap-2">

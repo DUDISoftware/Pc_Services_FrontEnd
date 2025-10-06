@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { serviceApi } from "@/services/service.service";
+import { serviceService } from "@/services/service.service";
 import { Service } from "@/types/Service";
 
 import ServiceCard from "./ServiceCard";
@@ -10,11 +10,12 @@ import DefaultServiceImage from "@/assets/image/service/services.png"; // 👈 i
 export default function ServiceList() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [slug, setSlug] = useState<string>("");
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const data = await serviceApi.getAll();
+        const data = await serviceService.getAll();
         setServices(data);
       } catch (err) {
         console.error("Lỗi khi tải dịch vụ:", err);
@@ -41,7 +42,8 @@ export default function ServiceList() {
               price: s.price,
               discount: "Giảm 20%",
               rating: 4.5,
-              img: DefaultServiceImage, // 👈 luôn dùng ảnh mặc định
+              slug: s.slug,
+              img: (Array.isArray(s.images) && s.images.length > 0 ? s.images[0].url : DefaultServiceImage), // 👈 nếu s.images có ít nhất 1 ảnh thì lấy url ảnh đầu tiên, nếu không thì dùng ảnh mặc định
             }}
           />
         ))}

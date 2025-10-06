@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Edit, Trash, Eye, X } from "lucide-react";
 import TableHeader from "../TableHeader";
 import Button from "@/components/common/Button";
@@ -18,7 +18,8 @@ export default function ProductTable() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // State cho form modal
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<{
@@ -39,14 +40,30 @@ export default function ProductTable() {
     images?: (File | UploadedImage)[];
   }>({ images: [], status: "available" });
 
+  const totalPages = Math.max(1, Math.ceil(products.length / itemsPerPage));
+  const displayedProducts = products.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    // eslint-disable-next-line
+  }, []);
+
+  useEffect(() => {
+    const updateItemsPerPage = () => {
+      setItemsPerPage(window.innerWidth < 1024 ? 5 : 10);
+    };
+    updateItemsPerPage();
+    window.addEventListener("resize", updateItemsPerPage);
+    return () => window.removeEventListener("resize", updateItemsPerPage);
   }, []);
 
   const fetchProducts = async () => {
     try {
-      const data = await productService.getAll();
+      const data = await productService.getAll(100, 1);
       setProducts(data.products);
     } catch (err) {
       console.error("Error fetching products", err);
@@ -57,7 +74,7 @@ export default function ProductTable() {
 
   const fetchCategories = async () => {
     try {
-      const data = await categoryService.getAll();
+      const data = await categoryService.getAll(100, 1);
       setCategories(data.categories);
     } catch (err) {
       console.error("Error fetching categories", err);
@@ -65,7 +82,7 @@ export default function ProductTable() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Bạn có chắc muốn xóa sản phẩm này?")) {
+    if (window.confirm("Bạn có chắc muốn xóa sản phẩm này?")) {
       try {
         await productService.delete(id);
         setProducts((prev) => prev.filter((p) => p._id !== id));
@@ -146,7 +163,7 @@ export default function ProductTable() {
 
   const openAddForm = () => {
     setEditingProduct(null);
-    setFormData({ images: [], status: "available"});
+    setFormData({ images: [], status: "available" });
     setShowForm(true);
   };
 
@@ -173,26 +190,30 @@ export default function ProductTable() {
 
   return (
     <div className="bg-white shadow rounded p-4">
-      {/* Header */}
       <TableHeader
         title="Quản lý sản phẩm"
         breadcrumb={["Admin", "Sản phẩm"]}
         actions={
-          <>
-            <Button variant="secondary">📤 Xuất file</Button>
-            <Button variant="primary" onClick={openAddForm}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 gap-2 w-full sm:w-auto">
+            <Button className="h-10 px-4 text-sm w-full sm:w-auto" variant="secondary">
+              📤 Xuất file
+            </Button>
+            <Button
+              className="h-10 px-4 text-sm w-full sm:w-auto"
+              variant="primary"
+              onClick={openAddForm}
+            >
               + Thêm sản phẩm
             </Button>
-          </>
+          </div>
         }
       />
 
-      {/* Table */}
       {loading ? (
         <p>Đang tải...</p>
       ) : (
         <table className="w-full text-left border-collapse mt-4">
-          <thead className="bg-gray-100">
+          <thead className="bg-gray-100 hidden lg:table-header-group">
             <tr>
               <th className="p-2">Hình ảnh</th>
               <th className="p-2">Sản phẩm</th>
@@ -205,73 +226,137 @@ export default function ProductTable() {
             </tr>
           </thead>
           <tbody>
-            {products.map((p) => (
-              <tr key={p._id} className="border-b hover:bg-gray-50">
-                <td className="p-2">
-                  {p.images && p.images.length > 0 ? (
-                    <img
-                      src={p.images[0].url}
-                      alt={p.name}
-                      className="w-16 h-16 object-cover rounded"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
-                      No Img
-                    </div>
-                  )}
-                </td>
-                <td className="p-2">{p.name}</td>
-                <td className="p-2">{p.description}</td>
-                <td className="p-2">{p.price.toLocaleString()} đ</td>
-                <td className="p-2">
-                  {typeof p.category_id === "object"
-                    ? p.category_id.name
-                    : p.category_id}
-                </td>
-                <td className="p-2">{p.quantity}</td>
-                <td className="p-2">
-                  <span
-                    className={`px-2 py-1 rounded text-sm ${
-                      p.status === "available"
-                        ? "bg-green-100 text-green-600"
+            {displayedProducts.map((p) => (
+              <React.Fragment key={p._id}>
+                <tr className="border-b hover:bg-gray-50 hidden lg:table-row">
+                  <td className="p-2">
+                    {p.images?.[0] ? (
+                      <img
+                        src={p.images[0].url}
+                        alt={p.name}
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
+                        No Img
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-2">{p.name}</td>
+                  <td className="p-2">{p.description}</td>
+                  <td className="p-2">{p.price.toLocaleString()} đ</td>
+                  <td className="p-2">
+                    {typeof p.category_id === "object" ? p.category_id.name : p.category_id}
+                  </td>
+                  <td className="p-2">{p.quantity}</td>
+                  <td className="p-2">
+                    <span
+                      className={`px-2 py-1 rounded text-sm ${
+                        p.status === "available"
+                          ? "bg-green-100 text-green-600"
+                          : p.status === "out_of_stock"
+                          ? "bg-red-100 text-red-600"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {p.status === "available"
+                        ? "Còn hàng"
                         : p.status === "out_of_stock"
-                        ? "bg-red-100 text-red-600"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {p.status === "available"
-                      ? "Còn hàng"
-                      : p.status === "out_of_stock"
-                      ? "Hết hàng"
-                      : "Ẩn"}
-                  </span>
-                </td>
-                <td className="p-2 flex gap-2">
-                  <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
-                  <Edit
-                    className="w-4 h-4 cursor-pointer text-yellow-600"
-                    onClick={() => openEditForm(p)}
-                  />
-                  <Trash
-                    className="w-4 h-4 cursor-pointer text-red-600"
-                    onClick={() => handleDelete(p._id)}
-                  />
-                </td>
-              </tr>
+                        ? "Hết hàng"
+                        : "Ẩn"}
+                    </span>
+                  </td>
+                  <td className="p-2 flex gap-2">
+                    <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
+                    <Edit
+                      className="w-4 h-4 cursor-pointer text-yellow-600"
+                      onClick={() => openEditForm(p)}
+                    />
+                    <Trash
+                      className="w-4 h-4 cursor-pointer text-red-600"
+                      onClick={() => handleDelete(p._id)}
+                    />
+                  </td>
+                </tr>
+                <tr className="lg:hidden">
+                  <td colSpan={8} className="py-4 px-2 border-b">
+                    <div className="flex gap-4">
+                      <div className="w-24 h-24 flex-shrink-0">
+                        {p.images?.[0] ? (
+                          <img
+                            src={p.images[0].url}
+                            alt={p.name}
+                            className="w-full h-full object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
+                            No Img
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-1 text-sm break-words">
+                        <p>
+                          <span className="font-semibold">Tên:</span> {p.name}
+                        </p>
+                        <p>
+                          <span className="font-semibold">Mô tả:</span> {p.description}
+                        </p>
+                        <p>
+                          <span className="font-semibold">Giá:</span> {p.price.toLocaleString()} đ
+                        </p>
+                        <p>
+                          <span className="font-semibold">Danh mục:</span>{" "}
+                          {typeof p.category_id === "object" ? p.category_id.name : p.category_id}
+                        </p>
+                        <p>
+                          <span className="font-semibold">Số lượng:</span> {p.quantity}
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <span className="font-semibold">Trạng thái:</span>
+                          <span
+                            className={`px-2 py-1 rounded text-sm ${
+                              p.status === "available"
+                                ? "bg-green-100 text-green-600"
+                                : p.status === "out_of_stock"
+                                ? "bg-red-100 text-red-600"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {p.status === "available"
+                              ? "Còn hàng"
+                              : p.status === "out_of_stock"
+                              ? "Hết hàng"
+                              : "Ẩn"}
+                          </span>
+                        </p>
+                        <div className="flex gap-4 pt-2">
+                          <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
+                          <Edit
+                            className="w-4 h-4 cursor-pointer text-yellow-600"
+                            onClick={() => openEditForm(p)}
+                          />
+                          <Trash
+                            className="w-4 h-4 cursor-pointer text-red-600"
+                            onClick={() => handleDelete(p._id)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </React.Fragment>
             ))}
           </tbody>
         </table>
       )}
 
-      {/* Modal form */}
       {showForm && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-white p-6 rounded shadow w-2/3 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white p-6 rounded shadow w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-semibold mb-4">
               {editingProduct ? "Sửa sản phẩm" : "Thêm sản phẩm"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-3">
-              {/* Name + Slug */}
               <input
                 type="text"
                 placeholder="Tên sản phẩm"
@@ -288,8 +373,6 @@ export default function ProductTable() {
                 className="w-full border px-3 py-2 rounded"
                 required
               />
-
-              {/* Tags + Ports */}
               <input
                 type="text"
                 placeholder="Tags (cách nhau bởi dấu ,)"
@@ -297,7 +380,7 @@ export default function ProductTable() {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    tags: e.target.value.split(",").map((t) => t.trim()),
+                    tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean),
                   })
                 }
                 className="w-full border px-3 py-2 rounded"
@@ -309,13 +392,11 @@ export default function ProductTable() {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    ports: e.target.value.split(",").map((p) => p.trim()),
+                    ports: e.target.value.split(",").map((p) => p.trim()).filter(Boolean),
                   })
                 }
                 className="w-full border px-3 py-2 rounded"
               />
-
-              {/* Panel / Resolution / Size / Model */}
               <div className="grid grid-cols-2 gap-3">
                 <input
                   type="text"
@@ -328,9 +409,7 @@ export default function ProductTable() {
                   type="text"
                   placeholder="Độ phân giải"
                   value={formData.resolution || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, resolution: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, resolution: e.target.value })}
                   className="w-full border px-3 py-2 rounded"
                 />
                 <input
@@ -348,47 +427,35 @@ export default function ProductTable() {
                   className="w-full border px-3 py-2 rounded"
                 />
               </div>
-
-              {/* Description */}
               <textarea
                 placeholder="Mô tả"
                 value={formData.description || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full border px-3 py-2 rounded"
               />
-
-              {/* Price + Quantity */}
               <div className="grid grid-cols-2 gap-3">
                 <input
                   type="number"
                   placeholder="Giá"
                   value={formData.price || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, price: Number(e.target.value) })
-                  }
+                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
                   className="w-full border px-3 py-2 rounded"
                   required
+                  min={0}
                 />
                 <input
                   type="number"
                   placeholder="Số lượng"
                   value={formData.quantity || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, quantity: Number(e.target.value) })
-                  }
+                  onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
                   className="w-full border px-3 py-2 rounded"
                   required
+                  min={0}
                 />
               </div>
-
-              {/* Category */}
               <select
                 value={formData.category_id || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, category_id: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                 className="w-full border px-3 py-2 rounded"
                 required
               >
@@ -399,8 +466,6 @@ export default function ProductTable() {
                   </option>
                 ))}
               </select>
-
-              {/* Brand */}
               <input
                 type="text"
                 placeholder="Thương hiệu"
@@ -409,12 +474,15 @@ export default function ProductTable() {
                 className="w-full border px-3 py-2 rounded"
                 required
               />
-
-              {/* Status + Featured */}
               <div className="flex items-center gap-4">
                 <select
                   value={formData.status || "available"}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as "available" | "out_of_stock" | "hidden" })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      status: e.target.value as "available" | "out_of_stock" | "hidden",
+                    })
+                  }
                   className="border px-3 py-2 rounded"
                 >
                   <option value="available">Còn hàng</option>
@@ -422,8 +490,6 @@ export default function ProductTable() {
                   <option value="hidden">Ẩn</option>
                 </select>
               </div>
-
-              {/* Upload ảnh */}
               <div>
                 <label className="block mb-1 font-medium">Hình ảnh (tối đa 3)</label>
                 <input
@@ -461,10 +527,8 @@ export default function ProductTable() {
                     })}
                 </div>
               </div>
-
-              {/* Actions */}
               <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setShowForm(false)}>
+                <Button variant="secondary" type="button" onClick={() => setShowForm(false)}>
                   Hủy
                 </Button>
                 <Button variant="primary" type="submit">
@@ -475,6 +539,25 @@ export default function ProductTable() {
           </div>
         </div>
       )}
+      <div className="mt-4 flex justify-center gap-2">
+        <button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+          className="px-3 py-1 border rounded disabled:opacity-50"
+        >
+          ← Trước
+        </button>
+        <span className="px-3 py-1">
+          Trang {currentPage} / {totalPages}
+        </span>
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+          className="px-3 py-1 border rounded disabled:opacity-50"
+        >
+          Sau →
+        </button>
+      </div>
     </div>
   );
 }

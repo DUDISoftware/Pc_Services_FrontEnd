@@ -1,4 +1,4 @@
-export interface CategoryService {
+export type CategoryService = {
   _id: string
   name: string
   slug: string

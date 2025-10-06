@@ -12,13 +12,14 @@ interface Service {
   discount: string;
   rating: number;
   img: StaticImageData | string;
+  slug: string;
 }
 
 export default function ServiceCard({ service }: { service: Service }) {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push(`/user/service/${service.id}`);
+    router.push(`/user/service/detail/${service.slug}`);
   };
 
   return (

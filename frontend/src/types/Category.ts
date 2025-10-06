@@ -8,7 +8,7 @@ export interface CategoryApi {
   updatedAt: string;
 }
 
-export interface Category {
+export type Category = {
   _id: string;
   name: string;
   slug: string;

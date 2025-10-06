@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Edit, Trash } from "lucide-react"
-import { categoryServiceApi } from "@/services/categoryservice.service"
+import { categoryServiceService } from "@/services/categoryservice.service"
 import { CategoryService } from "@/types/CategoryService"
 import TableHeader from "@/components/admin/TableHeader"
 import Button from "@/components/common/Button"
@@ -17,7 +17,7 @@ export default function CategoryServiceTable() {
 
   const fetchData = async () => {
     try {
-      const data = await categoryServiceApi.getAll()
+      const data = await categoryServiceService.getAll()
       setCategories(data)
     } catch (err) {
       console.error("Lỗi tải danh mục:", err)
@@ -34,10 +34,10 @@ export default function CategoryServiceTable() {
     try {
       if (editing) {
         payload.slug = payload.name!.toLowerCase().replace(/\s+/g, "-")
-        await categoryServiceApi.update(editing._id, payload)
+        await categoryServiceService.update(editing._id, payload)
       } else {
         payload.slug = payload.name!.toLowerCase().replace(/\s+/g, "-")
-        await categoryServiceApi.create(payload)
+        await categoryServiceService.create(payload)
       }
       setModalOpen(false)
       fetchData()
@@ -48,7 +48,7 @@ export default function CategoryServiceTable() {
 
   const handleDelete = async (id: string) => {
     if (confirm("Bạn có chắc muốn xóa danh mục này?")) {
-      await categoryServiceApi.delete(id)
+      await categoryServiceService.delete(id)
       fetchData()
     }
   }

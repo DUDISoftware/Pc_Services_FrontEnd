@@ -77,9 +77,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   };
 
   try {
-    // const newService = await serviceApi.create(payload);
-    alert("Tạo dịch vụ thành công!");
-    // console.log("Service đã tạo:", newService);
+    alert("Thao tác thành công!");
     onSubmit( payload);
   } catch (err) {
     console.error("Lỗi khi tạo dịch vụ:", err);

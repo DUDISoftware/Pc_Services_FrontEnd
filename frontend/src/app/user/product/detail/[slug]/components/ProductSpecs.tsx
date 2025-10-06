@@ -6,7 +6,7 @@ interface Product {
   size: string;
   resolution: string;
   panel: string;
-  ports: string;
+  ports: string[];
 }
 
 export default function ProductSpecs({ product }: { product: Product }) {

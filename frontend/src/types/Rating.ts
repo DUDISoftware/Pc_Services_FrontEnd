@@ -1,4 +1,4 @@
-export interface Rating {
+export type Rating = {
     _id: string;
     product_id?: string;
     service_id?: string;

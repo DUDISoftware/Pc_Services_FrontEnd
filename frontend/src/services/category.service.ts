@@ -13,29 +13,54 @@ interface GetAllResponse {
 export const categoryService = {
   // Lấy danh sách có phân trang
   getAll: async (
-    page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    page: number = 1
   ): Promise<GetAllResponse> => {
-    const res = await api.get(`/categories?page=${page}&limit=${limit}`);
-    return res.data as GetAllResponse;
+    try {
+      const res = await api.get(`/categories?page=${page}&limit=${limit}`);
+      return res.data as GetAllResponse;
+    } catch (error) {
+      throw error;
+    }
   },
 
   // Lấy chi tiết 1 category
   getById: async (id: string): Promise<CategoryApi> => {
-    const res = await api.get<{ category: CategoryApi }>(`/categories/${id}`);
-    return res.data.category;
+    try {
+      const res = await api.get<{ category: CategoryApi }>(`/categories/${id}`);
+      return res.data.category;
+    } catch (error) {
+      throw error;
+    }
   },
 
   // Lấy chi tiết theo slug
   getBySlug: async (slug: string): Promise<CategoryApi> => {
-    const res = await api.get<{ category: CategoryApi }>(`/categories/slug/${slug}`);
-    return res.data.category;
+    try {
+      const escapeVietnamese = (str: string) =>
+        str
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/đ/g, "d")
+          .replace(/Đ/g, "D")
+          .replace(" ", "-");
+
+      const query = escapeVietnamese(decodeURIComponent(slug.toLowerCase().trim()));
+      const res = await api.get<{ category: CategoryApi }>(`/categories/slug/${query}`);
+      return res.data.category;
+    } catch (error) {
+      throw error;
+    }
   },
 
   // Tạo mới category
   create: async (data: Pick<CategoryApi, "name" | "description">): Promise<CategoryApi> => {
-    const res = await api.post<{ category: CategoryApi }>("/categories", data);
-    return res.data.category;
+    try {
+      const res = await api.post<{ category: CategoryApi }>("/categories", data);
+      return res.data.category;
+    } catch (error) {
+      throw error;
+    }
   },
 
   // Cập nhật category
@@ -43,13 +68,21 @@ export const categoryService = {
     id: string,
     data: Partial<Pick<CategoryApi, "name" | "description">>
   ): Promise<CategoryApi> => {
-    const res = await api.put<{ category: CategoryApi }>(`/categories/${id}`, data);
-    return res.data.category;
+    try {
+      const res = await api.put<{ category: CategoryApi }>(`/categories/${id}`, data);
+      return res.data.category;
+    } catch (error) {
+      throw error;
+    }
   },
 
   // Xoá category
   delete: async (id: string): Promise<{ status: string; message: string }> => {
-    const res = await api.delete<{ status: string; message: string }>(`/categories/${id}`);
-    return res.data;
+    try {
+      const res = await api.delete<{ status: string; message: string }>(`/categories/${id}`);
+      return res.data;
+    } catch (error) {
+      throw error;
+    }
   },
 };

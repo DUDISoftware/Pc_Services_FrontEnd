@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Image from "next/image";
-import { serviceApi } from "@/services/service.service";
+import { serviceService } from "@/services/service.service";
 import { Service } from "@/types/Service";
 import DefaultServiceImage from "@/assets/image/service/services.png";
 
@@ -20,8 +20,9 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
   useEffect(() => {
     const fetchService = async () => {
       try {
-        const data = await serviceApi.getBySlug(slug);
+        const data = await serviceService.getBySlug(slug);
         setService(data);
+        const views = await serviceService.countViewRedis(data._id);
       } catch (err) {
         console.error("Lỗi khi tải chi tiết dịch vụ:", err);
       } finally {

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { ChevronRightCircle, Star } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { Product } from "@/types/Product";
+import { Rating } from "@/types/Rating";
+import { ratingService } from "@/services/rating.service";
 
 type ProductType = {
   _id: string;
@@ -15,6 +17,7 @@ type ProductType = {
   discount?: string;
   rating: number;
   img: string;
+  slug: string;
 };
 
 export default function DiscountProducts() {
@@ -29,7 +32,7 @@ export default function DiscountProducts() {
         // ✅ lấy 4 sản phẩm đầu tiên và gán discount theo mảng cố định
         const discountList = [25, 30, 20, 30];
 
-        const mapped = products.slice(0, 4).map((p: Product, idx: number) => {
+        const mappedPromises = products.slice(0, 4).map(async (p: Product, idx: number) => {
           const discountPercent = discountList[idx] || 20; // fallback = 20%
           const oldPrice = Math.round(p.price / (1 - discountPercent / 100));
 
@@ -39,11 +42,13 @@ export default function DiscountProducts() {
             oldPrice,
             price: p.price,
             discount: `${discountPercent}%`,
-            rating: 4 + Math.random(), // random 4.0 - 5.0
+            rating: await ratingService.getScoreByProductId(p._id) || 5.0,
             img: p.images?.[0]?.url || "/images/placeholder.png",
+            slug: p.slug,
           };
         });
 
+        const mapped = await Promise.all(mappedPromises);
         setProducts(mapped);
       } catch (err) {
         console.error("Lỗi khi fetch sản phẩm:", err);
@@ -71,45 +76,48 @@ export default function DiscountProducts() {
             key={item._id}
             className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative"
           >
-            {/* Badge */}
-            {item.discount && (
-              <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
-                {item.discount}
-              </span>
-            )}
+            <Link href={`/user/product/detail/${item.slug}`}>
 
-            {/* Image */}
-            <div className="relative w-full h-36 sm:h-40 mb-3">
-              <Image
-                src={item.img}
-                alt={item.title}
-                fill
-                className="object-contain rounded"
-              />
-            </div>
+              {/* Badge */}
+              {item.discount && (
+                <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
+                  {item.discount}
+                </span>
+              )}
 
-            {/* Title */}
-            <Link href={`/user/product/${item._id}`}>
+              {/* Image */}
+              <div className="relative w-full h-36 sm:h-40 mb-3">
+                <Image
+                  src={item.img}
+                  alt={item.title}
+                  fill
+                  className="object-contain rounded"
+                />
+              </div>
+
+              {/* Title */}
+              {/* <Link href={`/user/product/${item._id}`}> */}
               <h3 className="text-xs sm:text-sm font-medium line-clamp-2 flex-1 mb-2 hover:text-blue-600">
                 {item.title}
               </h3>
-            </Link>
+              {/* </Link> */}
 
-            {/* Price + Rating */}
-            <div className="flex items-center justify-between mt-auto">
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 line-through">
-                  {item.oldPrice.toLocaleString()}₫
-                </span>
-                <span className="text-red-500 font-semibold text-sm">
-                  {item.price.toLocaleString()}₫
-                </span>
+              {/* Price + Rating */}
+              <div className="flex items-center justify-between mt-auto">
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-gray-400 line-through">
+                    {item.oldPrice.toLocaleString()}₫
+                  </span>
+                  <span className="text-red-500 font-semibold text-sm">
+                    {item.price.toLocaleString()}₫
+                  </span>
+                </div>
+                <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
+                  <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                  {item.rating.toFixed(1)}
+                </div>
               </div>
-              <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
-                <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                {item.rating.toFixed(1)}
-              </div>
-            </div>
+            </Link>
           </div>
         ))}
 

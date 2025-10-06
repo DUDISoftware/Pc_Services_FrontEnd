@@ -5,64 +5,84 @@ import { mapBanner, mapLayoutToApi } from "@/lib/mappers";
 
 export const bannerService = {
   getAll: async (): Promise<{ banners: Banner[] }> => {
-    const res = await api.get("/banners");
-    return {
-      banners: res.data.banners.map((b: BannerApi) => mapBanner(b)),
-    };
+    try {
+      const res = await api.get("/banners");
+      return {
+        banners: res.data.banners.map((b: BannerApi) => mapBanner(b)),
+      };
+    } catch (error) {
+      throw error;
+    }
   },
 
   getById: async (id: string): Promise<Banner> => {
-    const res = await api.get(`/banners/${id}`);
-    return mapBanner(res.data.banner);
+    try {
+      const res = await api.get(`/banners/${id}`);
+      return mapBanner(res.data.banner);
+    } catch (error) {
+      throw error;
+    }
   },
 
   create: async (data: FormData | Partial<Banner>): Promise<Banner> => {
-    if (data instanceof FormData) {
-      if (data.has("layout")) {
-        const raw = data.get("layout");
-        if (typeof raw === "string") {
-          const mapped = mapLayoutToApi(raw as Banner["layout"]);
-          if (mapped !== undefined) data.set("layout", String(mapped));
+    try {
+      if (data instanceof FormData) {
+        if (data.has("layout")) {
+          const raw = data.get("layout");
+          if (typeof raw === "string") {
+            const mapped = mapLayoutToApi(raw as Banner["layout"]);
+            if (mapped !== undefined) data.set("layout", String(mapped));
+          }
         }
+        const res = await api.post("/banners", data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        return mapBanner(res.data.banner);
+      } else {
+        const payload: Partial<BannerApi> = {
+          ...data,
+          layout: mapLayoutToApi(data.layout),
+        };
+        const res = await api.post("/banners", payload);
+        return mapBanner(res.data.banner);
       }
-      const res = await api.post("/banners", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return mapBanner(res.data.banner);
-    } else {
-      const payload: Partial<BannerApi> = {
-        ...data,
-        layout: mapLayoutToApi(data.layout),
-      };
-      const res = await api.post("/banners", payload);
-      return mapBanner(res.data.banner);
+    } catch (error) {
+      throw error;
     }
   },
 
   update: async (id: string, data: FormData | Partial<Banner>): Promise<Banner> => {
-    if (data instanceof FormData) {
-      if (data.has("layout")) {
-        const raw = data.get("layout");
-        if (typeof raw === "string") {
-          const mapped = mapLayoutToApi(raw as Banner["layout"]);
-          if (mapped !== undefined) data.set("layout", String(mapped));
+    try {
+      if (data instanceof FormData) {
+        if (data.has("layout")) {
+          const raw = data.get("layout");
+          if (typeof raw === "string") {
+            const mapped = mapLayoutToApi(raw as Banner["layout"]);
+            if (mapped !== undefined) data.set("layout", String(mapped));
+          }
         }
+        const res = await api.put(`/banners/${id}`, data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        return mapBanner(res.data.banner);
+      } else {
+        const payload: Partial<BannerApi> = {
+          ...data,
+          layout: mapLayoutToApi(data.layout),
+        };
+        const res = await api.put(`/banners/${id}`, payload);
+        return mapBanner(res.data.banner);
       }
-      const res = await api.put(`/banners/${id}`, data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return mapBanner(res.data.banner);
-    } else {
-      const payload: Partial<BannerApi> = {
-        ...data,
-        layout: mapLayoutToApi(data.layout),
-      };
-      const res = await api.put(`/banners/${id}`, payload);
-      return mapBanner(res.data.banner);
+    } catch (error) {
+      throw error;
     }
   },
 
   delete: async (id: string): Promise<void> => {
-    await api.delete(`/banners/${id}`);
+    try {
+      await api.delete(`/banners/${id}`);
+    } catch (error) {
+      throw error;
+    }
   },
 };

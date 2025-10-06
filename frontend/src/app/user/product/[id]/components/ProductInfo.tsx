@@ -14,18 +14,18 @@ interface Product {
   oldPrice: number;
   price: number;
   discount: string;
+  quantity: number; // ✅ bổ sung tồn kho
 }
 
 export default function ProductInfo({ product }: { product: Product }) {
   const router = useRouter();
-
   const [showPopup, setShowPopup] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
   const handleAddToCart = async () => {
     try {
       await cartService.addToCart(product.id, quantity);
-      alert("Đã thêm vào giỏ hàng!");
+      window.dispatchEvent(new Event("cart_updated"));
       setShowPopup(false); // đóng popup
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng:", error);
@@ -33,15 +33,15 @@ export default function ProductInfo({ product }: { product: Product }) {
     }
   };
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
+    await handleAddToCart();
     router.push(`/user/order/${product.id}`);
   };
 
   useEffect(() => {
     const checkCart = async () => {
       try {
-        const cart = await cartService.getCart();
-        console.log("Giỏ hàng hiện tại:", cart);
+        await cartService.getCart();
       } catch (error) {
         console.error("Lỗi khi lấy giỏ hàng:", error);
       }
@@ -52,6 +52,7 @@ export default function ProductInfo({ product }: { product: Product }) {
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-2">{product.title}</h1>
+
       <div className="flex items-center gap-2 mb-4 text-sm">
         <Star className="w-5 h-5 text-yellow-400" />
         <span>
@@ -59,7 +60,7 @@ export default function ProductInfo({ product }: { product: Product }) {
         </span>
       </div>
 
-      {/* Price */}
+      {/* Giá */}
       <div className="flex items-center gap-3 mb-6">
         <span className="text-gray-400 line-through text-lg">
           {product.oldPrice.toLocaleString("vi-VN")}₫
@@ -72,7 +73,7 @@ export default function ProductInfo({ product }: { product: Product }) {
         </span>
       </div>
 
-      {/* Buttons */}
+      {/* Nút hành động */}
       <div className="flex gap-4 mb-6">
         <button
           onClick={handleOrder}
@@ -88,7 +89,53 @@ export default function ProductInfo({ product }: { product: Product }) {
         </button>
       </div>
 
-      {/* Policies */}
+      {/* UI chọn số lượng */}
+      <div className="mt-8 max-w-xs">
+        <h3 className="text-sm font-medium mb-2">Chọn số lượng</h3>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            disabled={quantity <= 1}
+            className={`px-3 py-1 text-lg font-bold rounded border 
+              ${quantity <= 1
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-200 text-black hover:bg-gray-300"}`}
+          >
+            −
+          </button>
+
+          <input
+            type="number"
+            value={quantity}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              if (!isNaN(val)) {
+                setQuantity(Math.max(1, Math.min(product.quantity, val)));
+              }
+            }}
+            className="w-16 text-center border rounded py-1"
+            min={1}
+            max={product.quantity}
+          />
+
+          <button
+            onClick={() => setQuantity((q) => Math.min(product.quantity, q + 1))}
+            disabled={quantity >= product.quantity}
+            className={`px-3 py-1 text-lg font-bold rounded border 
+              ${quantity >= product.quantity
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-200 text-black hover:bg-gray-300"}`}
+          >
+            +
+          </button>
+        </div>
+
+        <p className="text-sm text-gray-500 mt-1">
+          Tồn kho: {product.quantity}
+        </p>
+      </div>
+
+      {/* Chính sách */}
       <ProductPolicies />
 
       {/* Popup modal */}
@@ -99,8 +146,13 @@ export default function ProductInfo({ product }: { product: Product }) {
             <input
               type="number"
               min={1}
+              max={product.quantity}
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              onChange={(e) =>
+                setQuantity(
+                  Math.max(1, Math.min(product.quantity, Number(e.target.value)))
+                )
+              }
               className="w-full border rounded px-3 py-2 mb-4"
             />
             <div className="flex justify-end gap-3">

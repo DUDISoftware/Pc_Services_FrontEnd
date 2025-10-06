@@ -1,17 +1,44 @@
 "use client";
 
 import { Facebook, Instagram, Twitter } from "lucide-react";
+import { infoService } from "@/services/info.services";
+import { Info } from "@/types/Info";
+import { useEffect, useState } from "react";
 
 export default function Footer() {
+  const [info, setInfo] = useState<Info | null>(null);
+  const [socialLinks, setSocialLinks] = useState<{ facebook: string; instagram: string; twitter: string } | null>(null);
+
+  useEffect(() => {
+    const fetchSocialLinks = async () => {
+      if (info) {
+        setSocialLinks({
+          facebook: info.facebook || "",
+          instagram: info.instagram || "",
+          twitter: info.x || ""
+        });
+      };
+    }
+    fetchSocialLinks();
+  }, [info]);
+
+  useEffect(() => {
+    const fetchInfo = async () => {
+      const data = await infoService.getInfo();
+      setInfo(data);
+    };
+    fetchInfo();
+  }, []);
+
   return (
     <footer className="border-t border-gray-200 bg-[#F9F9F9]">
       {/* Top Section */}
       <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         {/* Contact */}
         <div>
-          <h3 className="font-semibold text-gray-800 mb-2">CÔNG TY TNHH CÔNG NGHỆ PHẦN MỀM DUDI</h3>
-          <p className="text-sm text-gray-600">Số điện thoại: +84 20 123 4567</p>
-          <p className="text-sm text-gray-600">Email: support@nextpick.com</p>
+          <h3 className="font-semibold text-gray-800 mb-2">{info?.name}</h3>
+          <p className="text-sm text-gray-600">Số điện thoại: {info?.phone}</p>
+          <p className="text-sm text-gray-600">Email: {info?.email}</p>
         </div>
 
         {/* Working Hours */}
@@ -59,13 +86,13 @@ export default function Footer() {
             </button>
           </div>
           <div className="flex space-x-3">
-            <a href="#" className="text-gray-600 hover:text-blue-500">
+            <a href={socialLinks?.facebook} className="text-gray-600 hover:text-blue-500">
               <Facebook size={20} />
             </a>
-            <a href="#" className="text-gray-600 hover:text-pink-500">
+            <a href={socialLinks?.instagram} className="text-gray-600 hover:text-pink-500">
               <Instagram size={20} />
             </a>
-            <a href="#" className="text-gray-600 hover:text-sky-500">
+            <a href={socialLinks?.twitter} className="text-gray-600 hover:text-sky-500">
               <Twitter size={20} />
             </a>
           </div>
@@ -77,10 +104,10 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
           <p>© 2024 DUDI. All Rights Reserved.</p>
           <div className="flex space-x-6 mt-2 md:mt-0">
-            <a href="#" className="hover:text-gray-800">Chính sách bảo mật</a>
-            <a href="#" className="hover:text-gray-800">Cài đặt cookie</a>
-            <a href="#" className="hover:text-gray-800">Điều khoản và điều kiện</a>
-            <a href="#" className="hover:text-gray-800">dấu ấn</a>
+            <a href="/user/terms-and-policy" className="hover:text-gray-800">Chính sách bảo mật</a>
+            <a href="/user/cookie-settings" className="hover:text-gray-800">Cài đặt cookie</a>
+            <a href="/user/terms-and-policy" className="hover:text-gray-800">Điều khoản và điều kiện</a>
+            <a href="/user/imprint" className="hover:text-gray-800">dấu ấn</a>
           </div>
         </div>
       </div>
