@@ -29,7 +29,7 @@ export default function FeaturedProducts() {
   useEffect(() => {
     async function fetchFeatured() {
       try {
-        const res = await productService.getFeatured(4);
+        const res = await productService.getFeatured(8);
         setFeatured(res.products);
       } catch (error) {
         console.error("Failed to fetch featured products:", error);
@@ -60,9 +60,9 @@ export default function FeaturedProducts() {
           })
         );
 
-        // If less than 4 featured, fetch extra products
-        if (featuredProducts.length < 4) {
-          const needed = 4 - featuredProducts.length;
+        // If less than 8 featured, fetch extra products
+        if (featuredProducts.length < 8) {
+          const needed = 8 - featuredProducts.length;
           const res = await productService.getAll(needed, 1);
           const extraProducts: ProductType[] = await Promise.all(
             res.products
@@ -81,7 +81,7 @@ export default function FeaturedProducts() {
           );
           setProducts([...featuredProducts, ...extraProducts]);
         } else {
-          setProducts(featuredProducts.slice(0, 4));
+          setProducts(featuredProducts.slice(0, 8));
         }
       } catch (err) {
         console.error("Failed to fetch featured products:", err);

@@ -29,8 +29,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         onLinkClick={() => setSidebarOpen(false)}
       />
       <div className="flex-1 flex flex-col bg-gray-50">
-        <AdminHeader onToggleSidebar={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 sm:p-6 overflow-x-auto">{children}</main>
+        <AdminHeader onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
+        <main className="flex-1 p-4 md:p-6 sm:p-6 overflow-x-auto">{children}</main>
       </div>
     </div>
   );

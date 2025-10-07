@@ -168,27 +168,54 @@ export default function DashboardPage() {
   const safeChange = (curr: number, prev: number) =>
     prev === 0 ? (curr > 0 ? 100 : 0) : ((curr / prev - 1) * 100);
 
-  const stats = [
+  const totalStats = [
     {
-      title: "Tổng doanh thu",
+      title: "Doanh thu theo tháng",
       value: totalProfit,
       change: safeChange(totalProfit, previousProfit),
       color: "bg-blue-100 text-blue-800",
     },
     {
-      title: "Yêu cầu đặt hàng",
+      title: "Tổng số đơn đặt hàng",
       value: orderRequests,
       change: safeChange(orderRequests, previousOrderRequests),
       color: "bg-green-100 text-green-800",
     },
     {
-      title: "Yêu cầu sửa chữa",
+      title: "Tổng số yêu cầu sửa chữa",
       value: repairRequests,
       change: safeChange(repairRequests, previousRepairRequests),
       color: "bg-red-100 text-red-800",
     },
     {
-      title: "Tổng sản phẩm",
+      title: "Tổng sản phẩm đã bán",
+      value: products,
+      change: safeChange(products, previousProducts),
+      color: "bg-yellow-100 text-yellow-800",
+    },
+  ];
+
+  const currentStats = [
+    {
+      title: "Doanh thu theo ngày",
+      value: todayProfit,
+      change: safeChange(todayProfit, previousProfit),
+      color: "bg-blue-100 text-blue-800",
+    },
+    {
+      title: "Đơn hàng trong ngày",
+      value: orderRequests,
+      change: safeChange(orderRequests, previousOrderRequests),
+      color: "bg-green-100 text-green-800",
+    },
+    {
+      title: "Yêu cầu sửa chữa trong ngày",
+      value: repairRequests,
+      change: safeChange(repairRequests, previousRepairRequests),
+      color: "bg-red-100 text-red-800",
+    },
+    {
+      title: "Sản phẩm đã bán trong ngày",
       value: products,
       change: safeChange(products, previousProducts),
       color: "bg-yellow-100 text-yellow-800",
@@ -219,7 +246,33 @@ export default function DashboardPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((s) => (
+        {totalStats.map((s) => (
+          <div
+            key={s.title}
+            className={`${s.color} rounded-2xl p-6 shadow flex flex-col`}
+          >
+            <h2 className="text-sm text-gray-600">{s.title}</h2>
+            <p className="text-3xl font-bold mt-2">
+              <CountUp
+                start={animate ? 0 : s.value}
+                end={s.value}
+                duration={2}
+                separator=","
+              />
+            </p>
+            <span
+              className={`text-sm mt-2 ${
+                s.change >= 0 ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {s.change.toFixed(2)}%
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {currentStats.map((s) => (
           <div
             key={s.title}
             className={`${s.color} rounded-2xl p-6 shadow flex flex-col`}

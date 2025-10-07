@@ -30,11 +30,12 @@ export async function searchProducts(query: string): Promise<Product[]> {
   }
 }
 
-export async function searchRequests(query: string): Promise<Request[]> {
+export async function searchRequests(query: string, type: "service" | "product"): Promise<Request[]> {
   try {
     const res = await api.get(`/requests/search?query=${encodeURIComponent(query)}`);
     const json = res.data;
     const allRequests = [...(json.repair || []), ...(json.order || [])];
+    console.log(allRequests);
 
     if (!Array.isArray(allRequests)) {
       console.error("❌ Dữ liệu trả về không đúng định dạng:", json);
@@ -62,4 +63,22 @@ export async function searchServices(query: string): Promise<Service[]> {
     console.error("Lỗi khi gọi searchServices:", err);
     return []; // fallback an toàn
   } 
+}
+
+export async function searchOrders(query: string): Promise<Request[]> {
+  try {
+    const res = await api.get(`/orders/search?query=${encodeURIComponent(query)}`);
+    const json = res.data;
+    const orders = json.orders;
+
+    if (!Array.isArray(orders)) {
+      console.error("❌ Dữ liệu trả về không đúng định dạng:", json);
+      throw new Error("Invalid order response");
+    }
+
+    return orders.map((item: RequestApi) => mapRequest(item));
+  } catch (err) {
+    console.error("Lỗi khi gọi searchOrders:", err);
+    return [];
+  }
 }

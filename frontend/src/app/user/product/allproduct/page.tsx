@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
@@ -8,56 +9,21 @@ import { productService } from "@/services/product.service";
 import { Product } from "@/types/Product";
 import CategoryNav from "@/components/common/CategoryNav";
 import { categoryService } from "@/services/category.service";
-import { useRouter } from "next/navigation";
-
 
 export default function AllProductsPage() {
   const params = useSearchParams();
   const category = params.get("category") || "all";
+  const PAGE_SIZE = 10;
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [nextProducts, setNextProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [category_id, setCategory_id] = useState<string | undefined>();
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const router = useRouter();
 
-
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        let products: Product[] = [];
-
-        if (category !== "all" && !category_id) return;
-
-        if (category === "all") {
-          let allProducts: Product[] = [];
-          let page = 1;
-          const limit = 50;
-          let fetched: Product[] = [];
-
-          do {
-            const res = await productService.getAll(limit, page);
-            fetched = res.products;
-            allProducts = allProducts.concat(fetched);
-            page++;
-          } while (fetched.length !== 0);
-
-          products = allProducts;
-        } else {
-          products = await productService.getByCategory(category_id!);
-        }
-
-        setProducts(products);
-      } catch (err) {
-        console.error("Lỗi khi tải sản phẩm:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, [category, category_id]);
-
+  // ✅ Fetch category_id when category changes
   useEffect(() => {
     setLoading(true);
     if (category === "all") {
@@ -75,18 +41,77 @@ export default function AllProductsPage() {
     fetchCategories();
   }, [category]);
 
-  if (loading) return <p className="text-center">Đang tải sản phẩm...</p>;
+  // ✅ Fetch products (handles both "all" and category)
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        let products: Product[] = [];
 
+        if (category !== "all" && !category_id) return;
+
+        // 🔹 Common logic for both "all" and category
+        const getPageData = async (pageNum: number) => {
+          return category === "all"
+            ? (await productService.getAll(PAGE_SIZE, pageNum)).products
+            : await productService.getByCategory(category_id!, PAGE_SIZE, pageNum);
+        };
+
+        // If preloaded and going forward → use cache
+        if (nextProducts.length > 0 && page > 1) {
+          products = nextProducts;
+          setNextProducts([]);
+        } else {
+          products = await getPageData(page);
+        }
+
+        // Prefetch next page
+        const nextPageProducts = await getPageData(page + 1);
+        if (nextPageProducts.length > 0) {
+          setNextProducts(nextPageProducts);
+          setHasMore(true);
+        } else {
+          setHasMore(false);
+        }
+
+        setProducts(products);
+      } catch (err) {
+        console.error("❌ Lỗi khi tải sản phẩm:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [category, category_id, page]);
+
+  // ✅ Pagination Handlers
+  const handlePrev = () => {
+    if (page > 1) {
+      setPage((p) => p - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" }); // scroll top
+    }
+  };
+
+  const handleNext = () => {
+    if (hasMore) {
+      setPage((p) => p + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  if (loading) return <p className="text-center py-10">Đang tải sản phẩm...</p>;
 
   return (
     <>
-
       <CategoryNav
         selectedCategory={category}
         onSelectCategory={(newCategory: string) => {
           const url = new URL(window.location.href);
           url.searchParams.set("category", newCategory);
-          router.push(url.toString()); // ✅ updates URL without reload
+          router.push(url.toString());
+          setPage(1);
+          setNextProducts([]);
         }}
       />
 
@@ -129,6 +154,37 @@ export default function AllProductsPage() {
               Chưa có sản phẩm nào trong danh mục này.
             </p>
           )}
+        </div>
+
+        {/* ✅ Pagination Controls (always visible) */}
+        <div className="flex justify-center items-center gap-4 mt-8">
+          <button
+            onClick={handlePrev}
+            disabled={page === 1}
+            className={`px-4 py-2 rounded-md border ${
+              page === 1
+                ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                : "hover:bg-gray-100"
+            }`}
+          >
+            &lt; Trang trước
+          </button>
+
+          <span className="text-sm font-medium">
+            Trang <span className="font-semibold">{page}</span>
+          </span>
+
+          <button
+            onClick={handleNext}
+            disabled={!hasMore}
+            className={`px-4 py-2 rounded-md border ${
+              !hasMore
+                ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                : "hover:bg-gray-100"
+            }`}
+          >
+            Trang tiếp &gt;
+          </button>
         </div>
       </div>
     </>
