@@ -33,12 +33,13 @@ export default function Footer() {
   return (
     <footer className="border-t border-gray-200 bg-[#F9F9F9]">
       {/* Top Section */}
-      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+      <div className="max-w-7xl w-full mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {/* Contact */}
         <div>
-          <h3 className="font-semibold text-gray-800 mb-2">{info?.name}</h3>
+          <h3 className="font-semibold text-gray-800 mb-2">Tên công ty: {info?.name}</h3>
           <p className="text-sm text-gray-600">Số điện thoại: {info?.phone}</p>
           <p className="text-sm text-gray-600">Email: {info?.email}</p>
+          <p className="text-sm text-gray-600">Địa chỉ: {info?.address}</p>
         </div>
 
         {/* Working Hours */}
@@ -49,7 +50,7 @@ export default function Footer() {
         </div>
 
         {/* About Us */}
-        <div>
+        {/* <div>
           <h3 className="font-semibold text-gray-800 mb-2">Về chúng tôi</h3>
           <ul className="space-y-1 text-sm text-gray-600">
             <li><a href="#" className="hover:text-gray-900">Cửa hàng</a></li>
@@ -57,16 +58,16 @@ export default function Footer() {
             <li><a href="#" className="hover:text-gray-900">Ưu đãi độc quyền</a></li>
             <li><a href="#" className="hover:text-gray-900">Chăm sóc</a></li>
           </ul>
-        </div>
+        </div> */}
 
         {/* Help */}
         <div>
           <h3 className="font-semibold text-gray-800 mb-2">Trợ giúp & Hỗ trợ</h3>
           <ul className="space-y-1 text-sm text-gray-600">
-            <li><a href="#" className="hover:text-gray-900">Trung tâm trợ giúp</a></li>
-            <li><a href="#" className="hover:text-gray-900">Thanh toán</a></li>
-            <li><a href="#" className="hover:text-gray-900">Đổi trả</a></li>
-            <li><a href="#" className="hover:text-gray-900">Các câu hỏi</a></li>
+            <li><a href="/user/helpers" className="hover:text-gray-900">Trung tâm trợ giúp</a></li>
+            <li><a href="/user/helpers?need=payment" className="hover:text-gray-900">Phương thức thanh toán</a></li>
+            <li><a href="/user/helpers?need=return" className="hover:text-gray-900">Quy định đổi trả</a></li>
+            <li><a href="#" className="hover:text-gray-900">Các câu hỏi thường gặp</a></li>
           </ul>
         </div>
 
@@ -104,10 +105,9 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
           <p>© 2024 DUDI. All Rights Reserved.</p>
           <div className="flex space-x-6 mt-2 md:mt-0">
-            <a href="/user/terms-and-policy" className="hover:text-gray-800">Chính sách bảo mật</a>
-            <a href="/user/cookie-settings" className="hover:text-gray-800">Cài đặt cookie</a>
-            <a href="/user/terms-and-policy" className="hover:text-gray-800">Điều khoản và điều kiện</a>
-            <a href="/user/imprint" className="hover:text-gray-800">dấu ấn</a>
+            <a href="/user/helpers?need=policy" className="hover:text-gray-800">Chính sách bảo mật</a>
+            <a href="/user/helpers?need=terms" className="hover:text-gray-800">Điều khoản và điều kiện</a>
+            <a href="/user/helpers?need=imprint" className="hover:text-gray-800">Dấu ấn</a>
           </div>
         </div>
       </div>

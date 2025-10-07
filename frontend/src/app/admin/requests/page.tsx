@@ -13,9 +13,8 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"service" | "product">("service");
 
-  // Search (chỉ áp dụng cho "service")
   useEffect(() => {
-    if (activeTab !== "service") return;
+    // if (activeTab !== "service") return;
 
     const timeout = setTimeout(async () => {
       if (!query.trim()) {
@@ -25,7 +24,7 @@ export default function RequestsPage() {
 
       try {
         setLoading(true);
-        const data = await searchRequests(query);
+        const data = await searchRequests(query, activeTab);
         setRequests(data || []);
       } catch (err) {
         console.error("❌ Lỗi khi tìm kiếm:", err);
@@ -50,7 +49,7 @@ export default function RequestsPage() {
       <TableHeader
         title="Quản lý yêu cầu khách hàng"
         breadcrumb={["Admin", "Yêu cầu"]}
-        actions={<Button variant="secondary">Bộ lọc</Button>}
+        // actions={<Button variant="secondary">Bộ lọc</Button>}
       />
 
       {/* Tabs */}
@@ -78,7 +77,6 @@ export default function RequestsPage() {
       </div>
 
       {/* Search input */}
-      {activeTab === "service" && (
         <div className="mb-4">
           <input
             type="text"
@@ -88,7 +86,6 @@ export default function RequestsPage() {
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-      )}
 
       {/* Loading */}
       {loading && <p className="text-sm text-gray-500">🔄 Đang tìm kiếm...</p>}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Service } from "@/types/Service";
 import { CategoryService } from "@/types/CategoryService";
-import { serviceApi } from "@/services/service.service";
+import { serviceService } from "@/services/service.service";
 
 type Props = {
   initialData?: Service;
@@ -28,8 +28,6 @@ export default function ServiceForm({
     category_id: "",
   });
 
-
-
   useEffect(() => {
     if (initialData) {
       setForm({
@@ -42,7 +40,11 @@ export default function ServiceForm({
         category_id:
           typeof initialData.category_id === "string"
             ? initialData.category_id
-            : initialData.category_id || "",
+            : initialData.category_id &&
+              typeof initialData.category_id === "object" && 
+              "_id" in initialData.category_id
+              ? (initialData.category_id as { _id: string })._id
+              : "",
       });
     }
   }, [initialData]);
@@ -62,12 +64,21 @@ export default function ServiceForm({
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
+  const selectedCategory = categories.find(c => c._id === form.category_id);
+
   const payload = {
     ...form,
     price: Number(form.price),
     type: form.type as "at_store" | "at_home",
     status: form.status as "active" | "inactive" | "hidden",
-    category_id: form.category_id,
+    category_id: selectedCategory
+      ? {
+          _id: selectedCategory._id,
+          name: selectedCategory.name,
+          description: selectedCategory.description,
+          status: selectedCategory.status as "active" | "inactive"
+        }
+      : undefined,
     slug: form.name
       .toLowerCase()
       .normalize("NFD")
@@ -78,7 +89,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   try {
     alert("Thao tác thành công!");
-    onSubmit( payload);
+    onSubmit( payload as Partial<Service> & { category_id: string } );
   } catch (err) {
     console.error("Lỗi khi tạo dịch vụ:", err);
     alert("Đã xảy ra lỗi khi tạo dịch vụ");

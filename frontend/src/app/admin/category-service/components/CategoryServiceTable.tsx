@@ -81,7 +81,13 @@ export default function CategoryServiceTable() {
             <tr key={c._id} className="border-b hover:bg-gray-50">
               <td className="p-2">{c.name}</td>
               <td className="p-2">{c.description}</td>
-              <td className="p-2">{c.status}</td>
+              <td>{c.status === "active"
+                ? "Hoạt động"
+                : c.status === "inactive"
+                ? "Ngừng hoạt động"
+                : c.status === "hidden"
+                ? "Đã ẩn"
+                : c.status}</td>
               <td className="p-2 flex gap-2">
                 <Edit className="w-4 h-4 text-yellow-600 cursor-pointer" onClick={() => { setEditing(c); setModalOpen(true) }} />
                 <Trash className="w-4 h-4 text-red-600 cursor-pointer" onClick={() => handleDelete(c._id)} />

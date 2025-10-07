@@ -31,6 +31,7 @@ export default function RequestBoard({
 }) {
   const [columns, setColumns] = useState<Column[]>([]);
   const [services, setServices] = useState<{ _id: string; name: string }[]>([]);
+  const [products, setProducts] = useState<{ _id: string; name: string }[]>([]);
   const [info, setInfo] = useState<Info>({} as Info);
 
   // Load thông tin cửa hàng (dùng cho email)

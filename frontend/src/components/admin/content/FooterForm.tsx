@@ -18,8 +18,14 @@ export default function FooterForm() {
 
   const [termsFile, setTermsFile] = useState<File | null>(null);
   const [policyFile, setPolicyFile] = useState<File | null>(null);
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const [returnFile, setReturnFile] = useState<File | null>(null);
+  const [cookiesFile, setCookiesFile] = useState<File | null>(null);
   const [termsProgress, setTermsProgress] = useState(0);
   const [policyProgress, setPolicyProgress] = useState(0);
+  const [paymentProgress, setPaymentProgress] = useState(0);
+  const [returnProgress, setReturnProgress] = useState(0);
+  // const [cookiesProgress, setCookiesProgress] = useState(0);
 
   useEffect(() => {
     const fetchInfo = async () => {
@@ -49,7 +55,7 @@ export default function FooterForm() {
   // đọc file từ máy lên browser và hiển thị % đọc
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "terms" | "policy"
+    type: "terms" | "policy" | "payment" | "return" | "cookies"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -61,17 +67,39 @@ export default function FooterForm() {
         const percent = Math.round((event.loaded / event.total) * 100);
         type === "terms"
           ? setTermsProgress(percent)
-          : setPolicyProgress(percent);
+          : type === "policy"
+          ? setPolicyProgress(percent)
+          : type === "payment"
+          ? setPaymentProgress(percent)
+          : type === "return"
+          ? setReturnProgress(percent)
+          : null;
+          // : setCookiesProgress(percent);
       }
     };
 
     reader.onloadend = () => {
-      if (type === "terms") {
-        setTermsFile(file);
-        setTermsProgress(100);
-      } else {
-        setPolicyFile(file);
-        setPolicyProgress(100);
+      switch (type) {
+        case "terms":
+          setTermsFile(file);
+          setTimeout(() => setTermsProgress(0), 1000);
+          break;
+        case "policy":
+          setPolicyFile(file);
+          setTimeout(() => setPolicyProgress(0), 1000);
+          break;
+        case "payment":
+          setPaymentFile(file);
+          setTimeout(() => setPaymentProgress(0), 1000);
+          break;
+        case "return":
+          setReturnFile(file);
+          setTimeout(() => setReturnProgress(0), 1000);
+          break;
+        // case "cookies":
+        //   setCookiesFile(file);
+        //   setTimeout(() => setCookiesProgress(0), 1000);
+        //   break;
       }
     };
 
@@ -87,6 +115,9 @@ const handleSubmit = async (e: React.FormEvent) => {
       ...formData,
       termsFile: termsFile ?? undefined,
       policyFile: policyFile ?? undefined,
+      paymentFile: paymentFile ?? undefined,
+      returnFile: returnFile ?? undefined,
+      cookiesFile: cookiesFile ?? undefined,
     });
 
     alert("Cập nhật thành công!");
@@ -228,6 +259,63 @@ const handleSubmit = async (e: React.FormEvent) => {
             </div>
           )}
         </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">
+            Thanh toán
+          </label>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => handleFileChange(e, "payment")}
+            className="block w-full text-sm border border-dashed rounded-md p-2 cursor-pointer"
+          />
+          {paymentProgress > 0 && (
+            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-green-600 h-2 rounded-full transition-all"
+                style={{ width: `${paymentProgress}%` }}
+              />
+            </div>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">
+            Đổi trả
+          </label>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => handleFileChange(e, "return")}
+            className="block w-full text-sm border border-dashed rounded-md p-2 cursor-pointer"
+          />
+          {returnProgress > 0 && (
+            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-green-600 h-2 rounded-full transition-all"
+                style={{ width: `${returnProgress}%` }}
+              />
+            </div>
+          )}
+        </div>
+        {/* <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">
+            Cài đặt Cookies
+          </label>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => handleFileChange(e, "cookies")}
+            className="block w-full text-sm border border-dashed rounded-md p-2 cursor-pointer"
+          />
+          {cookiesProgress > 0 && (
+            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-green-600 h-2 rounded-full transition-all"
+                style={{ width: `${cookiesProgress}%` }}
+              />
+            </div>
+          )}
+        </div> */}
       </div>
 
       {/* Buttons */}

@@ -47,9 +47,9 @@ export const productService = {
     }
   },
 
-  getByCategory: async (category: string): Promise<Product[]> => {
+  getByCategory: async (category: string, limit = 10, page = 1): Promise<Product[]> => {
     try {
-      const res = await api.get(`/products/category/${category}`);
+      const res = await api.get(`/products/category/${category}?limit=${limit}&page=${page}`);
       return res.data.products.map((p: ProductApi) => mapProduct(p));
     } catch (error) {
       throw error;

@@ -33,26 +33,28 @@ type ProductsProps = {
   category: string;
 };
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 
 export default function Products({ category }: ProductsProps) {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [category_ids, setCategory_ids] = useState<string | undefined>();
+  // const [category_ids, setCategory_ids] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
+      setPage(1);
       try {
         let products: Product[] = [];
         let totalProducts = 0;
 
         if (category !== "all") {
           const catRes = await categoryService.getBySlug(category);
+          console.log("Fetched category:", catRes);
           const category_id = catRes._id;
-          const res = await productService.getByCategory(category_id);
+          const res = await productService.getByCategory(category_id, PAGE_SIZE, page);
           products = res;
           totalProducts = res.length || 0;
         }
@@ -96,26 +98,26 @@ export default function Products({ category }: ProductsProps) {
     fetchProducts();
   }, [category, page]);
 
-  useEffect(() => {
-    setPage(1); // Reset to first page when category changes
-    if (category === "all") {
-      setCategory_ids(undefined);
-      return;
-    }
-    const fetchCategories = async () => {
-      try {
-        // category = decodeURIComponent(category.toLowerCase().trim());
-        const res = await categoryService.getBySlug(category);
-        setCategory_ids(res._id);
-      } catch (err) {
-        console.error(err);
-      }
-    };
+  // useEffect(() => {
+  //   setPage(1); // Reset to first page when category changes
+  //   if (category === "all") {
+  //     setCategory_ids(undefined);
+  //     return;
+  //   }
+  //   const fetchCategories = async () => {
+  //     try {
+  //       // category = decodeURIComponent(category.toLowerCase().trim());
+  //       const res = await categoryService.getBySlug(category);
+  //       setCategory_ids(res._id);
+  //     } catch (err) {
+  //       console.error(err);
+  //     }
+  //   };
 
-    if (category !== "all") {
-      fetchCategories();
-    }
-  }, [category]);
+  //   if (category !== "all") {
+  //     fetchCategories();
+  //   }
+  // }, [category]);
 
   useEffect(() => {
     // scroll back to top when page changes

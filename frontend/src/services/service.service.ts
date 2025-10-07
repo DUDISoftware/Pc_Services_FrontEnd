@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import api from "@/lib/api";
 import { Service } from "@/types/Service";
 import { mapService } from "@/lib/mappers";
@@ -10,9 +11,9 @@ type Featured = {
 }
 
 export const serviceService = {
-  getAll: async (): Promise<Service[]> => {
+  getAll: async (limit=10, page=1): Promise<Service[]> => {
     try {
-      const res = await api.get("/services");
+      const res = await api.get(`/services?limit=${limit}&page=${page}`);
       const services = res.data.services as Service[];
       return services.map(mapService);
     } catch (error) {
@@ -43,6 +44,9 @@ export const serviceService = {
 
   create: async (payload: Partial<Service>): Promise<Service> => {
     try {
+      if (typeof payload.category_id === "object" && payload.category_id !== null) {
+        payload.category_id = (payload.category_id as unknown as any)._id;
+      }
       const res = await api.post("/services", payload);
       return mapService(res.data.service);
     } catch (error) {
@@ -53,6 +57,9 @@ export const serviceService = {
 
   update: async (id: string, payload: Partial<Service>): Promise<Service> => {
     try {
+      if (typeof payload.category_id === "object" && payload.category_id !== null) {
+        payload.category_id = (payload.category_id as unknown as any)._id;
+      }
       const res = await api.put(`/services/${id}`, payload);
       return mapService(res.data.service);
     } catch (error) {
@@ -73,6 +80,10 @@ export const serviceService = {
   getFeatured: async (limit: number = 5): Promise<Featured> => {
     try {
       const res = await api.get(`/services/featured?limit=${limit}`);
+      if (res.data.services.length === 0) {
+        const services = (await serviceService.getAll()).slice(0, limit);
+        return { services: services.map(s => ({ id: s._id, views: 0 })) };
+      }
       return res.data as Featured;
     } catch (error) {
       console.error("Error in getFeatured:", error);

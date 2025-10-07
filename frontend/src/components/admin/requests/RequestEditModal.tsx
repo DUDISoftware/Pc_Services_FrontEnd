@@ -47,7 +47,9 @@ export default function RequestEditModal({
         address: request.address || "",
         status: request.status || "new",
         problem_description: request.problem_description || "",
-        service_id: request.service_id || "",
+        service_id: typeof request.service_id === "string"
+          ? request.service_id
+          : request.service_id?._id || "",
       });
     }
   }, [request]);

@@ -18,7 +18,8 @@ import { bannerService } from "@/services/banner.service";
 interface BannerItem {
   index: number;
   _id: string;
-  image: string;
+  image: string 
+    | { url: string; public_id: string; width?: number; height?: number };
   position: number;
   updatedAt?: string;
 };
@@ -141,7 +142,7 @@ export default function DragDropBannerLayout() {
           item
             ? bannerService.update(item._id, {
                 position: index + 1,
-                layout: layoutNum,
+                layout: layoutNum as any,
               })
             : null
         )
@@ -179,19 +180,19 @@ export default function DragDropBannerLayout() {
               <div className="col-span-2">
                 <SortableImage
                   id={holders[0]?.id || `empty-0`}
-                  image={holders[0]?.image}
+                  image={typeof holders[0]?.image === "string" ? holders[0]?.image : holders[0]?.image?.url}
                   onDoubleClick={() => handleSlotDoubleClick(0)}
                 />
               </div>
               <div className="flex flex-col gap-4">
                 <SortableImage
                   id={holders[1]?.id || `empty-1`}
-                  image={holders[1]?.image}
+                  image={typeof holders[1]?.image === "string" ? holders[1]?.image : holders[1]?.image?.url}
                   onDoubleClick={() => handleSlotDoubleClick(1)}
                 />
                 <SortableImage
                   id={holders[2]?.id || `empty-2`}
-                  image={holders[2]?.image}
+                  image={typeof holders[2]?.image === "string" ? holders[2]?.image : holders[2]?.image?.url}
                   onDoubleClick={() => handleSlotDoubleClick(2)}
                 />
               </div>
@@ -202,7 +203,7 @@ export default function DragDropBannerLayout() {
             <div className="h-64">
               <SortableImage
                 id={holders[0]?.id || `empty-0`}
-                image={holders[0]?.image}
+                image={typeof holders[0]?.image === "string" ? holders[0]?.image : holders[0]?.image?.url}
                 onDoubleClick={() => handleSlotDoubleClick(0)}
               />
             </div>
@@ -214,7 +215,7 @@ export default function DragDropBannerLayout() {
                 <SortableImage
                   key={i}
                   id={h?.id || `empty-${i}`}
-                  image={h?.image}
+                  image={typeof h?.image === "string" ? h?.image : h?.image?.url}
                   onDoubleClick={() => handleSlotDoubleClick(i)}
                 />
               ))}
@@ -240,7 +241,7 @@ export default function DragDropBannerLayout() {
               {galleryImages.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((img, i) => (
                 <img
                   key={img._id}
-                  src={img.image}
+                  src={typeof img.image === "string" ? img.image : img.image?.url}
                   alt={`img-${i}`}
                   onClick={() => handleImageSelect(img)}
                   className="h-20 object-cover rounded cursor-pointer hover:ring-2 hover:ring-blue-500"

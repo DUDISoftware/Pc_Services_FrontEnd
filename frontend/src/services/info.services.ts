@@ -14,12 +14,12 @@ export const getInfo = async (): Promise<Info> => {
 };
 
 export const updateInfo = async (
-    data: Partial<Info> & { termsFile?: File; policyFile?: File }
+    data: Partial<Info> & { termsFile?: File; policyFile?: File; paymentFile?: File; returnFile?: File; cookiesFile?: File }
 ): Promise<Info> => {
     try {
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
-            if (key !== "termsFile" && key !== "policyFile" && value !== undefined) {
+            if (key !== "termsFile" && key !== "policyFile" && key !== "paymentFile" && key !== "returnFile" && key !== "cookiesFile" && value !== undefined) {
                 formData.append(key, value as string);
             }
         });
@@ -31,15 +31,16 @@ export const updateInfo = async (
         if (data.policyFile) {
             formData.append("policy", data.policyFile);
         }
-
-        const response = await api.request<InfoApi>({
-            method: "PUT",
-            url: "/info",
-            data: formData,
-            headers: {
-                // 'Content-Type': 'multipart/form-data', do NOT manually add
-            },
-        });
+        if (data.paymentFile) {
+            formData.append("payment", data.paymentFile);
+        }
+        if (data.returnFile) {
+            formData.append("return", data.returnFile);
+        }
+        if (data.cookiesFile) {
+            formData.append("cookies", data.cookiesFile);
+        }
+        const response = await api.put("/info", formData);
 
         return mapInfo(response.data);
     } catch (error) {
