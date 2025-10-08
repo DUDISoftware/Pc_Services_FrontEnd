@@ -55,8 +55,8 @@ export default function Products({ category }: ProductsProps) {
           console.log("Fetched category:", catRes);
           const category_id = catRes._id;
           const res = await productService.getByCategory(category_id, PAGE_SIZE, page);
-          products = res;
-          totalProducts = res.length || 0;
+          products = res.products;
+          totalProducts = res.total || 0;
         }
 
         const mapped = await Promise.all(

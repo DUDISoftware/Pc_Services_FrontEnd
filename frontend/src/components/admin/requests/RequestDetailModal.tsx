@@ -23,7 +23,6 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
 
     const getServiceName = (id?: string) => {
         if (!id || !services) return "Không rõ dịch vụ" + id;
-        console.log(services);
         return (services.find((s) => s._id === id)?.name || "Không rõ");
     };
 

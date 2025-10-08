@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-
+import { toast } from "react-toastify";
 import { useState } from "react";
 import { User, Mail, MapPin, Phone, FileText } from "lucide-react";
 import { requestService } from "@/services/request.service";
 import { Cart, CartItem } from "@/types/Cart";
 import { userService } from "@/services/user.service";
+import { OTPModal } from "./OtpModal";
 
 interface OrderFormProps {
   cart: Cart;
@@ -22,6 +23,17 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
   });
 
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+
+  const handleOtpVerify = async (otp: string) => {
+    try {
+      const verifyResponse = await userService.verifyOTP(form.email, otp);
+      return verifyResponse.status === 200;
+    } catch {
+      return false;
+    }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -31,11 +43,14 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     const cartItems: CartItem[] = cart.items || [];
 
     if (!cartItems.length) {
-      alert("Giỏ hàng của bạn đang trống.");
+      toast.error("Giỏ hàng của bạn đang trống.");
+      setIsSubmitting(false);
       return;
     }
 
@@ -47,7 +62,8 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
     // Validate phone theo regex
     const phoneRegex = /^(?:\+84|84|0)[0-9]{1,9}$/;
     if (!phoneRegex.test(form.phone)) {
-      alert("Số điện thoại không hợp lệ. Vui lòng nhập theo định dạng +84xxxx hoặc 0xxxx.");
+      toast.error("Số điện thoại không hợp lệ. Vui lòng nhập theo định dạng +84xxxx hoặc 0xxxx.");
+      setIsSubmitting(false);
       return;
     }
 
@@ -55,83 +71,58 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
     if (form.email && form.email.trim() !== "") {
       try {
         await userService.sendOTP(form.email);
+        setShowOtpModal(true);
+        setIsSubmitting(false);
+        return;
+
       } catch (err) {
         console.error("Không thể gửi OTP:", err);
-        alert("Không thể gửi mã OTP đến email. Vui lòng thử lại.");
+        toast.error("Không thể gửi mã OTP đến email. Vui lòng thử lại.");
+        setIsSubmitting(false);
         return;
       }
-
-      let attempts = 0;
-      let verified = false;
-
-      while (attempts < 3 && !verified) {
-        const otp = prompt(`Nhập mã OTP đã gửi đến email của bạn (lần ${attempts + 1}/3):`);
-        if (!otp) {
-          alert("Bạn phải nhập mã OTP để tiếp tục.");
-          return;
-        }
-        try {
-          const verifyResponse = await userService.verifyOTP(form.email, otp);
-          verified = verifyResponse.status === 200;
-        } catch {
-          verified = false;
-        }
-
-        if (!verified) {
-          attempts++;
-          if (attempts < 3) {
-            alert(`Mã OTP không hợp lệ, bạn còn ${3 - attempts} lần thử.`);
-          }
-        }
-      }
-
-      if (!verified) {
-        alert("Bạn đã nhập sai OTP quá 3 lần. Vui lòng thử lại sau.");
-        return;
-      }
-
-      alert("Email đã được xác thực thành công ✅");
+      // toast.success("Email đã được xác thực thành công ✅");
     }
 
     // Nếu tới đây tức là OTP ok hoặc không cần OTP
-    try {
-      await requestService.createOrder({
-        ...form,
-        items: items as {
-          name: string;
-          product_id: string;
-          quantity: number;
-          price: number;
-          image: string;
-        }[] as any,
-      });
+      try {
+        await requestService.createOrder({
+          ...form,
+          items: items as {
+            name: string;
+            product_id: string;
+            quantity: number;
+            price: number;
+            image: string;
+          }[] as any,
+        });
 
-      // Mở popup
-      setIsPopupOpen(true);
+        setIsPopupOpen(true);
 
-      // Reset giỏ hàng
-      const emptyCart: Cart = {
-        _id: "",
-        items: [],
-        totalPrice: 0,
-        updated_at: new Date().toISOString(),
-      };
-      localStorage.removeItem("cart");
-      window.dispatchEvent(new Event("cart_updated"));
-      setCart(emptyCart);
+        // Reset giỏ hàng
+        const emptyCart: Cart = {
+          _id: "",
+          items: [],
+          totalPrice: 0,
+          updated_at: new Date().toISOString(),
+        };
+        localStorage.removeItem("cart");
+        window.dispatchEvent(new Event("cart_updated"));
+        setCart(emptyCart);
 
-      // Reset form
-      setForm({
-        name: "",
-        email: "",
-        address: "",
-        phone: "",
-        note: "",
-      });
-    } catch (err) {
-      console.error("Lỗi khi gửi đơn hàng:", err);
-      alert("Không thể đặt hàng. Vui lòng thử lại.");
-    }
+        // Reset form
+        setForm({
+          name: "",
+          email: "",
+          address: "",
+          phone: "",
+          note: "",
+        });
+      } catch (err) {
+        console.error("Lỗi khi gửi đơn hàng:", err);
+        toast.error("Không thể đặt hàng. Vui lòng thử lại.");
+      }
+    setIsSubmitting(false);
   };
 
   return (
@@ -188,6 +179,61 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
           Gửi yêu cầu
         </button>
       </form>
+
+      {showOtpModal && (
+  <OTPModal
+    email={form.email}
+    onVerify={handleOtpVerify}
+    onClose={() => setShowOtpModal(false)}
+    onSuccess={async () => {
+      setShowOtpModal(false);
+      try {
+        const cartItems: CartItem[] = cart.items || [];
+        const items = cartItems.map((item) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+        }));
+
+        await requestService.createOrder({
+          ...form,
+          items: items as {
+            name: string;
+            product_id: string;
+            quantity: number;
+            price: number;
+            image: string;
+          }[] as any,
+        });
+        toast.success("Đặt hàng thành công 🎉");
+        setIsPopupOpen(true);
+        // Reset giỏ hàng
+        const emptyCart: Cart = {
+          _id: "",
+          items: [],
+          totalPrice: 0,
+          updated_at: new Date().toISOString(),
+        };
+        localStorage.removeItem("cart");
+        window.dispatchEvent(new Event("cart_updated"));
+        setCart(emptyCart);
+        setForm({
+          name: "",
+          email: "",
+          address: "",
+          phone: "",
+          note: "",
+        });
+      } catch (err) {
+        console.error("Lỗi khi gửi đơn hàng:", err);
+        toast.error("Không thể đặt hàng. Vui lòng thử lại.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    }}
+  />
+)}
+
+
 
       {/* Popup modal */}
       {isPopupOpen && (

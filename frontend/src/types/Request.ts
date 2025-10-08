@@ -1,9 +1,12 @@
 export type UploadedImage = { url: string; public_id: string };
-export type Items = { name: string; product_id: {
-                    _id: string;
-                    name: string;
-                    price: number;
-                    }; quantity: number; price: number }[];
+export type Items = { name: string; 
+                      product_id: {
+                        _id: string;
+                        name: string;
+                        price: number;
+                      }; 
+                      quantity: number; 
+                      price: number }[];
 
 export type Request = {
   _id: string;

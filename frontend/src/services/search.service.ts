@@ -10,9 +10,9 @@ import api from "@/lib/api";
  * Gọi API tìm kiếm sản phẩm theo query.
  * Trả về danh sách sản phẩm đã map về kiểu FE.
  */
-export async function searchProducts(query: string): Promise<Product[]> {
+export async function searchProducts(query: string, limit = 30, page = 1): Promise<Product[]> {
   try {
-    const res = await api.get(`/products/search?query=${decodeURIComponent(query)}`);
+    const res = await api.get(`/products/search?query=${decodeURIComponent(query)}&limit=${limit}&page=${page}`);
     const json = res.data;
     const products = json.products;
 
@@ -20,8 +20,6 @@ export async function searchProducts(query: string): Promise<Product[]> {
       console.error("❌ Dữ liệu trả về không đúng định dạng:", json);
       throw new Error("Invalid product response");
     }
-
-    // 🟩 Ghi log sản phẩm đầu tiên nếu cần
 
     return products.map((item: ProductApi) => mapProduct(item));
   } catch (err) {
@@ -34,15 +32,15 @@ export async function searchRequests(query: string, type: "service" | "product")
   try {
     const res = await api.get(`/requests/search?query=${encodeURIComponent(query)}`);
     const json = res.data;
-    const allRequests = [...(json.repair || []), ...(json.order || [])];
-    console.log(allRequests);
 
-    if (!Array.isArray(allRequests)) {
-      console.error("❌ Dữ liệu trả về không đúng định dạng:", json);
-      throw new Error("Invalid request response");
+    if (type === "service") {
+      const serviceRequests = json.repair;
+      return Array.isArray(serviceRequests) ? serviceRequests.map((item: RequestApi) => mapRequest(item)) : [];
+    } else if (type === "product") {
+      const productRequests = json.order;
+      return Array.isArray(productRequests) ? productRequests.map((item: RequestApi) => mapRequest(item)) : [];
     }
-
-    return allRequests.map((item: RequestApi) => mapRequest(item));
+    return [];
   } catch (err) {
     console.error("Lỗi khi gọi searchRequests:", err);
     return [];
@@ -53,7 +51,7 @@ export async function searchServices(query: string): Promise<Service[]> {
   try {
     const res = await api.get(`/services/search?query=${encodeURIComponent(query)}`);
     const json = res.data;
-    const services = json.services;
+    const services = json.results as { services: ServiceApi[] };
     if (!Array.isArray(services)) {
       console.error("❌ Dữ liệu trả về không đúng định dạng:", json);
       throw new Error("Invalid service response");
@@ -63,22 +61,4 @@ export async function searchServices(query: string): Promise<Service[]> {
     console.error("Lỗi khi gọi searchServices:", err);
     return []; // fallback an toàn
   } 
-}
-
-export async function searchOrders(query: string): Promise<Request[]> {
-  try {
-    const res = await api.get(`/orders/search?query=${encodeURIComponent(query)}`);
-    const json = res.data;
-    const orders = json.orders;
-
-    if (!Array.isArray(orders)) {
-      console.error("❌ Dữ liệu trả về không đúng định dạng:", json);
-      throw new Error("Invalid order response");
-    }
-
-    return orders.map((item: RequestApi) => mapRequest(item));
-  } catch (err) {
-    console.error("Lỗi khi gọi searchOrders:", err);
-    return [];
-  }
 }

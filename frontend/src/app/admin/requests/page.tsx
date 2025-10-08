@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import TableHeader from "@/components/admin/TableHeader";
 import RequestBoard from "@/components/admin/requests/RequestBoard";
-import Button from "@/components/common/Button";
 import { searchRequests } from "@/services/search.service";
 import { Request } from "@/types/Request";
 
@@ -13,9 +12,8 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"service" | "product">("service");
 
+  // 🔍 Gọi API tìm kiếm mỗi khi query hoặc tab thay đổi
   useEffect(() => {
-    // if (activeTab !== "service") return;
-
     const timeout = setTimeout(async () => {
       if (!query.trim()) {
         setRequests([]);
@@ -25,7 +23,14 @@ export default function RequestsPage() {
       try {
         setLoading(true);
         const data = await searchRequests(query, activeTab);
-        setRequests(data || []);
+        console.log("searchRequests response:", data);
+
+        // ✅ Phân biệt service / product để gán dữ liệu đúng
+        if (activeTab === "service") {
+          setRequests(data || []);
+        } else {
+          setRequests(data || []);
+        }
       } catch (err) {
         console.error("❌ Lỗi khi tìm kiếm:", err);
         setRequests([]);
@@ -37,7 +42,7 @@ export default function RequestsPage() {
     return () => clearTimeout(timeout);
   }, [query, activeTab]);
 
-  // Reset khi đổi tab
+  // 🔄 Reset khi đổi tab
   useEffect(() => {
     setQuery("");
     setRequests([]);
@@ -49,7 +54,6 @@ export default function RequestsPage() {
       <TableHeader
         title="Quản lý yêu cầu khách hàng"
         breadcrumb={["Admin", "Yêu cầu"]}
-        // actions={<Button variant="secondary">Bộ lọc</Button>}
       />
 
       {/* Tabs */}
@@ -77,22 +81,26 @@ export default function RequestsPage() {
       </div>
 
       {/* Search input */}
-        <div className="mb-4">
-          <input
-            type="text"
-            placeholder="Tìm kiếm yêu cầu dịch vụ..."
-            className="border rounded px-3 py-2 w-full max-w-md"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder={
+            activeTab === "service"
+              ? "Tìm kiếm yêu cầu dịch vụ..."
+              : "Tìm kiếm đơn hàng sản phẩm..."
+          }
+          className="border rounded px-3 py-2 w-full max-w-md"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
 
-      {/* Loading */}
+      {/* Loading indicator */}
       {loading && <p className="text-sm text-gray-500">🔄 Đang tìm kiếm...</p>}
 
       {/* Request Board */}
       <RequestBoard
-        requests={activeTab === "service" ? requests : []}
+        requests={requests}
         tab={activeTab}
       />
     </div>
