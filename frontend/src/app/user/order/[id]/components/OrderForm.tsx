@@ -7,6 +7,7 @@ import { requestService } from "@/services/request.service";
 import { Cart, CartItem } from "@/types/Cart";
 import { userService } from "@/services/user.service";
 import { OTPModal } from "./OtpModal";
+import { Items } from "@/types/Request";
 
 interface OrderFormProps {
   cart: Cart;
@@ -57,6 +58,9 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
     const items = cartItems.map((item) => ({
       product_id: item.product_id,
       quantity: item.quantity,
+      name: item.name,
+      price: item.price,
+      image: item.image,
     }));
 
     // Validate phone theo regex
@@ -85,43 +89,43 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
     }
 
     // Nếu tới đây tức là OTP ok hoặc không cần OTP
-      try {
-        await requestService.createOrder({
-          ...form,
-          items: items as {
-            name: string;
-            product_id: string;
-            quantity: number;
-            price: number;
-            image: string;
-          }[] as any,
-        });
+    try {
+      await requestService.createOrder({
+        ...form,
+        items: items as {
+          name: string;
+          product_id: string;
+          quantity: number;
+          price: number;
+          image: string;
+        }[] as any,
+      });
 
-        setIsPopupOpen(true);
+      setIsPopupOpen(true);
 
-        // Reset giỏ hàng
-        const emptyCart: Cart = {
-          _id: "",
-          items: [],
-          totalPrice: 0,
-          updated_at: new Date().toISOString(),
-        };
-        localStorage.removeItem("cart");
-        window.dispatchEvent(new Event("cart_updated"));
-        setCart(emptyCart);
+      // Reset giỏ hàng
+      const emptyCart: Cart = {
+        _id: "",
+        items: [],
+        totalPrice: 0,
+        updated_at: new Date().toISOString(),
+      };
+      localStorage.removeItem("cart");
+      window.dispatchEvent(new Event("cart_updated"));
+      setCart(emptyCart);
 
-        // Reset form
-        setForm({
-          name: "",
-          email: "",
-          address: "",
-          phone: "",
-          note: "",
-        });
-      } catch (err) {
-        console.error("Lỗi khi gửi đơn hàng:", err);
-        toast.error("Không thể đặt hàng. Vui lòng thử lại.");
-      }
+      // Reset form
+      setForm({
+        name: "",
+        email: "",
+        address: "",
+        phone: "",
+        note: "",
+      });
+    } catch (err) {
+      console.error("Lỗi khi gửi đơn hàng:", err);
+      toast.error("Không thể đặt hàng. Vui lòng thử lại.");
+    }
     setIsSubmitting(false);
   };
 
@@ -181,57 +185,61 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
       </form>
 
       {showOtpModal && (
-  <OTPModal
-    email={form.email}
-    onVerify={handleOtpVerify}
-    onClose={() => setShowOtpModal(false)}
-    onSuccess={async () => {
-      setShowOtpModal(false);
-      try {
-        const cartItems: CartItem[] = cart.items || [];
-        const items = cartItems.map((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-        }));
+        <OTPModal
+          email={form.email}
+          onVerify={handleOtpVerify}
+          onClose={() => setShowOtpModal(false)}
+          onSuccess={async () => {
+            setShowOtpModal(false);
+            try {
+              const cartItems: CartItem[] = cart.items || [];
+              const items = cartItems.map((item) => ({
+                name: item.name,
+                product_id: {
+                  _id: item.product_id,
+                  name: item.name,
+                  price: item.price,
+                },
+                quantity: item.quantity,
+                price: item.price,
+              }));
 
-        await requestService.createOrder({
-          ...form,
-          items: items as {
-            name: string;
-            product_id: string;
-            quantity: number;
-            price: number;
-            image: string;
-          }[] as any,
-        });
-        toast.success("Đặt hàng thành công 🎉");
-        setIsPopupOpen(true);
-        // Reset giỏ hàng
-        const emptyCart: Cart = {
-          _id: "",
-          items: [],
-          totalPrice: 0,
-          updated_at: new Date().toISOString(),
-        };
-        localStorage.removeItem("cart");
-        window.dispatchEvent(new Event("cart_updated"));
-        setCart(emptyCart);
-        setForm({
-          name: "",
-          email: "",
-          address: "",
-          phone: "",
-          note: "",
-        });
-      } catch (err) {
-        console.error("Lỗi khi gửi đơn hàng:", err);
-        toast.error("Không thể đặt hàng. Vui lòng thử lại.");
-      } finally {
-        setIsSubmitting(false);
-      }
-    }}
-  />
-)}
+              if (form.email && form.email.trim() !== "") {
+                items.forEach(i => { i.product_id = (i.product_id as any)._id; });
+              }
+
+              await requestService.createOrder({
+                ...form,
+                items,
+              });
+              toast.success("Đặt hàng thành công 🎉");
+              setIsPopupOpen(true);
+              // Reset giỏ hàng
+              const emptyCart: Cart = {
+                _id: "",
+                items: [],
+                totalPrice: 0,
+                updated_at: new Date().toISOString(),
+              };
+              localStorage.removeItem("cart");
+              window.dispatchEvent(new Event("cart_updated"));
+              setCart(emptyCart);
+              setForm({
+                name: "",
+                email: "",
+                address: "",
+                phone: "",
+                note: "",
+              });
+            } catch (err) {
+              console.error("Lỗi khi gửi đơn hàng:", err);
+              toast.error("Không thể đặt hàng. Vui lòng thử lại.");
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+        />
+      )}
 
 
 
@@ -278,21 +286,24 @@ function InputField({
     <div className="relative">
       <div className="absolute left-3 top-3 w-5 h-5 text-gray-400">{icon}</div>
       <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-1 focus:ring-blue-600"
-        required={required}
-        onKeyPress={(e) => {
-          if (name === "phone" && !/[0-9+]/.test(e.key)) {
-            e.preventDefault();
-          }
-        }}
-        inputMode={isPhone ? "numeric" : undefined}
-        pattern={isPhone ? "^(\\+84|84|0)[0-9]{1,9}$" : undefined}
-        maxLength={isPhone ? 11 : undefined}
+      type={type}
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-1 focus:ring-blue-600"
+      required={required}
+      onKeyPress={(e) => {
+        if (
+        name === "phone" &&
+        (!/[0-9+]/.test(e.key) || value.replace(/\D/g, "").length >= 10)
+        ) {
+        e.preventDefault();
+        }
+      }}
+      inputMode={isPhone ? "numeric" : undefined}
+      pattern={isPhone ? "^(\\+84|84|0)[0-9]{9,}$" : undefined}
+      maxLength={isPhone ? 13 : undefined}
       />
     </div>
   );

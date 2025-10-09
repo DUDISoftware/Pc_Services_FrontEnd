@@ -79,7 +79,7 @@ export default function ServicesTable() {
     }
   };
 
-  const handleSubmit = async (data: Partial<Service> & { category_id: string }) => {
+  const handleSubmit = async (data: FormData & { category_id: string }) => {
     try {
       if (editingService) {
         await serviceService.update(editingService._id, data);

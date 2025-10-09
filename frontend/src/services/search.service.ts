@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Product, ProductApi } from "@/types/Product";
 import { mapProduct } from "@/lib/mappers";
 import { Request, RequestApi } from "@/types/Request";
@@ -38,6 +39,8 @@ export async function searchRequests(query: string, type: "service" | "product")
       return Array.isArray(serviceRequests) ? serviceRequests.map((item: RequestApi) => mapRequest(item)) : [];
     } else if (type === "product") {
       const productRequests = json.order;
+      
+      console.log("Product requests:", productRequests);
       return Array.isArray(productRequests) ? productRequests.map((item: RequestApi) => mapRequest(item)) : [];
     }
     return [];
@@ -46,6 +49,23 @@ export async function searchRequests(query: string, type: "service" | "product")
     return [];
   }
 }
+
+export async function searchHistoryRequests(query: string): Promise<Request[]> {
+  try {
+    const res = await api.get(`/requests/search?query=${encodeURIComponent(query)}`);
+    const requests = [
+      ...(res.data.order || []),
+      ...(res.data.repair || [])
+    ];
+    const data: RequestApi[] = requests || [];
+    const filtered = data.filter((r) => r.hidden === true);
+    return filtered.map((item: RequestApi) => mapRequest(item));
+  } catch (err) {
+    console.error("Lỗi khi gọi searchHistoryRequests:", err);
+    return [];
+  }
+}
+
 
 export async function searchServices(query: string): Promise<Service[]> {
   try {

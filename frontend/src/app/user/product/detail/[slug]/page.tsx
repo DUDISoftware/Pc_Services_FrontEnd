@@ -47,7 +47,6 @@ export default function ProductDetailPage() {
     const countView = async () => {
       try {
         if (product && product._id) {
-          console.log("Tăng view cho sản phẩm:", product._id);
           await productService.countViewRedis(product._id);
           const ratingData = await ratingService.getByProductId(product._id);
           if (ratingData && ratingData.ratings) {
@@ -82,7 +81,6 @@ export default function ProductDetailPage() {
         score,
       };
       const createdRating = await ratingService.create(payload);
-      console.log("Đánh giá đã tạo:", createdRating);
       setName("");
       setComment("");
       setScore(5);

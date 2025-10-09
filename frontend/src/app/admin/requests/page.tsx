@@ -3,46 +3,57 @@
 import { useState, useEffect } from "react";
 import TableHeader from "@/components/admin/TableHeader";
 import RequestBoard from "@/components/admin/requests/RequestBoard";
-import { searchRequests } from "@/services/search.service";
+import { searchRequests, searchHistoryRequests } from "@/services/search.service";
+import { requestService } from "@/services/request.service";
 import { Request } from "@/types/Request";
 
 export default function RequestsPage() {
   const [query, setQuery] = useState("");
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"service" | "product">("service");
+  const [activeTab, setActiveTab] = useState<"service" | "product" | "history">("service");
 
-  // 🔍 Gọi API tìm kiếm mỗi khi query hoặc tab thay đổi
   useEffect(() => {
-    const timeout = setTimeout(async () => {
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      let data: Request[] = [];
+
       if (!query.trim()) {
-        setRequests([]);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const data = await searchRequests(query, activeTab);
-        console.log("searchRequests response:", data);
-
-        // ✅ Phân biệt service / product để gán dữ liệu đúng
-        if (activeTab === "service") {
-          setRequests(data || []);
+        if (activeTab === "history") {
+          // 🛠 Load mặc định toàn bộ request ẩn + hoàn thành
+          const [repairs, orders] = await Promise.all([
+            requestService.getAllRepairs(true),
+            requestService.getAllOrders(true),
+          ]);
+          data = [...repairs, ...orders].filter(r => r.hidden === true);
         } else {
-          setRequests(data || []);
+          setRequests([]);
+          return;
         }
-      } catch (err) {
-        console.error("❌ Lỗi khi tìm kiếm:", err);
-        setRequests([]);
-      } finally {
-        setLoading(false);
+      } else {
+        if (activeTab === "history") {
+          const searchResults = await searchHistoryRequests(query);
+          data = searchResults;
+        } else {
+          const searchResults = await searchRequests(query, activeTab);
+          data = searchResults.filter(r => r.hidden !== true);
+        }
       }
-    }, 400);
 
-    return () => clearTimeout(timeout);
-  }, [query, activeTab]);
+      setRequests(data);
+    } catch (err) {
+      console.error("❌ Lỗi khi fetch dữ liệu:", err);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // 🔄 Reset khi đổi tab
+  const timeout = setTimeout(fetchData, 300);
+  return () => clearTimeout(timeout);
+}, [query, activeTab]);
+
   useEffect(() => {
     setQuery("");
     setRequests([]);
@@ -50,13 +61,11 @@ export default function RequestsPage() {
 
   return (
     <div className="p-6 flex-1 w-full">
-      {/* Header */}
       <TableHeader
         title="Quản lý yêu cầu khách hàng"
         breadcrumb={["Admin", "Yêu cầu"]}
       />
 
-      {/* Tabs */}
       <div className="flex space-x-4 border-b w-full max-w-full overflow-x-auto mb-4">
         <button
           className={`pb-2 px-4 font-medium ${
@@ -78,16 +87,27 @@ export default function RequestsPage() {
         >
           Sản phẩm
         </button>
+        <button
+          className={`pb-2 px-4 font-medium ${
+            activeTab === "history"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600"
+          }`}
+          onClick={() => setActiveTab("history")}
+        >
+          🕓 Lịch sử
+        </button>
       </div>
 
-      {/* Search input */}
       <div className="mb-4">
         <input
           type="text"
           placeholder={
             activeTab === "service"
               ? "Tìm kiếm yêu cầu dịch vụ..."
-              : "Tìm kiếm đơn hàng sản phẩm..."
+              : activeTab === "product"
+              ? "Tìm kiếm đơn hàng sản phẩm..."
+              : "Tìm kiếm trong lịch sử đã ẩn..."
           }
           className="border rounded px-3 py-2 w-full max-w-md"
           value={query}
@@ -95,10 +115,8 @@ export default function RequestsPage() {
         />
       </div>
 
-      {/* Loading indicator */}
       {loading && <p className="text-sm text-gray-500">🔄 Đang tìm kiếm...</p>}
 
-      {/* Request Board */}
       <RequestBoard
         requests={requests}
         tab={activeTab}

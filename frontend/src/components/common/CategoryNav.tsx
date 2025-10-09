@@ -54,6 +54,10 @@ export default function CategoryNav({ selectedCategory, onSelectCategory }: Prop
       router.push(`/user/product?category=${encodeURIComponent(cat.slug)}`);
       return;
     }
+    if (url.includes("detail")) {
+      router.push(`/user/product?category=${encodeURIComponent(cat.slug)}`);
+      return;
+    }
     router.push(`?category=${encodeURIComponent(cat.slug)}`);
   };
 

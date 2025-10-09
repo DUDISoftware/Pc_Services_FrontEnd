@@ -25,7 +25,17 @@ export const statsService = {
         }
     },
 
-    async getMonthStats(month: number, year: number): Promise<Stats[]> {
+    async getCurrentStats(): Promise< Partial<Stats> & { completed_orders?: number, completed_repairs?: number } > {
+        try {
+            const response = await api.get("/stats/current");
+            return response.data.stats;
+        } catch (error) {
+            console.error("Error fetching current stats:", error);
+            throw error;
+        }
+    },
+
+    async getStatsByMonth(month: number, year: number): Promise<Stats[]> {
         try {
             const response = await api.get(`/stats/month/${month}/${year}`);
             return response.data.stats.map((s: StatsApi) => statsMapper(s));
@@ -53,7 +63,6 @@ export const statsService = {
 
     async createStats(data: Stats, date: string): Promise<Stats> {
         try {
-            console.log("Tạo mới stats cho ngày:", date);
             const response = await api.post(`/stats?date=${date}`, {
                 ...data, visits: 0
             });
@@ -75,43 +84,37 @@ export const statsService = {
         }
     },
 
-    async calculateMonthProfit(): Promise<number> {
+    async calculateStatsMonth(): Promise<Stats> {
         try {
-            const currentMonth = new Date().toISOString().slice(0, 7);
-            const [orders, repairs] = await Promise.all([
-                requestService.getAllOrders(),
-                requestService.getAllRepairs(),
-            ]);
+            const currentMonth = (new Date().getMonth() + 1);
+            const currentYear = new Date().getFullYear();
+            
+            const data = await statsService.getStatsByMonth(currentMonth, currentYear);
+            console.log("Stats for current month:", data);
 
-            const filteredOrders = orders.filter(
-                item => item.status === "completed" && item.updatedAt?.startsWith(currentMonth)
-            );
-            const filteredRepairs = repairs.filter(
-                item => item.status === "completed" && item.updatedAt?.startsWith(currentMonth)
-            );
+            let total_profit = 0;
+            let total_orders = 0;
+            let total_repairs = 0;
+            let total_products = 0;
+            let visits = 0;
 
-            let total = 0;
-
-            for (const order of filteredOrders) {
-                for (const item of order.items || []) {
-                    const price =
-                        typeof item.price === "number"
-                            ? item.price
-                            : typeof item.product_id === "object"
-                                ? (item.product_id as { price: number }).price
-                                : 0;
-                    const qty = item.quantity || 1;
-                    total += price * qty;
-                }
+            for (const stat of data) {
+                total_profit += stat.total_profit || 0;
+                total_orders += stat.total_orders || 0;
+                total_repairs += stat.total_repairs || 0;
+                total_products += stat.total_products || 0;
+                visits += stat.visits || 0;
             }
 
-            for (const repair of filteredRepairs) {
-                for (const item of repair.items || []) {
-                    total += item.price || 0;
-                }
-            }
+            const payload = {
+                total_profit,
+                total_orders,
+                total_repairs,
+                total_products,
+                visits
+            };
 
-            return total;
+            return payload;
         } catch (error) {
             console.error("Error calculating month profit:", error);
             throw error;

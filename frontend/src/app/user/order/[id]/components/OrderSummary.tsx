@@ -2,8 +2,10 @@
 /* eslint-disable react/jsx-no-undef */
 "use client";
 
+import { productService } from "@/services/product.service";
 import { Cart } from "@/types/Cart";
 import { Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface OrderSummaryProps {
   cart: Cart;
@@ -11,11 +13,37 @@ interface OrderSummaryProps {
 }
 
 export default function OrderSummary({ cart, setCart }: OrderSummaryProps) {
+  const [maxQuantity, setMaxQuantity] = useState<{ [key: string]: number }>({});
+
+  useEffect(() => {
+    const fetchQuantities = async () => {
+      const quantities: { [key: string]: number } = {};
+      for (const item of cart.items) {
+        try {
+          const qty = await productService.getQuantity(item.product_id);
+          quantities[item.product_id] = qty;
+        } catch {
+          quantities[item.product_id] = 0; // Nếu lỗi, đặt số lượng tối đa là 0
+        }
+      }
+      setMaxQuantity(quantities);
+    }
+    fetchQuantities();
+  }, [cart.items]);
+
+
   const updateQuantity = (productId: string, delta: number) => {
+    const max = maxQuantity[productId] || 1;
     const updatedItems = cart.items.map((item) =>
       item.product_id === productId
-        ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-        : item
+      ? {
+        ...item,
+        quantity: Math.max(
+          1,
+          Math.min(item.quantity + delta, max)
+        ),
+        }
+      : item
     );
 
     const updatedCart: Cart = {
@@ -27,7 +55,6 @@ export default function OrderSummary({ cart, setCart }: OrderSummaryProps) {
       ),
       updated_at: new Date().toISOString(),
     };
-
     setCart(updatedCart);
   };
 

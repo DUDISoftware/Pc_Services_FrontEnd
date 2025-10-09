@@ -39,7 +39,6 @@ export const productService = {
       if (!res.data || !res.data.products) {
         res = await api.get(`/products?limit=${limit}`);
       }
-      console.log("Featured products response:", res.data.products);
       return res.data as Featured;
     } catch (error) {
       throw error;
@@ -74,6 +73,15 @@ export const productService = {
     try {
       const res = await api.get(`/products/${id}`);
       return mapProduct(res.data.product);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getQuantity: async (id: string): Promise<number> => {
+    try {
+      const res = await api.get(`/products/${id}/quantity`);
+      return res.data.quantity;
     } catch (error) {
       throw error;
     }
