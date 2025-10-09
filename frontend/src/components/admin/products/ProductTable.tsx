@@ -7,6 +7,10 @@ import Button from "@/components/common/Button";
 import { productService } from "@/services/product.service";
 import { categoryService } from "@/services/category.service";
 import { Product, UploadedImage } from "@/types/Product";
+// discount
+import { discountService } from "@/services/discount.service";
+import { Discount } from "@/types/Discount";
+import DiscountProducts from "@/app/user/home/components/DiscountProducts";
 
 type Category = {
   _id: string;
@@ -38,6 +42,7 @@ export default function ProductTable() {
     brand?: string;
     category_id?: string;
     images?: (File | UploadedImage)[];
+    SaleOf?:number;
   }>({ images: [], status: "available" });
 
   const totalPages = Math.max(1, Math.ceil(products.length / itemsPerPage));
@@ -136,29 +141,37 @@ export default function ProductTable() {
     }
   };
 
-  const openEditForm = (product: Product) => {
-    setEditingProduct(product);
-    setFormData({
-      name: product.name,
-      slug: product.slug,
-      tags: product.tags,
-      ports: product.ports,
-      panel: product.panel,
-      resolution: product.resolution,
-      size: product.size,
-      model: product.model,
-      description: product.description,
-      price: product.price,
-      quantity: product.quantity,
-      status: product.status,
-      brand: product.brand,
-      category_id:
-        typeof product.category_id === "object"
-          ? product.category_id._id
-          : product.category_id,
-      images: product.images,
-    });
-    setShowForm(true);
+  const openEditForm = async (product: Product) => {
+    try{
+      const discountData = await discountService.getByProductId(product._id);
+      console.log("📋 Discount data for product", product._id, ":", discountData); // Log để kiểm tra
+      setEditingProduct(product);
+      setFormData({
+        name: product.name,
+        slug: product.slug,
+        tags: product.tags,
+        ports: product.ports,
+        panel: product.panel,
+        resolution: product.resolution,
+        size: product.size,
+        model: product.model,
+        description: product.description,
+        price: product.price,
+        quantity: product.quantity,
+        status: product.status,
+        brand: product.brand,
+        category_id:
+          typeof product.category_id === "object"
+            ? product.category_id._id
+            : product.category_id,
+        images: product.images,
+        SaleOf: discountData?.SaleOf, 
+      });
+      setShowForm(true);
+    }catch (err: any) {
+        console.error("Error fetching discount", err);
+        // setError(err.message || "Không thể lấy dữ liệu giảm giá");
+    }
   };
 
   const openAddForm = () => {
@@ -188,6 +201,23 @@ export default function ProductTable() {
     }));
   };
 
+  //excel export
+  const handleExport = async () => {
+    try {
+      const res = await productService.exportProductsToExcel();
+      const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'products.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export failed', error);
+    }
+  };
   return (
     <div className="bg-white shadow rounded p-4">
       <TableHeader
@@ -195,7 +225,10 @@ export default function ProductTable() {
         breadcrumb={["Admin", "Sản phẩm"]}
         actions={
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 gap-2 w-full sm:w-auto">
-            <Button className="h-10 px-4 text-sm w-full sm:w-auto" variant="secondary">
+            <Button className="h-10 px-4 text-sm w-full sm:w-auto" 
+            variant="secondary" 
+            onClick={handleExport}
+            >
               📤 Xuất file
             </Button>
             <Button
@@ -407,7 +440,7 @@ export default function ProductTable() {
                 />
                 <input
                   type="text"
-                  placeholder="Độ phân giải"
+                  placeholder="Độ phân giảiiii"
                   value={formData.resolution || ""}
                   onChange={(e) => setFormData({ ...formData, resolution: e.target.value })}
                   className="w-full border px-3 py-2 rounded"
@@ -452,6 +485,30 @@ export default function ProductTable() {
                   required
                   min={0}
                 />
+
+                <input
+                  type="number"
+                  placeholder="Discount (%)"
+                  value={formData.SaleOf ?? ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    SaleOf: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                }
+                  className="w-full border px-3 py-2 rounded"
+                  required
+                  min={0}
+                /> 
+                <input
+                type="text"
+                placeholder="Thương hiệu"
+                value={formData.brand || ""}
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                className="w-full border px-3 py-2 rounded"
+                required
+              />
+
               </div>
               <select
                 value={formData.category_id || ""}
@@ -466,14 +523,7 @@ export default function ProductTable() {
                   </option>
                 ))}
               </select>
-              <input
-                type="text"
-                placeholder="Thương hiệu"
-                value={formData.brand || ""}
-                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                className="w-full border px-3 py-2 rounded"
-                required
-              />
+             
               <div className="flex items-center gap-4">
                 <select
                   value={formData.status || "available"}
