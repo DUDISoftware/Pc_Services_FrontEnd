@@ -7,10 +7,8 @@ import Button from "@/components/common/Button";
 import { productService } from "@/services/product.service";
 import { categoryService } from "@/services/category.service";
 import { Product, UploadedImage } from "@/types/Product";
-// discount
 import { discountService } from "@/services/discount.service";
-import { Discount } from "@/types/Discount";
-import DiscountProducts from "@/app/user/home/components/DiscountProducts";
+
 
 type Category = {
   _id: string;
@@ -126,6 +124,9 @@ export default function ProductTable() {
     try {
       if (editingProduct) {
         const updated = await productService.update(editingProduct._id, payload);
+      if (formData.SaleOf !== undefined) {
+        await discountService.updateDiscount(editingProduct._id, { discount: formData.SaleOf });
+      }
         setProducts((prev) =>
           prev.map((p) => (p._id === updated._id ? updated : p))
         );
@@ -170,7 +171,6 @@ export default function ProductTable() {
       setShowForm(true);
     }catch (err: any) {
         console.error("Error fetching discount", err);
-        // setError(err.message || "Không thể lấy dữ liệu giảm giá");
     }
   };
 
@@ -489,7 +489,7 @@ export default function ProductTable() {
                 <input
                   type="number"
                   placeholder="Discount (%)"
-                  value={formData.SaleOf ?? ""}
+                  value={formData.SaleOf ?? "0"}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
