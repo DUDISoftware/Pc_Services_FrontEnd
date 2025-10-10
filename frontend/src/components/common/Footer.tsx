@@ -67,7 +67,7 @@ export default function Footer() {
             <li><a href="/user/helpers" className="hover:text-gray-900">Trung tâm trợ giúp</a></li>
             <li><a href="/user/helpers?need=payment" className="hover:text-gray-900">Phương thức thanh toán</a></li>
             <li><a href="/user/helpers?need=return" className="hover:text-gray-900">Quy định đổi trả</a></li>
-            <li><a href="#" className="hover:text-gray-900">Các câu hỏi thường gặp</a></li>
+            <li><a href="/user/helpers/questions" className="hover:text-gray-900">Các câu hỏi thường gặp</a></li>
           </ul>
         </div>
 

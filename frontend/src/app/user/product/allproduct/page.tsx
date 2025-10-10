@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
@@ -12,69 +11,55 @@ import { categoryService } from "@/services/category.service";
 
 export default function AllProductsPage() {
   const params = useSearchParams();
+  const router = useRouter();
+
   const category = params.get("category") || "all";
   const PAGE_SIZE = 10;
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [nextProducts, setNextProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [category_id, setCategory_id] = useState<string | undefined>();
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const router = useRouter();
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Fetch category_id when category changes
+  // ✅ Lấy category_id
   useEffect(() => {
-    setLoading(true);
     if (category === "all") {
       setCategory_id(undefined);
       return;
     }
-    const fetchCategories = async () => {
+
+    const fetchCategory = async () => {
       try {
         const res = await categoryService.getBySlug(category);
         setCategory_id(res._id);
       } catch (err) {
-        console.error(err);
+        console.error("❌ Lỗi lấy category:", err);
       }
     };
-    fetchCategories();
+
+    fetchCategory();
   }, [category]);
 
-  // ✅ Fetch products (handles both "all" and category)
+  // ✅ Lấy sản phẩm
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        let products: Product[] = [];
+        let result;
 
-        if (category !== "all" && !category_id) return;
-
-        // 🔹 Common logic for both "all" and category
-        const getPageData = async (pageNum: number) => {
-          return category === "all"
-            ? (await productService.getAll(PAGE_SIZE, pageNum)).products
-            : await productService.getByCategory(category_id!, PAGE_SIZE, pageNum);
-        };
-
-        // If preloaded and going forward → use cache
-        if (nextProducts.length > 0 && page > 1) {
-          products = nextProducts;
-          setNextProducts([]);
-        } else {
-          products = await getPageData(page);
+        if (category === "all") {
+          result = await productService.getAll(PAGE_SIZE, page);
+        } else if (category_id) {
+          const res = await productService.getByCategory(category_id, PAGE_SIZE, page);
+          result = res;
         }
 
-        // Prefetch next page
-        const nextPageProducts = await getPageData(page + 1);
-        if (nextPageProducts.length > 0) {
-          setNextProducts(nextPageProducts);
-          setHasMore(true);
-        } else {
-          setHasMore(false);
+        if (result) {
+          setProducts(result.products);
+          const totalItems = result.total || result.products.length;
+          setTotalPages(Math.max(1, Math.ceil(totalItems / PAGE_SIZE)));
         }
-
-        setProducts(products);
       } catch (err) {
         console.error("❌ Lỗi khi tải sản phẩm:", err);
       } finally {
@@ -85,20 +70,90 @@ export default function AllProductsPage() {
     fetchProducts();
   }, [category, category_id, page]);
 
-  // ✅ Pagination Handlers
-  const handlePrev = () => {
-    if (page > 1) {
-      setPage((p) => p - 1);
-      window.scrollTo({ top: 0, behavior: "smooth" }); // scroll top
-    }
-  };
-
-  const handleNext = () => {
-    if (hasMore) {
-      setPage((p) => p + 1);
+  // ✅ Đổi trang
+  const handleChangePage = (newPage: number) => {
+    if (newPage !== page && newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
+  // ✅ Tạo nút phân trang
+  const renderPagination = () => {
+  if (totalPages <= 1) return null;
+
+  const pages = [];
+  const showLeftDots = page > 3;
+  const showRightDots = page < totalPages - 2;
+
+  const start = showLeftDots ? Math.max(2, page - 1) : 2;
+  const end = showRightDots ? Math.min(totalPages - 1, page + 1) : totalPages - 1;
+
+  // 🟦 Trang đầu (1) — luôn hiện
+  pages.push(
+    <button
+      key={1}
+      onClick={() => handleChangePage(1)}
+      className={`px-2 text-lg font-medium ${
+        page === 1 ? "text-blue-600 underline" : "text-gray-800"
+      }`}
+    >
+      1
+    </button>
+  );
+
+  // 🟨 Dấu "..."
+  if (showLeftDots) pages.push(<span key="dots-left">...</span>);
+
+  // 🟧 Các trang giữa
+  for (let i = start; i <= end; i++) {
+    if (i === 1 || i === totalPages) continue; // ⚠️ tránh lặp lại
+    pages.push(
+      <button
+        key={i}
+        onClick={() => handleChangePage(i)}
+        className={`px-2 text-lg font-medium ${
+          page === i ? "text-blue-600 underline" : "text-gray-800"
+        }`}
+      >
+        {i}
+      </button>
+    );
+  }
+
+  // 🟨 Dấu "..."
+  if (showRightDots) pages.push(<span key="dots-right">...</span>);
+
+  // 🟥 Trang cuối
+  if (totalPages > 1) {
+    pages.push(
+      <button
+        key={totalPages}
+        onClick={() => handleChangePage(totalPages)}
+        className={`px-2 text-lg font-medium ${
+          page === totalPages ? "text-blue-600 underline" : "text-gray-800"
+        }`}
+      >
+        {totalPages}
+      </button>
+    );
+  }
+
+  // ➡ Nút tiếp theo
+  pages.push(
+    <button
+      key="next"
+      onClick={() => handleChangePage(page + 1)}
+      disabled={page >= totalPages}
+      className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      →
+    </button>
+  );
+
+  return <div className="flex justify-center items-center gap-2 mt-8">{pages}</div>;
+};
+
 
   if (loading) return <p className="text-center py-10">Đang tải sản phẩm...</p>;
 
@@ -111,7 +166,6 @@ export default function AllProductsPage() {
           url.searchParams.set("category", newCategory);
           router.push(url.toString());
           setPage(1);
-          setNextProducts([]);
         }}
       />
 
@@ -151,41 +205,12 @@ export default function AllProductsPage() {
 
           {products.length === 0 && (
             <p className="text-gray-500 text-sm col-span-full">
-              Chưa có sản phẩm nào trong danh mục này.
+              Không có sản phẩm nào trong danh mục này.
             </p>
           )}
         </div>
 
-        {/* ✅ Pagination Controls (always visible) */}
-        <div className="flex justify-center items-center gap-4 mt-8">
-          <button
-            onClick={handlePrev}
-            disabled={page === 1}
-            className={`px-4 py-2 rounded-md border ${
-              page === 1
-                ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                : "hover:bg-gray-100"
-            }`}
-          >
-            &lt; Trang trước
-          </button>
-
-          <span className="text-sm font-medium">
-            Trang <span className="font-semibold">{page}</span>
-          </span>
-
-          <button
-            onClick={handleNext}
-            disabled={!hasMore}
-            className={`px-4 py-2 rounded-md border ${
-              !hasMore
-                ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                : "hover:bg-gray-100"
-            }`}
-          >
-            Trang tiếp &gt;
-          </button>
-        </div>
+        {renderPagination()}
       </div>
     </>
   );
