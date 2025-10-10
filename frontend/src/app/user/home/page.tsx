@@ -17,6 +17,7 @@ export default function UserHomePage() {
      <CategoryNav selectedCategory={""} />
       <HomeBanner />
       <FeaturedServices />
+      
       <HomeBenefits />
       <FeaturedProducts />
       <HeroSection />
