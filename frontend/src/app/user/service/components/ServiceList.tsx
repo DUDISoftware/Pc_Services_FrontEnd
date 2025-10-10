@@ -38,7 +38,7 @@ export default function ServiceList() {
             service={{
               id: s._id,
               title: s.name,
-              oldPrice: Math.round(s.price * 1.2),
+              oldPrice: Math.round(s.price / 0.8), // Giả sử giá cũ cao hơn giá hiện tại 20%
               price: s.price,
               discount: "Giảm 20%",
               rating: 4.5,

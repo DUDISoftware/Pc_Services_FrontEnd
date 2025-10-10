@@ -41,6 +41,7 @@ export default function ProductTable() {
     brand?: string;
     category_id?: string;
     images?: (File | UploadedImage)[];
+    SaleOf?:number;
   }>({ images: [], status: "available" });
 
 
@@ -158,6 +159,9 @@ export default function ProductTable() {
     try {
       if (editingProduct) {
         const updated = await productService.update(editingProduct._id, payload);
+      if (formData.SaleOf !== undefined) {
+        await discountService.updateDiscount(editingProduct._id, { discount: formData.SaleOf });
+      }
         setProducts((prev) =>
           prev.map((p) => (p._id === updated._id ? updated : p))
         );
@@ -173,29 +177,36 @@ export default function ProductTable() {
     }
   };
 
-  const openEditForm = (product: Product) => {
-    setEditingProduct(product);
-    setFormData({
-      name: product.name,
-      slug: product.slug,
-      tags: product.tags,
-      ports: product.ports,
-      panel: product.panel,
-      resolution: product.resolution,
-      size: product.size,
-      model: product.model,
-      description: product.description,
-      price: product.price,
-      quantity: product.quantity,
-      status: product.status,
-      brand: product.brand,
-      category_id:
-        typeof product.category_id === "object"
-          ? product.category_id._id
-          : product.category_id,
-      images: product.images,
-    });
-    setShowForm(true);
+  const openEditForm = async (product: Product) => {
+    try{
+      const discountData = await discountService.getByProductId(product._id);
+      console.log("📋 Discount data for product", product._id, ":", discountData); // Log để kiểm tra
+      setEditingProduct(product);
+      setFormData({
+        name: product.name,
+        slug: product.slug,
+        tags: product.tags,
+        ports: product.ports,
+        panel: product.panel,
+        resolution: product.resolution,
+        size: product.size,
+        model: product.model,
+        description: product.description,
+        price: product.price,
+        quantity: product.quantity,
+        status: product.status,
+        brand: product.brand,
+        category_id:
+          typeof product.category_id === "object"
+            ? product.category_id._id
+            : product.category_id,
+        images: product.images,
+        SaleOf: discountData?.SaleOf, 
+      });
+      setShowForm(true);
+    }catch (err: any) {
+        console.error("Error fetching discount", err);
+    }
   };
 
   const openAddForm = () => {
@@ -505,7 +516,7 @@ export default function ProductTable() {
                 />
                 <input
                   type="text"
-                  placeholder="Độ phân giải"
+                  placeholder="Độ phân giảiiii"
                   value={formData.resolution || ""}
                   onChange={(e) => setFormData({ ...formData, resolution: e.target.value })}
                   className="w-full border px-3 py-2 rounded"
@@ -550,6 +561,30 @@ export default function ProductTable() {
                   required
                   min={0}
                 />
+
+                <input
+                  type="number"
+                  placeholder="Discount (%)"
+                  value={formData.SaleOf ?? "0"}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    SaleOf: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                }
+                  className="w-full border px-3 py-2 rounded"
+                  required
+                  min={0}
+                /> 
+                <input
+                type="text"
+                placeholder="Thương hiệu"
+                value={formData.brand || ""}
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                className="w-full border px-3 py-2 rounded"
+                required
+              />
+
               </div>
               <select
                 value={formData.category_id || ""}
@@ -564,14 +599,7 @@ export default function ProductTable() {
                   </option>
                 ))}
               </select>
-              <input
-                type="text"
-                placeholder="Thương hiệu"
-                value={formData.brand || ""}
-                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                className="w-full border px-3 py-2 rounded"
-                required
-              />
+             
               <div className="flex items-center gap-4">
                 <select
                   value={formData.status || "available"}

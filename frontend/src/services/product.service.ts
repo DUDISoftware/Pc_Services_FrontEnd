@@ -23,6 +23,20 @@ export const productService = {
       throw error;
     }
   },
+  //excel
+  exportProductsToExcel: async (): Promise<Blob> => {
+    try {
+      const res = await api.get('/products/export', {
+        responseType: 'blob', 
+      });
+      return res.data; 
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  
+  //slug
 
   getBySlug: async (slug: string): Promise<Product> => {
     try {

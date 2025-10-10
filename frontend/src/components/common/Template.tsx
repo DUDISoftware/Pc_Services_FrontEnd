@@ -15,8 +15,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { bannerService } from "@/services/banner.service";
 
-type BannerItem = {
-  id: string;
+interface BannerItem {
+  index: number;
   _id: string;
   image: string 
     | { url: string; public_id: string; width?: number; height?: number };
@@ -92,7 +92,7 @@ export default function DragDropBannerLayout() {
 
   useEffect(() => {
     fetchBanners();
-  }, [selectedTemplate]);
+  }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -154,14 +154,17 @@ export default function DragDropBannerLayout() {
     }
   };
 
+  // ensure slots rendered even if items[] shorter than expected
+  const ensureSlotImage = (idx: number) => items[idx]?.image || "";
+
   return (
-    <div className="p-4 max-w-xl mx-auto">
+    <div className="p-4">
       <h2 className="text-xl font-semibold mb-4">Kéo thả để sắp xếp banner</h2>
       <div className="mb-4">
-        <label className="block mb-2 text-sm font-medium">Chọn bố cục hiển thị:</label>
+        <label className="block mb-2 text-sm font-medium">Chọn layout:</label>
         <select
-          value={selectedTemplate}
-          onChange={(e) => setSelectedTemplate(e.target.value as any)}
+          value={selectedLayout}
+          onChange={(e) => setSelectedLayout(e.target.value as LayoutOption)}
           className="border px-3 py-2 rounded w-full"
         >
           <option value="template1">Template 1: 1 ảnh lớn trái, 2 ảnh nhỏ phải</option>
@@ -296,7 +299,7 @@ function SortableImage({
       className="rounded-md border border-black bg-gray-100 flex items-center justify-center overflow-hidden cursor-pointer aspect-[4/3]"
     >
       {image ? (
-        <img src={image} alt="Image" className="w-full h-full object-cover" />
+        <Image src={image} alt="banner" fill sizes="100vw" className="object-cover" />
       ) : (
         <div className="flex flex-col items-center text-gray-400 text-sm">
           <Upload className="h-6 w-6 mb-1" />

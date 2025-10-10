@@ -93,6 +93,24 @@ export default function ServicesTable() {
       alert("Không thể lưu dịch vụ, vui lòng kiểm tra dữ liệu nhập!");
     }
   };
+   //excel export
+    const handleExport = async () => {
+      try {
+        const res = await serviceService.exportServicesToExcel();
+        const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'services.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Export failed', error);
+      }
+    };
+  
 
   const getPaginationRange = (
     totalPages: number,
@@ -149,7 +167,7 @@ export default function ServicesTable() {
         breadcrumb={["Admin", "Dịch vụ"]}
         actions={
           <>
-            <Button variant="secondary">📤 Xuất file</Button>
+            <Button variant="secondary" onClick={handleExport}>📤 Xuất file</Button>
             <Button variant="primary" onClick={handleAdd}>
               + Thêm dịch vụ
             </Button>
