@@ -1,13 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @next/next/no-img-element */
-/* eslint-disable react-hooks/rules-of-hooks */
 "use client";
 
 import { useState } from "react";
-import { X, Upload, FlagIcon, Trash } from "lucide-react";
+import { X, FlagIcon, Trash } from "lucide-react";
 import { Service } from "@/types/Service";
 import { RepairRequestPayload, UploadedImage } from "@/types/Request";
 import { requestService } from "@/services/request.service";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface ServiceRequestModalProps {
   serviceData: Service;
@@ -20,8 +19,7 @@ export default function ServiceRequestModal({
   isOpen,
   onClose,
 }: ServiceRequestModalProps) {
-  if (!isOpen || !serviceData) return null;
-
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     service_id: serviceData._id,
     name: "",
@@ -35,7 +33,10 @@ export default function ServiceRequestModal({
     images: [] as (File | UploadedImage)[],
   });
 
-  const [submitting, setSubmitting] = useState(false);
+  if (!isOpen || !serviceData) return null;
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const phoneRegex = /^(?:\+84|84|0)[0-9]{9,10}$/;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -48,7 +49,7 @@ export default function ServiceRequestModal({
     const newFiles = Array.from(e.target.files);
 
     if (formData.images.length + newFiles.length > 3) {
-      alert("Chỉ được upload tối đa 3 ảnh.");
+      toast.warning("Chỉ được upload tối đa 3 ảnh.");
       return;
     }
 
@@ -67,6 +68,22 @@ export default function ServiceRequestModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.address.trim()) {
+      toast.error("Vui lòng nhập đầy đủ họ tên, số điện thoại và địa chỉ.");
+      return;
+    }
+
+    if (!phoneRegex.test(formData.phone)) {
+      toast.error("Số điện thoại không hợp lệ.");
+      return;
+    }
+
+    if (formData.email && !emailRegex.test(formData.email)) {
+      toast.error("Email không hợp lệ.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -80,12 +97,11 @@ export default function ServiceRequestModal({
       form.append("repair_type", formData.repair_type);
       form.append("estimated_time", formData.estimated_time);
       form.append("status", formData.status);
-      formData.images.forEach((UploadImage, i) => {
-        form.append("images", UploadImage as File);
-      });
+      formData.images.forEach((img) => form.append("images", img as File));
 
       await requestService.createRepair(formData as unknown as RepairRequestPayload);
-      alert("Yêu cầu đã được gửi thành công!");
+
+      toast.success("✅ Yêu cầu đã được gửi thành công!");
       setFormData({
         service_id: serviceData._id,
         name: "",
@@ -95,21 +111,27 @@ export default function ServiceRequestModal({
         problem_description: "",
         repair_type: serviceData.type || "at_store",
         estimated_time: serviceData.estimated_time || "1 ngày",
-        status: "new" as "new" | "in_progress" | "completed" | "cancelled",
+        status: "new",
         images: [],
       });
       onClose();
     } catch (error) {
       console.error("Lỗi khi gửi yêu cầu:", error);
-      alert("Gửi yêu cầu thất bại. Vui lòng thử lại.");
+      toast.error("❌ Gửi yêu cầu thất bại. Vui lòng thử lại.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white w-full max-w-lg rounded-xl shadow-lg relative p-6">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={onClose} // click nền => đóng
+    >
+      <div
+        className="bg-white w-full max-w-lg rounded-xl shadow-lg relative p-6"
+        onClick={(e) => e.stopPropagation()} // click trong form => không đóng
+      >
         <button onClick={onClose} className="absolute top-3 left-3 text-gray-500">
           <FlagIcon className="w-5 h-5" />
         </button>
@@ -122,30 +144,45 @@ export default function ServiceRequestModal({
         </h2>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {[
-            { label: "Họ và tên", name: "name", type: "text" },
-            { label: "Địa chỉ Email", name: "email", type: "email" },
-            { label: "Số điện thoại", name: "phone", type: "tel" },
-            { label: "Địa chỉ", name: "address", type: "text" },
-          ].map((field) => (
-            <div key={field.name}>
+          {["name", "email", "address"].map((name) => (
+            <div key={name}>
               <label className="block text-sm font-medium mb-1">
-                {field.label}
+                {name === "name"
+                  ? "Họ và tên"
+                  : name === "email"
+                    ? "Email"
+                    : "Địa chỉ"}
               </label>
               <input
-                type={field.type}
-                name={field.name}
-                value={
-                  typeof formData[field.name as keyof typeof formData] === "string"
-                    ? (formData[field.name as keyof typeof formData] as string)
-                    : ""
-                }
+                type="text"
+                name={name}
+                value={formData[name as keyof typeof formData] as string}
                 onChange={handleChange}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                required
+                required={name !== "email"}
               />
             </div>
           ))}
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Số điện thoại</label>
+            <input
+              type="text"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              onBeforeInput={(e) => {
+                if (!/[0-9+]/.test(e.data || "")) {
+                  e.preventDefault();
+                }
+              }}
+              maxLength={13}
+              inputMode="numeric"
+              placeholder="+84xxxxxxxxx hoặc 0xxxxxxxxx"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -161,7 +198,6 @@ export default function ServiceRequestModal({
             />
           </div>
 
-          {/* Upload hình ảnh */}
           <div>
             <label className="block text-sm font-medium mb-2">
               Hình ảnh mô tả (tối đa 3 ảnh)
@@ -200,10 +236,33 @@ export default function ServiceRequestModal({
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+              className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
+              {submitting && (
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+              )}
               {submitting ? "Đang gửi..." : "Gửi yêu cầu"}
             </button>
+
             <button
               type="button"
               onClick={onClose}

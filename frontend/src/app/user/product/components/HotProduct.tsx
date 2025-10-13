@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -34,7 +35,7 @@ export default function HotProduct() {
     const fetchFeatured = async () => {
       try {
         const result = await productService.getFeatured(4);
-        setFeatured(result.products); // { id, views }
+        setFeatured(result as any); // { id, views }
       } catch (err) {
         console.error("Lỗi khi lấy danh sách nổi bật:", err);
       }

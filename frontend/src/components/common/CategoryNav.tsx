@@ -40,6 +40,12 @@ export default function CategoryNav({ selectedCategory, onSelectCategory }: Prop
             id: cat._id,
           }))
         );
+        setCategories((prev) => Array(5).fill(res.categories).flat().map((cat) => ({
+          name: cat.name,
+          slug: cat.slug,
+          id: cat._id,
+        })));
+
       } catch (err) {
         console.error("Lỗi khi tải danh mục:", err);
       }

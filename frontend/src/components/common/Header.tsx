@@ -17,6 +17,9 @@ export default function Header() {
   const { handleSearch, loading } = useSearch();
   const pathname = usePathname(); // ✅ detect URL path
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const links = [
     { href: "/user/home", label: "Trang chủ" },
     { href: "/user/product/allproduct?category=all", label: "Sản phẩm" },
@@ -69,6 +72,8 @@ export default function Header() {
     };
   }, []);
 
+  if (!mounted) return null;
+
   // ✅ Determine which link is active based on current path
   const getActiveLabel = () => {
     if (pathname.includes("/user/product")) return "Sản phẩm";
@@ -94,22 +99,23 @@ export default function Header() {
         </div>
 
         {/* 🧭 Desktop Nav */}
+        {mounted && (
         <nav className="hidden md:flex gap-6 text-sm font-medium">
           {links.map((link) => (
             <Link
               key={link.label}
               href={link.href}
-              className={`pb-1 transition-all ${
-                activeLabel === link.label
+              className={`pb-1 px-1 transition-all 
+                ${activeLabel === link.label
                   ? "font-semibold text-blue-600 border-b-2 border-blue-600"
-                  : "hover:text-gray-600"
-              }`}
+                  : "hover:bg-blue-100 hover:text-blue-700 rounded-lg"
+                }`}
             >
               {link.label}
             </Link>
           ))}
         </nav>
-
+        )}
         {/* 🔍 Search */}
         <div className="flex-1 mx-3 hidden sm:flex">
           <div className="bg-gray-100 flex items-center w-full rounded">
@@ -213,11 +219,10 @@ export default function Header() {
                   key={link.label}
                   href={link.href}
                   onClick={() => setOpenMenu(false)}
-                  className={`${
-                    activeLabel === link.label
-                      ? "text-blue-600 underline"
-                      : "hover:underline"
-                  }`}
+                  className={`${activeLabel === link.label
+                    ? "text-blue-600 underline"
+                    : "hover:underline"
+                    }`}
                 >
                   {link.label}
                 </Link>

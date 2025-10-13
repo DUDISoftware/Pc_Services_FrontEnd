@@ -64,7 +64,6 @@ export const ratingService = {
     create: async (data: any) => {
         try {
             const res = await api.post("/ratings", data);
-            console.log("Response from creating rating:", res.data);
             return res.data;
         } catch (error) {
             console.error("Error creating rating:", error);

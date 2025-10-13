@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,19 +15,62 @@ interface Product {
   oldPrice: number;
   price: number;
   discount: string;
-  quantity: number; // ✅ bổ sung tồn kho
+  quantity: number;
 }
 
 export default function ProductInfo({ product }: { product: Product }) {
   const router = useRouter();
   const [showPopup, setShowPopup] = useState(false);
-  const [quantity, setQuantity] = useState(1);
+
+  // 🔢 Số lượng đã có trong giỏ hàng
+  const quantityInCart = getQuantityInCart(product.id);
+  const maxQuantityAvailable = Math.max(0, product.quantity - quantityInCart);
+
+  const [quantity, setQuantity] = useState(() =>
+    Math.min(getInitialQuantity(product.id), maxQuantityAvailable || 1)
+  );
+
+  function getQuantityInCart(productId: string): number {
+    try {
+      const cartRaw = localStorage.getItem("cart");
+      if (!cartRaw) return 0;
+
+      const cart = JSON.parse(cartRaw);
+      const item = cart.items?.find(
+        (item: any) => item.product_id === productId
+      );
+      return item?.quantity || 0;
+    } catch (err) {
+      console.error("Lỗi khi lấy số lượng trong giỏ hàng:", err);
+      return 0;
+    }
+  }
+
+  function getInitialQuantity(productId: string): number {
+    try {
+      const cartRaw = localStorage.getItem("cart");
+      if (!cartRaw) return 1;
+
+      const cart = JSON.parse(cartRaw);
+      const foundItem = cart.items?.find(
+        (item: any) => item.product_id === productId
+      );
+
+      return foundItem?.quantity || 1;
+    } catch (err) {
+      console.error("Lỗi đọc cart từ localStorage:", err);
+      return 1;
+    }
+  }
 
   const handleAddToCart = async () => {
     try {
+      if (quantity > maxQuantityAvailable) {
+        return;
+      }
       await cartService.addToCart(product.id, quantity);
       window.dispatchEvent(new Event("cart_updated"));
-      setShowPopup(false); // đóng popup
+      setShowPopup(false);
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng:", error);
       alert("Thêm vào giỏ hàng thất bại. Vui lòng thử lại.");
@@ -110,28 +154,32 @@ export default function ProductInfo({ product }: { product: Product }) {
             onChange={(e) => {
               const val = Number(e.target.value);
               if (!isNaN(val)) {
-                setQuantity(Math.max(1, Math.min(product.quantity, val)));
+                setQuantity(Math.max(1, Math.min(maxQuantityAvailable, val)));
               }
             }}
             className="w-16 text-center border rounded py-1"
             min={1}
-            max={product.quantity}
+            max={maxQuantityAvailable}
           />
 
           <button
-            onClick={() => setQuantity((q) => Math.min(product.quantity, q + 1))}
-            disabled={quantity >= product.quantity}
+            onClick={() => {
+              if (quantity < maxQuantityAvailable) {
+                setQuantity((q) => q + 1);
+              }
+            }}
             className={`px-3 py-1 text-lg font-bold rounded border 
-              ${quantity >= product.quantity
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+    ${quantity >= maxQuantityAvailable
+                ? "bg-gray-100 text-gray-400"
                 : "bg-gray-200 text-black hover:bg-gray-300"}`}
           >
             +
           </button>
+
         </div>
 
         <p className="text-sm text-gray-500 mt-1">
-          Tồn kho: {product.quantity}
+          Tồn kho: {product.quantity} | Đã có trong giỏ: {quantityInCart}
         </p>
       </div>
 
@@ -146,15 +194,24 @@ export default function ProductInfo({ product }: { product: Product }) {
             <input
               type="number"
               min={1}
-              max={product.quantity}
+              max={maxQuantityAvailable}
               value={quantity}
               onChange={(e) =>
                 setQuantity(
-                  Math.max(1, Math.min(product.quantity, Number(e.target.value)))
+                  Math.max(
+                    1,
+                    Math.min(maxQuantityAvailable, Number(e.target.value))
+                  )
                 )
               }
               className="w-full border rounded px-3 py-2 mb-4"
             />
+            {quantity >= maxQuantityAvailable && (
+              <p className="text-sm text-red-500 mt-1">
+                Số lượng sản phẩm đã đạt đến giới hạn
+              </p>
+            )}
+
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowPopup(false)}

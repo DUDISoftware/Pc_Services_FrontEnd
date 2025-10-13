@@ -4,9 +4,9 @@ import { Banner, BannerApi } from "@/types/Banner";
 import { mapBanner, mapLayoutToApi } from "@/lib/mappers";
 
 export const bannerService = {
-  getAll: async (): Promise<{ banners: Banner[] }> => {
+  getAll: async (limit = 10, page = 1): Promise<{ banners: Banner[] }> => {
     try {
-      const res = await api.get("/banners");
+      const res = await api.get(`/banners?limit=${limit}&page=${page}`);
       return {
         banners: res.data.banners.map((b: BannerApi) => mapBanner(b)),
       };

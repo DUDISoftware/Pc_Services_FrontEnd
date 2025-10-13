@@ -58,7 +58,7 @@ export default function CartPage() {
       <div className="max-w-4xl mx-auto py-16 text-center">
         <h2 className="text-xl font-semibold mb-4">Giỏ hàng của bạn đang trống</h2>
         <Link
-          href="/user/product"
+          href="/user/product/allproduct?category=all"
           className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:opacity-90"
         >
           Mua sắm ngay

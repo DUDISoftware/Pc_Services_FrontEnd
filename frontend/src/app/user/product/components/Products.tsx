@@ -52,7 +52,6 @@ export default function Products({ category }: ProductsProps) {
 
         if (category !== "all") {
           const catRes = await categoryService.getBySlug(category);
-          console.log("Fetched category:", catRes);
           const category_id = catRes._id;
           const res = await productService.getByCategory(category_id, PAGE_SIZE, page);
           products = res.products;

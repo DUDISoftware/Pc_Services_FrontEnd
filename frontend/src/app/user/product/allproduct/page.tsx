@@ -89,14 +89,16 @@ export default function AllProductsPage() {
   const start = showLeftDots ? Math.max(2, page - 1) : 2;
   const end = showRightDots ? Math.min(totalPages - 1, page + 1) : totalPages - 1;
 
-  // 🟦 Trang đầu (1) — luôn hiện
+  // 🟦 Trang đầu (1)
   pages.push(
     <button
       key={1}
       onClick={() => handleChangePage(1)}
-      className={`px-2 text-lg font-medium ${
-        page === 1 ? "text-blue-600 underline" : "text-gray-800"
-      }`}
+      className={`px-2 text-lg font-medium rounded-md transition
+        ${page === 1
+          ? "text-blue-600 underline"
+          : "text-gray-800 hover:bg-gray-100 dark:hover:bg-white/10"}
+      `}
     >
       1
     </button>
@@ -107,14 +109,16 @@ export default function AllProductsPage() {
 
   // 🟧 Các trang giữa
   for (let i = start; i <= end; i++) {
-    if (i === 1 || i === totalPages) continue; // ⚠️ tránh lặp lại
+    if (i === 1 || i === totalPages) continue;
     pages.push(
       <button
         key={i}
         onClick={() => handleChangePage(i)}
-        className={`px-2 text-lg font-medium ${
-          page === i ? "text-blue-600 underline" : "text-gray-800"
-        }`}
+        className={`px-2 text-lg font-medium rounded-md transition
+          ${page === i
+            ? "text-blue-600 underline"
+            : "text-gray-800 hover:bg-gray-300 dark:hover:bg-white/10"}
+        `}
       >
         {i}
       </button>
@@ -130,9 +134,11 @@ export default function AllProductsPage() {
       <button
         key={totalPages}
         onClick={() => handleChangePage(totalPages)}
-        className={`px-2 text-lg font-medium ${
-          page === totalPages ? "text-blue-600 underline" : "text-gray-800"
-        }`}
+        className={`px-2 text-lg font-medium rounded-md transition
+          ${page === totalPages
+            ? "text-blue-600 underline"
+            : "text-gray-800 hover:bg-gray-300 dark:hover:bg-white/10"}
+        `}
       >
         {totalPages}
       </button>
@@ -145,7 +151,7 @@ export default function AllProductsPage() {
       key="next"
       onClick={() => handleChangePage(page + 1)}
       disabled={page >= totalPages}
-      className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+      className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-300 dark:hover:bg-white/10 transition disabled:opacity-80 disabled:cursor-not-allowed"
     >
       →
     </button>
@@ -153,6 +159,7 @@ export default function AllProductsPage() {
 
   return <div className="flex justify-center items-center gap-2 mt-8">{pages}</div>;
 };
+
 
 
   if (loading) return <p className="text-center py-10">Đang tải sản phẩm...</p>;

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { useState } from "react";
 import { User, Mail, MapPin, Phone, FileText } from "lucide-react";
 import { requestService } from "@/services/request.service";
@@ -27,6 +28,10 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
 
+  // Validate phone theo regex
+  const phoneRegex = /^(?:\+84|84|0)[0-9]{9,10}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
   const handleOtpVerify = async (otp: string) => {
     try {
       const verifyResponse = await userService.verifyOTP(form.email, otp);
@@ -49,6 +54,7 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
 
     const cartItems: CartItem[] = cart.items || [];
 
+
     if (!cartItems.length) {
       toast.error("Giỏ hàng của bạn đang trống.");
       setIsSubmitting(false);
@@ -63,10 +69,15 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
       image: item.image,
     }));
 
-    // Validate phone theo regex
-    const phoneRegex = /^(?:\+84|84|0)[0-9]{1,9}$/;
     if (!phoneRegex.test(form.phone)) {
       toast.error("Số điện thoại không hợp lệ. Vui lòng nhập theo định dạng +84xxxx hoặc 0xxxx.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Validate email (nếu có)
+    if (form.email && !emailRegex.test(form.email)) {
+      toast.error("Email không hợp lệ. Vui lòng nhập địa chỉ email đúng định dạng.");
       setIsSubmitting(false);
       return;
     }
@@ -146,7 +157,7 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
           value={form.email}
           onChange={handleChange}
           placeholder="Email (không bắt buộc)"
-          type="email"
+          type="text"
           required={false}
         />
         <InputField
@@ -176,12 +187,36 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
           />
         </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-6 py-2 rounded-md hover:opacity-90 transition"
-        >
-          Gửi yêu cầu
-        </button>
+<button
+  type="submit"
+  disabled={isSubmitting}
+  className="bg-blue-600 text-white px-6 py-2 rounded-md flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+>
+  {isSubmitting && (
+    <svg
+      className="animate-spin h-5 w-5 text-white"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+      />
+    </svg>
+  )}
+  {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
+</button>
+
       </form>
 
       {showOtpModal && (
@@ -286,24 +321,20 @@ function InputField({
     <div className="relative">
       <div className="absolute left-3 top-3 w-5 h-5 text-gray-400">{icon}</div>
       <input
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-1 focus:ring-blue-600"
-      required={required}
-      onKeyPress={(e) => {
-        if (
-        name === "phone" &&
-        (!/[0-9+]/.test(e.key) || value.replace(/\D/g, "").length >= 10)
-        ) {
-        e.preventDefault();
-        }
-      }}
-      inputMode={isPhone ? "numeric" : undefined}
-      pattern={isPhone ? "^(\\+84|84|0)[0-9]{9,}$" : undefined}
-      maxLength={isPhone ? 13 : undefined}
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-1 focus:ring-blue-600"
+        required={required}
+        onBeforeInput={(e) => {
+          if (name === "phone" && !/[0-9+]/.test(e.data || "")) {
+            e.preventDefault();
+          }
+        }}
+        inputMode={isPhone ? "numeric" : undefined}
+        maxLength={isPhone ? 13 : undefined}
       />
     </div>
   );
