@@ -15,6 +15,7 @@ import RequestCard from "./RequestCard";
 import { productService } from "@/services/product.service";
 import { infoService } from "@/services/info.services";
 import { Info } from "@/types/Info";
+import { toast } from "react-toastify/unstyled";
 
 interface Column {
   id: string;
@@ -25,18 +26,18 @@ interface Column {
 export default function RequestBoard({
   requests,
   tab,
+  searching
 }: {
   requests: Request[];
   tab: "service" | "product" | "history";
+  searching: boolean;
 }) {
   const [columns, setColumns] = useState<Column[]>([]);
   const [services, setServices] = useState<{ _id: string; name: string }[]>([]);
   const [products, setProducts] = useState<{ _id: string; name: string }[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [info, setInfo] = useState<Info>({} as Info);
-
-  useEffect(() => {
-  }, [requests]);
-
+  
   useEffect(() => {
     const loadInfo = async () => {
       try {
@@ -118,6 +119,11 @@ export default function RequestBoard({
       if (requests.length > 0) {
         data = requests;
       } else {
+        if (searching) {
+          setColumns([]);
+          toast.error("Không tìm thấy yêu cầu phù hợp.");
+          return;
+        }
         if (tab === "service") {
           data = (await requestService.getAllRepairs()).filter(
             (r) => r.hidden !== true
@@ -134,7 +140,6 @@ export default function RequestBoard({
           data = [...repairs, ...orders].filter((r) => r.hidden === true);
         }
       }
-
       const cols = mapRequestsToColumns(data);
       setColumns(cols);
     };
@@ -155,7 +160,7 @@ export default function RequestBoard({
     if (
       !allowedMoves[source.droppableId]?.includes(destination.droppableId)
     ) {
-      alert("Không thể chuyển yêu cầu sang trạng thái này!");
+      toast.error("Không thể chuyển yêu cầu sang trạng thái này!");
       return;
     }
 
@@ -249,7 +254,13 @@ export default function RequestBoard({
         📋 Bảng quản lý yêu cầu khách hàng
       </h2>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
+      <DragDropContext
+        onDragEnd={(result) => {
+          if (!isModalOpen) {
+            handleDragEnd(result);
+          }
+        }}
+      >
         <div className="flex flex-col md:grid md:grid-cols-1 lg:flex lg:flex-row gap-8 items-center lg:items-start">
           {columns.map((col) => (
             <Droppable key={col.id} droppableId={col.id}>
@@ -267,15 +278,17 @@ export default function RequestBoard({
                         key={String(req._id)}
                         draggableId={String(req._id)}
                         index={index}
+                        isDragDisabled={isModalOpen} // ✅ Chặn kéo khi modal mở
                       >
+
                         {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             className={`w-full max-w-md border rounded-lg shadow-sm bg-gray-50 p-3 transition ${snapshot.isDragging
-                                ? "bg-blue-100 border-blue-400"
-                                : "hover:bg-gray-100"
+                              ? "bg-blue-100 border-blue-400"
+                              : "hover:bg-gray-100"
                               }`}
                           >
                             <RequestCard
@@ -296,6 +309,7 @@ export default function RequestBoard({
                                 images: req.images || [],
                               }}
                               services={services}
+                              products={products}
                               onDeleted={async () => {
                                 const updated =
                                   tab === "service"
@@ -308,6 +322,7 @@ export default function RequestBoard({
                                       ])).flat().filter(r => r.hidden === true);
                                 setColumns(mapRequestsToColumns(updated));
                               }}
+                              setIsModalOpen={setIsModalOpen}
                             />
                           </div>
                         )}

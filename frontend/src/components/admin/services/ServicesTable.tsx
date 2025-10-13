@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,6 +10,8 @@ import { searchServices } from "@/services/search.service";
 import { categoryServiceService } from "@/services/categoryservice.service";
 import { Service } from "@/types/Service";
 import { CategoryService } from "@/types/CategoryService";
+import { toast } from "react-toastify";
+import { showConfirmToast } from "@/components/common/ConfirmToast";
 import Modal from "@/components/admin/services/Modal";
 import ServiceForm from "@/components/admin/services/ServiceForm";
 
@@ -22,6 +25,7 @@ export default function ServicesTable() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(services.length / itemsPerPage));
   const displayedServices = services.slice(
@@ -37,6 +41,7 @@ export default function ServicesTable() {
     window.addEventListener("resize", updateItemsPerPage);
     return () => window.removeEventListener("resize", updateItemsPerPage);
   }, []);
+
 
   const fetchServices = async () => {
     try {
@@ -67,30 +72,93 @@ export default function ServicesTable() {
     setModalOpen(true);
   };
 
+
   const handleEdit = (service: Service) => {
     setEditingService(service);
     setModalOpen(true);
   };
 
+
   const handleDelete = async (id: string) => {
-    if (confirm("Bạn có chắc muốn xóa dịch vụ này?")) {
+    const confirmed = await showConfirmToast({
+      message: "Bạn có chắc muốn xóa dịch vụ này?",
+      confirmText: "Xóa",
+      cancelText: "Hủy",
+    });
+    if (!confirmed) return;
+
+
+    const toastId = toast.loading("Đang xóa dịch vụ...");
+    try {
       await serviceService.delete(id);
-      fetchServices();
+      await fetchServices();
+      toast.update(toastId, {
+        render: "Đã xóa thành công",
+        type: "success",
+        isLoading: false,
+        autoClose: 2000,
+      });
+    } catch (err) {
+      toast.update(toastId, {
+        render: "Xóa thất bại",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
     }
   };
 
+
   const handleSubmit = async (data: FormData & { category_id: string }) => {
+    if (isSubmitting) return;
+
+
+    const maxSize = 2 * 1024 * 1024;
+    const files = data.getAll("images") as File[];
+    for (let file of files) {
+      if (file.size > maxSize) {
+        toast.error(`Ảnh "${file.name}" vượt quá 2MB, vui lòng chọn ảnh khác.`);
+        return;
+      }
+    }
+
+
+    const toastId = toast.loading(
+      editingService ? "Đang cập nhật..." : "Đang tạo dịch vụ..."
+    );
+
+
     try {
+      setIsSubmitting(true);
       if (editingService) {
         await serviceService.update(editingService._id, data);
+        toast.update(toastId, {
+          render: "Cập nhật thành công",
+          type: "success",
+          isLoading: false,
+          autoClose: 2000,
+        });
       } else {
         await serviceService.create(data);
+        toast.update(toastId, {
+          render: "Tạo dịch vụ thành công",
+          type: "success",
+          isLoading: false,
+          autoClose: 2000,
+        });
       }
       setModalOpen(false);
-      fetchServices();
+      await fetchServices();
     } catch (err) {
       console.error("Lỗi khi lưu dịch vụ:", err);
-      alert("Không thể lưu dịch vụ, vui lòng kiểm tra dữ liệu nhập!");
+      toast.update(toastId, {
+        render: "Lỗi khi lưu dịch vụ",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
    //excel export
@@ -212,10 +280,10 @@ export default function ServicesTable() {
               </td>
               <td className="p-2">
                 <span className={`px-2 py-1 rounded text-sm ${s.status === "active"
-                    ? "bg-green-100 text-green-600"
-                    : s.status === "inactive"
-                      ? "bg-yellow-100 text-yellow-600"
-                      : "bg-red-100 text-red-600"
+                  ? "bg-green-100 text-green-600"
+                  : s.status === "inactive"
+                    ? "bg-yellow-100 text-yellow-600"
+                    : "bg-red-100 text-red-600"
                   }`}>
                   {s.status === "active"
                     ? "Đã mở"
@@ -258,10 +326,10 @@ export default function ServicesTable() {
             <p className="flex items-center gap-2">
               <strong>Trạng thái:</strong>
               <span className={`px-2 py-1 rounded text-sm ${s.status === "active"
-                  ? "bg-green-100 text-green-600"
-                  : s.status === "inactive"
-                    ? "bg-yellow-100 text-yellow-600"
-                    : "bg-red-100 text-red-600"
+                ? "bg-green-100 text-green-600"
+                : s.status === "inactive"
+                  ? "bg-yellow-100 text-yellow-600"
+                  : "bg-red-100 text-red-600"
                 }`}>
                 {s.status === "active"
                   ? "Đã mở"
@@ -299,6 +367,7 @@ export default function ServicesTable() {
         title={editingService ? "Sửa dịch vụ" : "Thêm dịch vụ"}
       >
         <ServiceForm
+          isSubmitting={isSubmitting}
           initialData={editingService || undefined}
           categories={categories}
           onSubmit={handleSubmit}
@@ -320,8 +389,8 @@ export default function ServicesTable() {
             key={i}
             onClick={() => typeof page === "number" && setCurrentPage(page)}
             className={`px-3 py-1 rounded ${currentPage === page
-                ? "bg-blue-600 text-white"
-                : "bg-blue-50 text-blue-600"
+              ? "bg-blue-600 text-white"
+              : "bg-blue-50 text-blue-600"
               } ${page === "..." ? "cursor-default opacity-50" : ""}`}
             disabled={page === "..."}
           >

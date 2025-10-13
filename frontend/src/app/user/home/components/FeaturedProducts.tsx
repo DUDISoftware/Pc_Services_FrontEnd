@@ -5,10 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronRightCircle, Star } from "lucide-react";
 import { productService } from "@/services/product.service";
-import { Product } from "@/types/Product";
 import { ratingService } from "@/services/rating.service";
+import { Product } from "@/types/Product";
 
-type ProductType = {
+const discountOptions = ["20%", "30% Today Only!", "10%", "10%"];
+
+type ProductCard = {
   _id: string;
   title: string;
   oldPrice: number;
@@ -19,79 +21,74 @@ type ProductType = {
   slug: string;
 };
 
-const discountOptions = ["20%", "30% Today Only!", "10%", "10%"];
-
 export default function FeaturedProducts() {
-  const [products, setProducts] = useState<ProductType[]>([]);
-  const [featured, setFeatured] = useState<{ id: string; views: number }[]>([]);
+  const [products, setProducts] = useState<ProductCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchFeatured() {
+    async function fetchFeaturedProducts() {
       try {
         const res = await productService.getFeatured(8);
-        setFeatured(res.products);
-      } catch (error) {
-        console.error("Failed to fetch featured products:", error);
-      }
-    }
-    fetchFeatured();
-  }, []);
+        const featuredIds = res.map((p: Product) => p._id);
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const featuredIds = featured.map((f) => f.id);
+        // Build featured product cards with default rating
+        const featuredCards: ProductCard[] = res.map((item) => ({
+          _id: item._id,
+          title: item.name,
+          oldPrice: Math.round(item.price * 1.2),
+          price: item.price,
+          rating: 5.0,
+          img: item.images?.[0]?.url || "/images/placeholder.png",
+          slug: item.slug,
+          discount: getRandomDiscount(),
+        }));
 
-        // Fetch featured products by ID
-        const featuredProducts: ProductType[] = await Promise.all(
-          featuredIds.map(async (id) => {
-            const product = await productService.getById(id);
-            return {
-              _id: product._id,
-              title: product.name,
-              oldPrice: Math.round(product.price * 1.2),
-              price: product.price,
-              rating: (await ratingService.getScoreByProductId(product._id)) || 5.0,
-              img: product.images?.[0]?.url || "/images/placeholder.png",
-              slug: product.slug,
-              discount: discountOptions[Math.floor(Math.random() * discountOptions.length)],
-            };
-          })
+        // Fill up with more products if needed
+        let finalProducts = [...featuredCards];
+        if (featuredCards.length < 8) {
+          const needed = 8 - featuredCards.length;
+          const extraRes = await productService.getAll(needed, 1);
+          const extraCards: ProductCard[] = extraRes.products
+            .filter((p) => !featuredIds.includes(p._id))
+            .slice(0, needed)
+            .map((p) => ({
+              _id: p._id,
+              title: p.name,
+              oldPrice: Math.round(p.price * 1.2),
+              price: p.price,
+              rating: 5.0,
+              img: p.images?.[0]?.url || "/images/placeholder.png",
+              slug: p.slug,
+              discount: getRandomDiscount(),
+            }));
+          finalProducts = [...featuredCards, ...extraCards];
+        }
+
+        // Fetch ratings in parallel
+        const ratings = await Promise.all(
+          finalProducts.map((p) =>
+            ratingService.getScoreByProductId(p._id).catch(() => 5.0)
+          )
         );
 
-        // If less than 8 featured, fetch extra products
-        if (featuredProducts.length < 8) {
-          const needed = 8 - featuredProducts.length;
-          const res = await productService.getAll(needed, 1);
-          const extraProducts: ProductType[] = await Promise.all(
-            res.products
-              .filter((p) => !featuredIds.includes(p._id))
-              .slice(0, needed)
-              .map(async (p) => ({
-                _id: p._id,
-                title: p.name,
-                oldPrice: Math.round(p.price * 1.2),
-                price: p.price,
-                rating: (await ratingService.getScoreByProductId(p._id)) || 5.0,
-                img: p.images?.[0]?.url || "/images/placeholder.png",
-                slug: p.slug,
-                discount: discountOptions[Math.floor(Math.random() * discountOptions.length)],
-              }))
-          );
-          setProducts([...featuredProducts, ...extraProducts]);
-        } else {
-          setProducts(featuredProducts.slice(0, 8));
-        }
+        const ratedProducts = finalProducts.map((p, i) => ({
+          ...p,
+          rating: ratings[i] || 5.0,
+        }));
+
+        setProducts(ratedProducts.slice(0, 8));
       } catch (err) {
-        console.error("Failed to fetch featured products:", err);
+        console.error("❌ Failed to fetch featured products:", err);
       } finally {
         setLoading(false);
       }
     }
 
-    if (featured.length > 0) fetchProducts();
-  }, [featured]);
+    fetchFeaturedProducts();
+  }, []);
+
+  const getRandomDiscount = () =>
+    discountOptions[Math.floor(Math.random() * discountOptions.length)];
 
   if (loading) return <p className="px-4">Đang tải sản phẩm...</p>;
 
@@ -104,6 +101,12 @@ export default function FeaturedProducts() {
         </a>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {products.length === 0 && (
+          <p className="text-gray-500 text-sm col-span-full">
+            Không có sản phẩm nổi bật nào.
+          </p>
+        )}
+
         {products.map((item) => (
           <div
             key={item._id}
@@ -143,11 +146,6 @@ export default function FeaturedProducts() {
             </Link>
           </div>
         ))}
-        {products.length === 0 && !loading && (
-          <p className="text-gray-500 text-sm col-span-full">
-            Không có sản phẩm nổi bật nào.
-          </p>
-        )}
       </div>
     </div>
   );

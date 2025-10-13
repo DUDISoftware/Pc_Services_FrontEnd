@@ -1,23 +1,34 @@
 import api from "@/lib/api";
 import { Product, ProductApi } from "@/types/Product";
 import { mapProduct } from "@/lib/mappers";
-import { get } from "http";
 
-type Featured = {
-  products: {
-    id: string;
-    views: number;
-  }[];
+type ProductPages = {
+  products: Product[];
+  total: number;
+  page: number;
 }
 
 export const productService = {
-  getAll: async (limit = 10, page = 1): Promise<{ products: Product[], total: number, page: number }> => {
+  // getAll: async (limit = 10, page = 1): Promise<{ products: Product[], total: number, page: number }> => {
+  //   try {
+  //     const res = await api.get(`/products?limit=${limit}&page=${page}`);
+  //     return { 
+  //       products: res.data.products.map((p: ProductApi) => mapProduct(p)), 
+  //       total: res.data.total, 
+  //       page: res.data.page, 
+  //     };
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // },
+
+  getAll: async (limit = 10, page = 1, filter = {"status":"available"}, fields = ''): Promise<ProductPages> => {
     try {
-      const res = await api.get(`/products?limit=${limit}&page=${page}`);
-      return { 
-        products: res.data.products.map((p: ProductApi) => mapProduct(p)), 
-        total: res.data.total, 
-        page: res.data.page, 
+      const res = await api.get(`/products?limit=${limit}&page=${page}&filter=${JSON.stringify(filter)}&fields=${fields}`);
+      return {
+        products: res.data.products.map((p: ProductApi) => mapProduct(p)),
+        total: res.data.total,
+        page: res.data.page,
       };
     } catch (error) {
       throw error;
@@ -47,14 +58,25 @@ export const productService = {
     }
   },
 
-  getFeatured: async (limit: number): Promise<Featured> => {
+  getFeatured: async (limit: number): Promise<Product[]> => {
     try {
       let res = await api.get(`/products/featured?limit=${limit}`);
       if (!res.data || !res.data.products) {
         res = await api.get(`/products?limit=${limit}`);
       }
-      return res.data as Featured;
+      const products = res.data.products || res.data;
+      const quantity = products.length;
+      if (quantity < limit) {
+        const needed = limit - quantity + 1;
+        const extraRes = await api.get(`/products?limit=${limit}&page=1`);
+        const extraProducts = extraRes.data.products.filter(
+          (p: ProductApi) => !products.some((prod: ProductApi) => prod._id === p._id)
+        );
+        products.push(...extraProducts.slice(0, needed));
+      }
+      return products.map((p: ProductApi) => mapProduct(p));
     } catch (error) {
+      console.error("❌ Error in getFeatured:", error);
       throw error;
     }
   },

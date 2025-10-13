@@ -3,7 +3,6 @@ import Tabs from "@/components/common/Tabs";
 import BannerForm from "@/components/admin/content/BannerForm";
 import DragDropBannerLayout from "@/components/common/Template";
 import InfoForm from "@/components/admin/content/InfoForm";
-import FooterForm from "@/components/admin/content/FooterForm";
 import TableHeader from "@/components/admin/TableHeader";
 
 function BannerTab() {
@@ -21,7 +20,6 @@ export default function StaticContentPage() {
   const tabs = [
     { label: "Chỉnh sửa Banner", value: "banner", content: <BannerTab /> },
     { label: "Chỉnh sửa thông tin", value: "info", content: <InfoForm /> },
-    { label: "Cập nhật footer", value: "footer", content: <FooterForm /> },
   ];
 
   return (

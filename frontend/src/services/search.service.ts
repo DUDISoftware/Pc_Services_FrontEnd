@@ -11,21 +11,23 @@ import api from "@/lib/api";
  * Gọi API tìm kiếm sản phẩm theo query.
  * Trả về danh sách sản phẩm đã map về kiểu FE.
  */
-export async function searchProducts(query: string, limit = 30, page = 1): Promise<Product[]> {
+export async function searchProducts(query: string, limit: number = 30, page: number = 1, filter = {"status":"available"}): Promise<{ products: Product[]; total: number }> {
   try {
-    const res = await api.get(`/products/search?query=${decodeURIComponent(query)}&limit=${limit}&page=${page}`);
+    const res = await api.get(`/products/search?query=${decodeURIComponent(query)}&limit=${limit}&page=${page}&filter=${JSON.stringify(filter)}`);
     const json = res.data;
-    const products = json.products;
+    const products = json.products.products;
 
     if (!Array.isArray(products)) {
       console.error("❌ Dữ liệu trả về không đúng định dạng:", json);
       throw new Error("Invalid product response");
     }
-
-    return products.map((item: ProductApi) => mapProduct(item));
+    return {
+      products: products.map((item: ProductApi) => mapProduct(item)),
+      total: json.total,
+    }
   } catch (err) {
     console.error("🔥 Lỗi khi gọi searchProducts:", err);
-    return []; // fallback an toàn
+    return { products: [], total: 0 }; // fallback an toàn
   }
 }
 
@@ -40,7 +42,6 @@ export async function searchRequests(query: string, type: "service" | "product")
     } else if (type === "product") {
       const productRequests = json.order;
       
-      console.log("Product requests:", productRequests);
       return Array.isArray(productRequests) ? productRequests.map((item: RequestApi) => mapRequest(item)) : [];
     }
     return [];

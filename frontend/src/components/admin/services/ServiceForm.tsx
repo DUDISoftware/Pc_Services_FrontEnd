@@ -14,6 +14,7 @@ type Props = {
   categories: CategoryService[];
   onSubmit: (data: FormData & { category_id: string }) => Promise<void>;
   onCancel: () => void;
+  isSubmitting?: boolean; // 👈 thêm dòng này
 };
 
 export default function ServiceForm({
@@ -21,6 +22,7 @@ export default function ServiceForm({
   categories,
   onSubmit,
   onCancel,
+  isSubmitting,
 }: Props) {
   const [form, setForm] = useState({
     name: "",
@@ -89,53 +91,53 @@ export default function ServiceForm({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const selectedCategory = categories.find(c => c._id === form.category_id);
+    const selectedCategory = categories.find(c => c._id === form.category_id);
 
-  const isAnyNewFile = form.images.some(img => img instanceof File);
+    const isAnyNewFile = form.images.some(img => img instanceof File);
 
-  if (isAnyNewFile) {
-    // 👉 Trường hợp có ảnh mới: dùng FormData
-    const formData = new FormData();
-    formData.append("name", form.name);
-    formData.append("description", form.description);
-    formData.append("price", String(form.price));
-    formData.append("type", form.type);
-    formData.append("estimated_time", form.estimated_time);
-    formData.append("status", form.status);
-    formData.append("slug", form.name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "")
-    );
-    formData.append("category_id", form.category_id);
-
-    form.images.forEach((img) => {
-      if (img instanceof File) {
-        formData.append("images", img);
-      }
-    });
-
-    onSubmit(formData as FormData & { category_id: string }); // FormData path ✅
-  } else {
-    // 👉 Trường hợp không đổi ảnh (hoặc ảnh cũ): gửi JSON thường
-    const payload = {
-      ...form,
-      price: Number(form.price),
-      category_id: form.category_id,
-      slug: form.name
+    if (isAnyNewFile) {
+      // 👉 Trường hợp có ảnh mới: dùng FormData
+      const formData = new FormData();
+      formData.append("name", form.name);
+      formData.append("description", form.description);
+      formData.append("price", String(form.price));
+      formData.append("type", form.type);
+      formData.append("estimated_time", form.estimated_time);
+      formData.append("status", form.status);
+      formData.append("slug", form.name
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, "-")
         .replace(/[^a-z0-9-]/g, "")
-    };
-    onSubmit(payload as any); // JSON path ✅
-  }
-};
+      );
+      formData.append("category_id", form.category_id);
+
+      form.images.forEach((img) => {
+        if (img instanceof File) {
+          formData.append("images", img);
+        }
+      });
+
+      onSubmit(formData as FormData & { category_id: string }); // FormData path ✅
+    } else {
+      // 👉 Trường hợp không đổi ảnh (hoặc ảnh cũ): gửi JSON thường
+      const payload = {
+        ...form,
+        price: Number(form.price),
+        category_id: form.category_id,
+        slug: form.name
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "")
+      };
+      onSubmit(payload as any); // JSON path ✅
+    }
+  };
 
 
   return (
@@ -257,10 +259,12 @@ export default function ServiceForm({
         </button>
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+          disabled={isSubmitting}
         >
-          Lưu
+          {isSubmitting ? "Đang lưu..." : "Lưu"}
         </button>
+
       </div>
     </form>
   );

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import TableHeader from "@/components/admin/TableHeader";
@@ -263,6 +264,25 @@ export default function DashboardPage() {
     }
   }, [compareLeftMonth, compareLeftYear, compareRightMonth, compareRightYear, showCompare]);
 
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white border rounded-md shadow p-2 text-sm space-y-1">
+          <p className="font-semibold">Ngày {label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} style={{ color: entry.color }}>
+              {entry.name} :{" "}
+              {displayUnit === "million"
+                ? (entry.value / 1_000_000).toFixed(1) + " triệu"
+                : entry.value.toLocaleString("vi-VN") + "₫"}
+            </p>
+          ))}
+        </div>
+      );
+    }
+
+    return null;
+  };
 
 
   return (
@@ -328,7 +348,13 @@ export default function DashboardPage() {
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: 10 }}>
             <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
-            <XAxis dataKey="name" />
+            <XAxis
+              dataKey="name"
+              tickFormatter={(value) => `Ngày ${value}`}
+              tick={{ fontSize: 12, fill: "#666" }}
+              angle={0}
+              dy={10}
+            />
             <YAxis
               tickFormatter={(value) =>
                 displayUnit === "million"
@@ -336,13 +362,8 @@ export default function DashboardPage() {
                   : value.toLocaleString("vi-VN")
               }
             />
-            <Tooltip
-              formatter={(value: number) =>
-                displayUnit === "million"
-                  ? (value / 1_000_000).toFixed(1) + " triệu"
-                  : value.toLocaleString("vi-VN") + "₫"
-              }
-            />
+            <Tooltip content={<CustomTooltip />} />
+
 
             <Line type="monotone" dataKey="Tháng này" stroke="#2563EB" strokeWidth={3} />
             <Line type="monotone" dataKey={`Tháng ${selectedMonth}`} stroke="#F59E0B" strokeWidth={3} />

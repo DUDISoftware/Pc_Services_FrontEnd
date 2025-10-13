@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @next/next/no-img-element */ 
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -18,30 +18,54 @@ import { bannerService } from "@/services/banner.service";
 interface BannerItem {
   index: number;
   _id: string;
-  image: string 
-    | { url: string; public_id: string; width?: number; height?: number };
+  image: string
+  | { url: string; public_id: string; width?: number; height?: number };
   position: number;
   updatedAt?: string;
 };
 
 export default function DragDropBannerLayout() {
   const [selectedTemplate, setSelectedTemplate] = useState<"template1" | "template2" | "template3">("template1");
+  const [currentTemplate, setCurrentTemplate] = useState<string>("");
   const [holders, setHolders] = useState<(BannerItem | null)[]>([]);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [showGallery, setShowGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState<BannerItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const pageSize = 15;
+  const pageSize = 5;
   const maxSlots = selectedTemplate === "template2" ? 1 : selectedTemplate === "template3" ? 4 : 3;
 
   const fetchBanners = async () => {
     try {
-      const res = await bannerService.getAll();
+      const res = await bannerService.getAll(5, 1);
       const data = res.banners;
+      if (currentTemplate === "") {
+        // ✅ B1: Tìm ảnh mới nhất có position > 0 để xác định template
+        const layoutToTemplate: Record<string, "template1" | "template2" | "template3"> = {
+          option1: "template1",
+          option2: "template2",
+          option3: "template3",
+        };
+
+        for (const b of data) {
+          if (b.position > 0 && typeof b.layout === "string") {
+            const layoutKey = b.layout.toLowerCase(); // e.g. "option1"
+            const detectedTemplate = layoutToTemplate[layoutKey];
+            if (detectedTemplate) {
+              setCurrentTemplate(detectedTemplate);
+              setSelectedTemplate(detectedTemplate);
+              break;
+            }
+          }
+        }
+      }
+
+      // ✅ B2: Chuẩn bị banners theo position để render
       const bannersWithPosition = data.filter((b) => b.position > 0);
 
       const positionMap: Record<number, BannerItem[]> = {};
+
       for (const b of bannersWithPosition) {
         if (!positionMap[b.position]) positionMap[b.position] = [];
         positionMap[b.position].push({
@@ -61,7 +85,9 @@ export default function DragDropBannerLayout() {
             uniqueBanners.push(list[0]);
           } else {
             const sorted = list.sort(
-              (a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()
+              (a, b) =>
+                new Date(b.updatedAt ?? 0).getTime() -
+                new Date(a.updatedAt ?? 0).getTime()
             );
             const [newest, ...rest] = sorted;
             uniqueBanners.push(newest);
@@ -90,6 +116,7 @@ export default function DragDropBannerLayout() {
     }
   };
 
+
   useEffect(() => {
     fetchBanners();
   }, []);
@@ -111,19 +138,27 @@ export default function DragDropBannerLayout() {
     setActiveSlot(slotIndex);
     try {
       const res = await bannerService.getAll();
-      const gallery = res.banners.filter((b) => b.position === 0);
+
+      const selectedIds = holders
+        .filter((h): h is BannerItem => h !== null)
+        .map((h) => h._id);
+
+      const gallery = res.banners.filter((b) => !selectedIds.includes(b._id));
+
       const galleryItems = gallery.map((b) => ({
         id: b._id,
         _id: b._id,
         image: typeof b.image === "string" ? b.image : b.image?.url || "",
         position: 0,
       }));
+
       setGalleryImages(galleryItems);
       setShowGallery(true);
     } catch (err) {
       console.error("❌ Lỗi tải gallery:", err);
     }
   };
+
 
   const handleImageSelect = (newImage: BannerItem) => {
     if (activeSlot === null) return;
@@ -141,9 +176,9 @@ export default function DragDropBannerLayout() {
         holders.map((item, index) =>
           item
             ? bannerService.update(item._id, {
-                position: index + 1,
-                layout: layoutNum as any,
-              })
+              position: index + 1,
+              layout: layoutNum as any,
+            })
             : null
         )
       );

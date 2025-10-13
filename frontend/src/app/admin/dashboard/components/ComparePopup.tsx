@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -50,6 +51,26 @@ export default function ComparePopup({
     [`${rightMonth}/${rightYear}`]: unit === "million" ? (rightData[i] || 0) / 1_000_000 : (rightData[i] || 0),
   }));
 
+  const CustomCompareTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white border rounded-md shadow p-2 text-sm space-y-1">
+          <p className="font-semibold">Ngày {label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} style={{ color: entry.color }}>
+              {entry.name} :{" "}
+              {entry.value?.toLocaleString("vi-VN") +
+                (entry.name.includes("/") ? "₫" : "")}
+            </p>
+          ))}
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-40">
       <div className="bg-white rounded-xl shadow-xl p-8 w-[90vw] max-w-6xl space-y-6">
@@ -60,7 +81,7 @@ export default function ComparePopup({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="font-semibold mb-2">Dữ liệu trái</h3>
+            <h3 className="font-semibold mb-2">Dữ liệu gốc</h3>
             <MonthYearSelector
               selectedMonth={leftMonth}
               selectedYear={leftYear}
@@ -70,7 +91,7 @@ export default function ComparePopup({
           </div>
 
           <div>
-            <h3 className="font-semibold mb-2">Dữ liệu phải</h3>
+            <h3 className="font-semibold mb-2">Dữ liệu so sánh</h3>
             <MonthYearSelector
               selectedMonth={rightMonth}
               selectedYear={rightYear}
@@ -84,13 +105,29 @@ export default function ComparePopup({
           <UnitSelector unit={unit} onChange={setUnit} />
         </div>
 
+        <div className="flex items-center gap-4 pl-2 text-sm font-medium">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-4 h-2 rounded-sm" style={{ backgroundColor: "#3b82f6" }}></span>
+            <span>Tháng {leftMonth}/{leftYear}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-4 h-2 rounded-sm" style={{ backgroundColor: "#f59e0b" }}></span>
+            <span>Tháng {rightMonth}/{rightYear}</span>
+          </div>
+        </div>
+
+
         <ResponsiveContainer width="100%" height={360}>
           <LineChart
             data={chartData}
             margin={{ top: 20, right: 30, left: 50, bottom: 10 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day" />
+            <XAxis
+              dataKey="day"
+              tickFormatter={(value) => `Ngày ${value}`}
+            />
+
             <YAxis
               tickFormatter={(value) =>
                 unit === "million"
@@ -98,13 +135,8 @@ export default function ComparePopup({
                   : value.toLocaleString("vi-VN")
               }
             />
-            <Tooltip
-              formatter={(value: number) =>
-                unit === "million"
-                  ? value.toFixed(1) + " triệu"
-                  : value.toLocaleString("vi-VN") + "₫"
-              }
-            />
+            <Tooltip content={<CustomCompareTooltip />} />
+
             <Line type="monotone" dataKey={`${leftMonth}/${leftYear}`} stroke="#3b82f6" strokeWidth={3} />
             <Line type="monotone" dataKey={`${rightMonth}/${rightYear}`} stroke="#f59e0b" strokeWidth={3} />
           </LineChart>

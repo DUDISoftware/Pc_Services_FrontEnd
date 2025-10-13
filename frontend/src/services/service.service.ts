@@ -35,7 +35,8 @@ export const serviceService = {
 
   getById: async (id: string): Promise<Service> => {
     try {
-      const res = await api.get(`/services/${id}`);
+      const serviceId = typeof id === "object" && "_id" in id ? (id as any)._id : id;
+      const res = await api.get(`/services/${serviceId}`);
       return mapService(res.data.service);
     } catch (error) {
       console.error("Error in getById:", error);

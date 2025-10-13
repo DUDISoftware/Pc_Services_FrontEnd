@@ -12,6 +12,7 @@ export default function RequestsPage() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"service" | "product" | "history">("service");
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
   const fetchData = async () => {
@@ -35,9 +36,19 @@ export default function RequestsPage() {
         if (activeTab === "history") {
           const searchResults = await searchHistoryRequests(query);
           data = searchResults;
+          if (data.length === 0) {
+            setRequests([]);
+            setSearching(true);
+            return;
+          }
         } else {
           const searchResults = await searchRequests(query, activeTab);
           data = searchResults.filter(r => r.hidden !== true);
+          if (data.length === 0) {
+            setRequests([]);
+            setSearching(true);
+            return;
+          }
         }
       }
 
@@ -73,7 +84,10 @@ export default function RequestsPage() {
               ? "border-b-2 border-blue-600 text-blue-600"
               : "text-gray-600"
           }`}
-          onClick={() => setActiveTab("service")}
+          onClick={() => {
+            setActiveTab("service");
+            setSearching(false);
+          }}
         >
           Dịch vụ
         </button>
@@ -83,7 +97,10 @@ export default function RequestsPage() {
               ? "border-b-2 border-blue-600 text-blue-600"
               : "text-gray-600"
           }`}
-          onClick={() => setActiveTab("product")}
+          onClick={() => {
+            setActiveTab("product");
+            setSearching(false);
+          }}
         >
           Sản phẩm
         </button>
@@ -93,7 +110,10 @@ export default function RequestsPage() {
               ? "border-b-2 border-blue-600 text-blue-600"
               : "text-gray-600"
           }`}
-          onClick={() => setActiveTab("history")}
+          onClick={() => {
+            setActiveTab("history");
+            setSearching(false);
+          }}
         >
           🕓 Lịch sử
         </button>
@@ -120,6 +140,7 @@ export default function RequestsPage() {
       <RequestBoard
         requests={requests}
         tab={activeTab}
+        searching={searching}
       />
     </div>
   );
