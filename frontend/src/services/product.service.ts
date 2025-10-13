@@ -11,10 +11,14 @@ type Featured = {
 }
 
 export const productService = {
-  getAll: async (limit = 10, page = 1): Promise<{ products: Product[] }> => {
+  getAll: async (limit = 10, page = 1): Promise<{ products: Product[], total: number, page: number }> => {
     try {
       const res = await api.get(`/products?limit=${limit}&page=${page}`);
-      return { products: res.data.products.map((p: ProductApi) => mapProduct(p)) };
+      return { 
+        products: res.data.products.map((p: ProductApi) => mapProduct(p)), 
+        total: res.data.total, 
+        page: res.data.page, 
+      };
     } catch (error) {
       throw error;
     }
@@ -45,7 +49,10 @@ export const productService = {
 
   getFeatured: async (limit: number): Promise<Featured> => {
     try {
-      const res = await api.get(`/products/featured?limit=${limit}`);
+      let res = await api.get(`/products/featured?limit=${limit}`);
+      if (!res.data || !res.data.products) {
+        res = await api.get(`/products?limit=${limit}`);
+      }
       return res.data as Featured;
     } catch (error) {
       throw error;
@@ -61,10 +68,16 @@ export const productService = {
     }
   },
 
-  getByCategory: async (category: string, limit = 10, page = 1): Promise<Product[]> => {
+  getByCategory: async (category: string, limit = 10, page = 1): Promise<{products: Product[], total: number, page: number }> => {
     try {
       const res = await api.get(`/products/category/${category}?limit=${limit}&page=${page}`);
-      return res.data.products.map((p: ProductApi) => mapProduct(p));
+      return {
+        products: res.data.products.map(
+          (p: ProductApi) => mapProduct(p)
+        ),
+        total: res.data.total,
+        page: res.data.page
+      };
     } catch (error) {
       throw error;
     }
@@ -74,6 +87,15 @@ export const productService = {
     try {
       const res = await api.get(`/products/${id}`);
       return mapProduct(res.data.product);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getQuantity: async (id: string): Promise<number> => {
+    try {
+      const res = await api.get(`/products/${id}/quantity`);
+      return res.data.quantity;
     } catch (error) {
       throw error;
     }
@@ -182,9 +204,19 @@ export const productService = {
     }
   },
 
+  updateStatus: async (id: string, status: string): Promise<Product> => {
+    try {
+      const res = await api.patch(`/products/${id}/status`, { status });
+      return mapProduct(res.data.product);
+    } catch (error) {
+      throw error;
+    }
+  },
+
   delete: async (id: string): Promise<void> => {
     try {
-      await api.delete(`/products/${id}`);
+      const res = await api.patch(`/products/${id}/status`, { status: "hidden"});
+      return 
     } catch (error) {
       throw error;
     }

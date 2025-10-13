@@ -75,25 +75,30 @@
 // }
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { serviceService } from "@/services/service.service";
+import { ratingService } from "@/services/rating.service";
 import { Service } from "@/types/Service";
+import { Rating } from "@/types/Rating";
 import DefaultServiceImage from "@/assets/image/service/services.png";
 
 import FeaturedFixServices from "./components/FeaturedFixServices";
 import ServiceRequestModal from "./components/ServiceRequestModal";
+import ServiceReviewSection from "./components/ServiceReviewSection";
 
-export default function ServiceDetailPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default function ServiceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
 
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+
+  const [ratings, setRatings] = useState<Rating[]>([]);
+  const [name, setName] = useState("");
+  const [comment, setComment] = useState("");
+  const [score, setScore] = useState(5);
+  const reviewFormRef = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
     const fetchService = async () => {
@@ -109,6 +114,34 @@ export default function ServiceDetailPage({
     };
     fetchService();
   }, [slug]);
+
+  const averageRating =
+    ratings.length > 0
+      ? (ratings.reduce((sum, r) => sum + r.score, 0) / ratings.length).toFixed(1)
+      : "5.0";
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!service) return;
+    try {
+      const payload = {
+        service_id: service._id,
+        name,
+        comment,
+        score,
+      };
+      await ratingService.create(payload);
+      setName("");
+      setComment("");
+      setScore(5);
+      const updated = await ratingService.getByServiceId(service._id);
+      setRatings(updated.ratings || []);
+      alert("Đánh giá đã được gửi!");
+    } catch (err) {
+      console.error("Lỗi gửi đánh giá:", err);
+      alert("Gửi đánh giá thất bại.");
+    }
+  };
 
   if (loading) return <p>Đang tải chi tiết dịch vụ...</p>;
   if (!service) return <p>Không tìm thấy dịch vụ.</p>;
@@ -169,6 +202,64 @@ export default function ServiceDetailPage({
             Yêu cầu dịch vụ
           </button>
         </div>
+      </div>
+
+      {/* Đánh giá người dùng */}
+      <div className="mt-12 border-t pt-8">
+        <h3 className="text-xl font-semibold mb-4">Đánh giá dịch vụ</h3>
+
+        <ServiceReviewSection
+          serviceId={service._id}
+          scrollToFormRef={reviewFormRef}
+        />
+
+
+        <form ref={reviewFormRef} onSubmit={handleSubmitReview} className="space-y-4 max-w-xl">
+          <div>
+            <label className="block text-sm font-medium mb-1">Tên</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Bình luận</label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              required
+              rows={4}
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Đánh giá sao</label>
+            <select
+              value={score}
+              onChange={(e) => setScore(Number(e.target.value))}
+              required
+              className="w-full border px-3 py-2 rounded"
+            >
+              {[1, 2, 3, 4, 5].map((s) => (
+                <option key={s} value={s}>
+                  {s} sao
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Gửi đánh giá
+          </button>
+        </form>
       </div>
 
       <FeaturedFixServices />

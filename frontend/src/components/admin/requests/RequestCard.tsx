@@ -26,7 +26,7 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
     return services.find((s) => s._id === id)?.name ?? "Đơn đặt hàng";
   };
 
-  // 🔒 Đóng dropdown khi click ra ngoài
+  // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -37,7 +37,7 @@ export default function RequestCard({ req, services, onDeleted }: RequestCardPro
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 🔄 Lấy giá dịch vụ nếu là yêu cầu sửa chữa
+  // Lấy giá dịch vụ nếu là yêu cầu sửa chữa
   useEffect(() => {
     const fetchServicePrice = async () => {
       if (req.service_id && typeof req.service_id === "string") {

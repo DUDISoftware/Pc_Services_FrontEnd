@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import api from "@/lib/api";
-import { Service } from "@/types/Service";
+import { Service, ServiceApi, UploadedImage } from "@/types/Service";
 import { mapService } from "@/lib/mappers";
 
 type Featured = {
   services: {
-    id: string; 
+    id: string;
     views: number;
   }[];
 }
 
 export const serviceService = {
-  getAll: async (limit=10, page=1): Promise<Service[]> => {
+  getAll: async (limit = 10, page = 1): Promise<Service[]> => {
     try {
       const res = await api.get(`/services?limit=${limit}&page=${page}`);
       const services = res.data.services as Service[];
@@ -53,11 +53,8 @@ export const serviceService = {
     }
   },
 
-  create: async (payload: Partial<Service>): Promise<Service> => {
+  create: async (payload: FormData): Promise<Service> => {
     try {
-      if (typeof payload.category_id === "object" && payload.category_id !== null) {
-        payload.category_id = (payload.category_id as unknown as any)._id;
-      }
       const res = await api.post("/services", payload);
       return mapService(res.data.service);
     } catch (error) {
@@ -66,11 +63,8 @@ export const serviceService = {
     }
   },
 
-  update: async (id: string, payload: Partial<Service>): Promise<Service> => {
+  update: async (id: string, payload: FormData): Promise<Service> => {
     try {
-      if (typeof payload.category_id === "object" && payload.category_id !== null) {
-        payload.category_id = (payload.category_id as unknown as any)._id;
-      }
       const res = await api.put(`/services/${id}`, payload);
       return mapService(res.data.service);
     } catch (error) {
@@ -78,6 +72,7 @@ export const serviceService = {
       throw error;
     }
   },
+
 
   delete: async (id: string): Promise<void> => {
     try {
@@ -102,7 +97,7 @@ export const serviceService = {
     }
   },
 
-  getView: async(id: string): Promise<number> => {
+  getView: async (id: string): Promise<number> => {
     try {
       const res = await api.get(`/services/${id}/views`);
       return res.data.views;
@@ -112,7 +107,7 @@ export const serviceService = {
     }
   },
 
-  countViewRedis: async(id: string): Promise<void> => {
+  countViewRedis: async (id: string): Promise<void> => {
     try {
       await api.post(`/services/${id}/views`);
     } catch (error) {

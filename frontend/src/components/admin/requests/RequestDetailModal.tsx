@@ -23,7 +23,6 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
 
     const getServiceName = (id?: string) => {
         if (!id || !services) return "Không rõ dịch vụ" + id;
-        console.log(services);
         return (services.find((s) => s._id === id)?.name || "Không rõ");
     };
 
@@ -42,7 +41,7 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
       {request.service_id ? (
         <>
           <h3 className="font-semibold text-blue-600 mt-4">🛠 Yêu cầu sửa chữa</h3>
-          <p>🔧 <strong>Dịch vụ:</strong> {getServiceName(request.name)}</p>
+          <p>🔧 <strong>Dịch vụ:</strong> {getServiceName(request.service_id as string)}</p>
           {request.problem_description && (
             <p>📋 <strong>Vấn đề:</strong> {request.problem_description}</p>
           )}
@@ -76,7 +75,6 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
           )}
         </>
       )}
-
       <p>📌 <strong>Trạng thái:</strong> {request.status}</p>
       <p>⏰ <strong>Cập nhật:</strong> { request.updatedAt }</p>
     </div>

@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -20,6 +21,7 @@ export default function CategoryNav({ selectedCategory, onSelectCategory }: Prop
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [url, setUrl] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -31,11 +33,13 @@ export default function CategoryNav({ selectedCategory, onSelectCategory }: Prop
     const fetchCategories = async () => {
       try {
         const res = await categoryService.getAll(20, 1);
-        setCategories(res.categories.map((cat) => ({
-          name: cat.name,
-          slug: cat.slug,
-          id: cat._id
-        })));
+        setCategories(
+          res.categories.map((cat) => ({
+            name: cat.name,
+            slug: cat.slug,
+            id: cat._id,
+          }))
+        );
       } catch (err) {
         console.error("Lỗi khi tải danh mục:", err);
       }
@@ -46,28 +50,31 @@ export default function CategoryNav({ selectedCategory, onSelectCategory }: Prop
   const handleClick = (cat: CategoryItem) => {
     if (onSelectCategory) onSelectCategory(cat.name);
 
-    const targetUrl = `/user/product?category=${encodeURIComponent(cat.slug)}`;
     if (url.includes("/home")) {
-      router.push(targetUrl);
-    } else {
-      router.push(`?category=${encodeURIComponent(cat.slug)}`);
+      router.push(`/user/product?category=${encodeURIComponent(cat.slug)}`);
+      return;
     }
+    if (url.includes("detail")) {
+      router.push(`/user/product?category=${encodeURIComponent(cat.slug)}`);
+      return;
+    }
+    router.push(`?category=${encodeURIComponent(cat.slug)}`);
   };
 
-  // ✅ Auto-scroll logic
+  // ✅ Auto-scroll logic with pause on hover
   useEffect(() => {
     const container = scrollRef.current;
-    if (!container) return;
+    if (!container || isHovered) return;
 
     const step = 1; // pixels per tick
-    const intervalMs = 40; // how often to move
+    const intervalMs = 40; // speed
     let scrollInterval: NodeJS.Timeout;
 
     const scroll = () => {
       if (!container) return;
       container.scrollLeft += step;
 
-      // reset if reached end
+      // reset to start when reaching end
       if (container.scrollLeft + container.offsetWidth >= container.scrollWidth) {
         container.scrollLeft = 0;
       }
@@ -75,13 +82,15 @@ export default function CategoryNav({ selectedCategory, onSelectCategory }: Prop
 
     scrollInterval = setInterval(scroll, intervalMs);
     return () => clearInterval(scrollInterval);
-  }, [categories]);
+  }, [categories, isHovered]);
 
   return (
     <div className="border-t border-gray-200 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div
           ref={scrollRef}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
           className="hide-scrollbar flex gap-8 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
           style={{ scrollbarWidth: "none" }}
         >
@@ -95,7 +104,11 @@ export default function CategoryNav({ selectedCategory, onSelectCategory }: Prop
             <div
               key={i}
               className={`flex flex-col items-center gap-1 cursor-pointer min-w-[64px]
-              ${selectedCategory === c.name ? "text-blue-600 font-semibold" : "hover:text-blue-600"}`}
+                ${
+                  selectedCategory === c.name
+                    ? "text-blue-600 font-semibold"
+                    : "hover:text-blue-600"
+                }`}
               onClick={() => handleClick(c)}
             >
               <span className="text-xs">{c.name}</span>

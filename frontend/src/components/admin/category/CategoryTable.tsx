@@ -18,7 +18,7 @@ export default function CategoryTable() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const data = await categoryService.getAll();
+      const data = await categoryService.getAll(20, 1);
       setCategories(data.categories.map(mapCategory));
     } catch (err) {
       console.error("Error fetching categories", err);

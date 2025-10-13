@@ -2,7 +2,13 @@
 
 import TableHeader from "@/components/admin/TableHeader";
 import Button from "@/components/common/Button";
-import CountUp from "react-countup";
+import StatsCard from "@/app/admin/dashboard/components/StatsCard";
+import MonthYearSelector from "@/app/admin/dashboard/components/MonthYearSelector";
+import ChartLegend from "@/app/admin/dashboard/components/ChartLegend";
+import ChartTabs from "@/app/admin/dashboard/components/ChartTabs";
+import ComparePopup from "@/app/admin/dashboard/components/ComparePopup";
+import UnitSelector from "@/app/admin/dashboard/components/UnitSelector";
+
 import {
   LineChart,
   Line,
@@ -16,348 +22,352 @@ import { useEffect, useState } from "react";
 import { statsService } from "@/services/stats.service";
 
 export default function DashboardPage() {
+  const today = new Date().toISOString().split("T")[0];
   const [animate, setAnimate] = useState(true);
-  const [currentDay, setCurrentDay] = useState(new Date().getDate());
+
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const defaultSelectedMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const defaultSelectedYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+  const [monthlyProfit, setMonthlyProfit] = useState<number[]>([]);
+  const [selectedMonthData, setSelectedMonthData] = useState<number[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState(defaultSelectedMonth);
+  const [selectedYear, setSelectedYear] = useState(defaultSelectedYear);
 
   const [products, setProducts] = useState(0);
   const [orderRequests, setOrderRequests] = useState(0);
   const [repairRequests, setRepairRequests] = useState(0);
   const [totalProfit, setTotalProfit] = useState(0);
 
-  const [previousProducts, setPreviousProducts] = useState(0);
-  const [previousOrderRequests, setPreviousOrderRequests] = useState(0);
-  const [previousRepairRequests, setPreviousRepairRequests] = useState(0);
-  const [previousProfit, setPreviousProfit] = useState(0);
-
-  const [monthlyProfit, setMonthlyProfit] = useState<number[]>([]);
-  const [previousMonth, setPreviousMonth] = useState<number[]>([]);
+  const [previousMonthProfit, setPreviousMonthProfit] = useState(0);
+  const [previousMonthOrders, setPreviousMonthOrders] = useState(0);
+  const [previousMonthRepairs, setPreviousMonthRepairs] = useState(0);
+  const [previousMonthProducts, setPreviousMonthProducts] = useState(0);
 
   const [todayProfit, setTodayProfit] = useState(0);
-  const [tab, setTab] = useState<"monthly" | "full">("monthly");
+  const [completedOrders, setCompletedOrders] = useState(0);
+  const [todayOrders, setTodayOrders] = useState(0);
+  const [completedRepairs, setCompletedRepairs] = useState(0);
+  const [todayRepairs, setTodayRepairs] = useState(0);
+  const [soldProducts, setSoldProducts] = useState(0);
 
-  const today = new Date().toISOString().split("T")[0];
+  const [tab, setTab] = useState<"monthly" | "full">("monthly");
+  const [displayUnit, setDisplayUnit] = useState<"vnd" | "million">("vnd");
+
+
+  const [showCompare, setShowCompare] = useState(false);
+  const [compareLeftMonth, setCompareLeftMonth] = useState(currentMonth);
+  const [compareLeftYear, setCompareLeftYear] = useState(currentYear);
+  const [compareRightMonth, setCompareRightMonth] = useState(selectedMonth);
+  const [compareRightYear, setCompareRightYear] = useState(selectedYear);
+  const [compareLeftData, setCompareLeftData] = useState<number[]>([]);
+  const [compareRightData, setCompareRightData] = useState<number[]>([]);
+
+
+
+  const daysInMonth = (year: number, month: number) =>
+    new Date(year, month, 0).getDate();
+
+  const getSampledDays = (totalDays: number, segments = 6): number[] => {
+    const step = Math.floor((totalDays / segments) - 0.5);
+    const sampled = Array.from({ length: segments }, (_, i) => i * step + 1);
+    if (!sampled.includes(totalDays)) sampled.push(totalDays);
+    return Array.from(new Set(sampled)).sort((a, b) => a - b);
+  };
+
+  const safeChange = (curr: number, prev: number) =>
+    prev === 0 ? (curr > 0 ? 100 : 0) : ((curr / prev - 1) * 100);
 
   useEffect(() => {
-    setAnimate(true);
     const timer = setTimeout(() => setAnimate(false), 2000);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    setCurrentDay(new Date().getDate());
+    fetchCurrentMonthLine();
+    fetchSelectedMonthLine();
+    fetchStatsToday();
+  }, [selectedMonth, selectedYear]);
 
-    const fetchTodayProfit = async () => {
-      try {
-        const p = await statsService.calculateTodayProfit(today);
-        setTodayProfit(p);
-        setTotalProfit((prev) => prev + p);
-        await statsService.updateStats({ total_profit: p }, today);
-      } catch (err) {
-        console.error("Lỗi tính lợi nhuận hôm nay:", err);
-      }
-    };
-
-    const fetchCurrentMonthStats = async () => {
-      try {
-        const now = new Date();
-        const month = now.getMonth() + 1;
-        const year = now.getFullYear();
-        const statsList = await statsService.getMonthStats(month, year);
-
-        let totalProfit = 0;
-        let totalOrders = 0;
-        let totalRepairs = 0;
-        let totalProducts = 0;
-
-        for (const s of statsList) {
-          const day = new Date(s.updatedAt ?? "").getDate();
-          if (day <= currentDay) {
-            totalProfit += s.total_profit || 0;
-            totalOrders += s.total_orders || 0;
-            totalRepairs += s.total_repairs || 0;
-            totalProducts += s.total_products || 0;
-          }
-        }
-
-        setTotalProfit(totalProfit);
-        setOrderRequests(totalOrders);
-        setRepairRequests(totalRepairs);
-        setProducts(totalProducts);
-      } catch (err) {
-        console.error("Lỗi lấy thống kê tháng này:", err);
-      }
-    };
-
-    const fetchPreviousMonthStats = async () => {
-      try {
-        const now = new Date();
-        let month = now.getMonth();
-        let year = now.getFullYear();
-        if (month === 0) {
-          month = 12;
-          year -= 1;
-        }
-
-        const statsList = await statsService.getMonthStats(month, year);
-
-        let totalProfit = 0;
-        let totalOrders = 0;
-        let totalRepairs = 0;
-        let totalProducts = 0;
-
-        for (const s of statsList) {
-          totalProfit += s.total_profit || 0;
-          totalOrders += s.total_orders || 0;
-          totalRepairs += s.total_repairs || 0;
-          totalProducts += s.total_products || 0;
-        }
-
-        setPreviousProfit(totalProfit);
-        setPreviousOrderRequests(totalOrders);
-        setPreviousRepairRequests(totalRepairs);
-        setPreviousProducts(totalProducts);
-      } catch (err) {
+  useEffect(() => {
+    const previousMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
+    const previousYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+    statsService.getStatsByMonth(previousMonth, previousYear)
+      .then((stats) => {
+        const profitSum = stats.reduce((sum, s) => sum + (s.total_profit || 0), 0);
+        const orders = stats.reduce((sum, s) => sum + (s.total_orders || 0), 0);
+        const repairs = stats.reduce((sum, s) => sum + (s.total_repairs || 0), 0);
+        const sold = stats.reduce((sum, s) => sum + (s.total_products || 0), 0);
+        setPreviousMonthProfit(profitSum);
+        setPreviousMonthOrders(orders);
+        setPreviousMonthRepairs(repairs);
+        setPreviousMonthProducts(sold);
+      })
+      .catch((err) => {
         console.error("Lỗi lấy thống kê tháng trước:", err);
+        setPreviousMonthProfit(0);
+        setPreviousMonthOrders(0);
+        setPreviousMonthRepairs(0);
+        setPreviousMonthProducts(0);
+      });
+  }, [selectedMonth, selectedYear]);
+
+  const fetchCurrentMonthLine = async () => {
+    const totalDays = daysInMonth(currentYear, currentMonth);
+    const promises = Array.from({ length: totalDays }, (_, i) => {
+      const dateStr = new Date(currentYear, currentMonth - 1, i + 1)
+        .toISOString()
+        .split("T")[0];
+      return statsService.getStatsByDate(dateStr).catch(() => ({ total_profit: 0 }));
+    });
+
+    const results = await Promise.all(promises);
+    setMonthlyProfit(results.map(r => r.total_profit || 0));
+  };
+
+  const fetchSelectedMonthLine = async () => {
+    const totalDays = daysInMonth(selectedYear, selectedMonth);
+    const profits: number[] = [];
+    let profitSum = 0;
+    let orders = 0;
+    let repairs = 0;
+    let sold = 0;
+
+    for (let d = 1; d <= totalDays; d++) {
+      const dateStr = new Date(selectedYear, selectedMonth - 1, d)
+        .toISOString()
+        .split("T")[0];
+      try {
+        const stat = await statsService.getStatsByDate(dateStr);
+        profits.push(stat.total_profit || 0);
+        profitSum += stat.total_profit || 0;
+        orders += stat.total_orders || 0;
+        repairs += stat.total_repairs || 0;
+        sold += stat.total_products || 0;
+      } catch {
+        profits.push(0);
       }
-    };
+    }
 
-    const fetchMonthlyLineChart = async () => {
-      const fullDays = Array.from({ length: currentDay }, (_, i) => i + 1);
-      const lastMonthFull = Array.from({ length: 30 }, (_, i) => i + 1);
+    setSelectedMonthData(profits);
+    setTotalProfit(profitSum);
+    setOrderRequests(orders);
+    setRepairRequests(repairs);
+    setProducts(sold);
+  };
 
-      const thisMonth: number[] = [];
-      const lastMonth: number[] = [];
-
-      for (const d of fullDays) {
-        const date = new Date();
-        date.setDate(d);
-        const curDate = date.toISOString().split("T")[0];
-
-        try {
-          const curStat = await statsService.getStatsByDate(curDate);
-          thisMonth.push(curStat.total_profit || 0);
-        } catch {
-          thisMonth.push(0);
-        }
-      }
-
-      for (const d of lastMonthFull) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - 1);
-        date.setDate(d);
-        const prevDate = date.toISOString().split("T")[0];
-
-        try {
-          const prevStat = await statsService.getStatsByDate(prevDate);
-          lastMonth.push(prevStat.total_profit || 0);
-        } catch {
-          lastMonth.push(0);
-        }
-      }
-
-      setMonthlyProfit(thisMonth);
-      setPreviousMonth(lastMonth);
-    };
-
-    fetchTodayProfit();
-    fetchCurrentMonthStats();
-    fetchPreviousMonthStats();
-    fetchMonthlyLineChart();
-  }, [currentDay]);
-
-  const safeChange = (curr: number, prev: number) =>
-    prev === 0 ? (curr > 0 ? 100 : 0) : ((curr / prev - 1) * 100);
+  const fetchStatsToday = async () => {
+    try {
+      const todayStat = await statsService.getCurrentStats();
+      setTodayProfit(todayStat.total_profit || 0);
+      setCompletedOrders(todayStat.completed_orders || 0);
+      setTodayOrders(todayStat.total_orders || 0);
+      setCompletedRepairs(todayStat.completed_repairs || 0);
+      setTodayRepairs(todayStat.total_repairs || 0);
+      setSoldProducts(todayStat.total_products || 0);
+    } catch (err) {
+      console.error("Lỗi lấy thống kê hôm nay:", err);
+    }
+  };
 
   const totalStats = [
     {
       title: "Doanh thu theo tháng",
       value: totalProfit,
-      change: safeChange(totalProfit, previousProfit),
+      change: safeChange(totalProfit, monthlyProfit.reduce((a, b) => a + b, previousMonthProfit)),
       color: "bg-blue-100 text-blue-800",
     },
     {
-      title: "Tổng số đơn đặt hàng",
+      title: "Tổng đơn đặt hàng",
       value: orderRequests,
-      change: safeChange(orderRequests, previousOrderRequests),
+      change: safeChange(orderRequests, previousMonthOrders),
       color: "bg-green-100 text-green-800",
     },
     {
-      title: "Tổng số yêu cầu sửa chữa",
+      title: "Tổng yêu cầu sửa chữa",
       value: repairRequests,
-      change: safeChange(repairRequests, previousRepairRequests),
+      change: safeChange(repairRequests, previousMonthRepairs),
       color: "bg-red-100 text-red-800",
     },
     {
       title: "Tổng sản phẩm đã bán",
       value: products,
-      change: safeChange(products, previousProducts),
+      change: safeChange(products, previousMonthProducts),
       color: "bg-yellow-100 text-yellow-800",
     },
   ];
 
-  const currentStats = [
+  const todayStats = [
     {
-      title: "Doanh thu theo ngày",
+      title: "Doanh thu hôm nay",
       value: todayProfit,
-      change: safeChange(todayProfit, previousProfit),
+      change: safeChange(todayProfit, 0),
       color: "bg-blue-100 text-blue-800",
     },
     {
-      title: "Đơn hàng trong ngày",
-      value: orderRequests,
-      change: safeChange(orderRequests, previousOrderRequests),
+      title: "Đơn hàng hoàn thành trong ngày",
+      value: completedOrders,
+      change: 100 + safeChange(completedOrders, todayOrders),
       color: "bg-green-100 text-green-800",
     },
     {
-      title: "Yêu cầu sửa chữa trong ngày",
-      value: repairRequests,
-      change: safeChange(repairRequests, previousRepairRequests),
+      title: "Yêu cầu sửa chữa xong trong ngày",
+      value: completedRepairs,
+      change: 100 + safeChange(completedRepairs, todayRepairs),
       color: "bg-red-100 text-red-800",
     },
     {
-      title: "Sản phẩm đã bán trong ngày",
-      value: products,
-      change: safeChange(products, previousProducts),
+      title: "Số sản phẩm bán trong ngày",
+      value: soldProducts,
+      change: safeChange(soldProducts, 0),
       color: "bg-yellow-100 text-yellow-800",
     },
   ];
 
-  const baseDays = [1, 5, 10, 15, 20, 25, 30];
+  const totalDays = daysInMonth(selectedYear, selectedMonth);
   const days =
     tab === "monthly"
-      ? [...baseDays.filter((d) => d !== currentDay), currentDay]
-      : Array.from({ length: currentDay }, (_, i) => i + 1);
+      ? getSampledDays(totalDays)
+      : Array.from({ length: totalDays }, (_, i) => i + 1);
 
-  const chartData = days
-    .map((day) => ({
-      name: day.toString().padStart(2, "0"),
-      thángNày: monthlyProfit[day - 1] || 0,
-      thángTrước: previousMonth[day - 1] || 0,
-    }))
-    .sort((a, b) => parseInt(a.name) - parseInt(b.name));
+  const chartData = days.map((day) => ({
+    name: day.toString().padStart(2, "0"),
+    "Tháng này": monthlyProfit[day - 1] || 0,
+    [`Tháng ${selectedMonth}`]: selectedMonthData[day - 1] || 0,
+  }));
+
+  const fetchCompareMonthLine = async (month: number, year: number, side: "left" | "right") => {
+    const totalDays = daysInMonth(year, month);
+    const profits: number[] = [];
+
+    for (let d = 1; d <= totalDays; d++) {
+      const dateStr = new Date(year, month - 1, d).toISOString().split("T")[0];
+      try {
+        const stat = await statsService.getStatsByDate(dateStr);
+        profits.push(stat.total_profit || 0);
+      } catch {
+        profits.push(0);
+      }
+    }
+
+    if (side === "left") setCompareLeftData(profits);
+    else setCompareRightData(profits);
+  };
+
+  useEffect(() => {
+    if (showCompare) {
+      fetchCompareMonthLine(compareLeftMonth, compareLeftYear, "left");
+      fetchCompareMonthLine(compareRightMonth, compareRightYear, "right");
+    }
+  }, [compareLeftMonth, compareLeftYear, compareRightMonth, compareRightYear, showCompare]);
+
+
 
   return (
     <div className="p-6 space-y-6">
       <TableHeader
         title="Thống kê"
         breadcrumb={["Admin", "Thống kê - báo cáo"]}
-        actions={<Button variant="secondary">📤 Xuất file</Button>}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="secondary">📤 Xuất file</Button>
+            <Button onClick={() => setShowCompare(true)}>📊 So sánh</Button>
+          </div>
+        }
+
       />
 
-      {/* Stats Cards */}
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <MonthYearSelector
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          onChangeMonth={setSelectedMonth}
+          onChangeYear={setSelectedYear}
+        />
+        <UnitSelector unit={displayUnit} onChange={setDisplayUnit} />
+      </div>
+
+
+      {/* Tổng tháng */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {totalStats.map((s) => (
-          <div
+          <StatsCard
             key={s.title}
-            className={`${s.color} rounded-2xl p-6 shadow flex flex-col`}
-          >
-            <h2 className="text-sm text-gray-600">{s.title}</h2>
-            <p className="text-3xl font-bold mt-2">
-              <CountUp
-                start={animate ? 0 : s.value}
-                end={s.value}
-                duration={2}
-                separator=","
-              />
-            </p>
-            <span
-              className={`text-sm mt-2 ${
-                s.change >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {s.change.toFixed(2)}%
-            </span>
-          </div>
+            {...s}
+            animate={animate}
+            unit={s.title.includes("Doanh thu") ? displayUnit : undefined}
+          />
         ))}
+
       </div>
 
+      {/* Hôm nay */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {currentStats.map((s) => (
-          <div
+        {todayStats.map((s) => (
+          <StatsCard
             key={s.title}
-            className={`${s.color} rounded-2xl p-6 shadow flex flex-col`}
-          >
-            <h2 className="text-sm text-gray-600">{s.title}</h2>
-            <p className="text-3xl font-bold mt-2">
-              <CountUp
-                start={animate ? 0 : s.value}
-                end={s.value}
-                duration={2}
-                separator=","
-              />
-            </p>
-            <span
-              className={`text-sm mt-2 ${
-                s.change >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {s.change.toFixed(2)}%
-            </span>
-          </div>
+            {...s}
+            animate={animate}
+            unit={s.title.includes("Doanh thu") ? displayUnit : undefined}
+          />
         ))}
+
       </div>
 
-      {/* Tab Selector */}
-      <div className="flex gap-4">
-        <button
-          onClick={() => setTab("monthly")}
-          className={`px-4 py-2 rounded ${
-            tab === "monthly"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          Theo tháng
-        </button>
-        <button
-          onClick={() => setTab("full")}
-          className={`px-4 py-2 rounded ${
-            tab === "full"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          Theo ngày
-        </button>
-      </div>
+      <ChartTabs tab={tab} onChange={setTab} />
 
-      {/* Chart */}
+      {/* Biểu đồ */}
       <div className="bg-white rounded-2xl shadow p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Doanh thu</h2>
-          <div className="flex gap-4 text-sm">
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-blue-600"></span>
-              <span>Tháng này</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-              <span>Tháng trước</span>
-            </div>
-          </div>
+
+          <ChartLegend selectedMonth={selectedMonth} />
         </div>
 
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData}>
+          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: 10 }}>
             <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
             <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="thángNày"
-              stroke="#2563EB"
-              strokeWidth={3}
+            <YAxis
+              tickFormatter={(value) =>
+                displayUnit === "million"
+                  ? (value / 1_000_000).toFixed(1) + "M"
+                  : value.toLocaleString("vi-VN")
+              }
             />
-            <Line
-              type="monotone"
-              dataKey="thángTrước"
-              stroke="#F59E0B"
-              strokeWidth={3}
-              strokeDasharray="5 5"
+            <Tooltip
+              formatter={(value: number) =>
+                displayUnit === "million"
+                  ? (value / 1_000_000).toFixed(1) + " triệu"
+                  : value.toLocaleString("vi-VN") + "₫"
+              }
             />
+
+            <Line type="monotone" dataKey="Tháng này" stroke="#2563EB" strokeWidth={3} />
+            <Line type="monotone" dataKey={`Tháng ${selectedMonth}`} stroke="#F59E0B" strokeWidth={3} />
           </LineChart>
         </ResponsiveContainer>
+
+        <ComparePopup
+          open={showCompare}
+          onClose={() => setShowCompare(false)}
+          leftMonth={compareLeftMonth}
+          leftYear={compareLeftYear}
+          rightMonth={compareRightMonth}
+          rightYear={compareRightYear}
+          onChangeLeft={(m: number, y: number) => {
+            setCompareLeftMonth(m);
+            setCompareLeftYear(y);
+          }}
+          onChangeRight={(m: number, y: number) => {
+            setCompareRightMonth(m);
+            setCompareRightYear(y);
+          }}
+          leftData={compareLeftData}
+          rightData={compareRightData}
+        />
+
       </div>
     </div>
   );

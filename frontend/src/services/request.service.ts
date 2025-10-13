@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { Request, RequestApi } from "@/types/Request";
+import { Items, Request, RequestApi } from "@/types/Request";
 import { mapRequest } from "@/lib/mappers";
 import { get } from "http";
 
@@ -48,6 +48,7 @@ export const requestService = {
     },
     createOrder: async (data: Partial<RequestApi>): Promise<Request> => {
         try {
+            console.log("Creating order with data:", data);
             const res = await api.post("/requests/orders", data);
             return mapRequest(res.data.request);
         } catch (error) {
@@ -55,19 +56,25 @@ export const requestService = {
         }
     },
 
-    getAllRepairs: async (): Promise<Request[]> => {
+    getAllRepairs: async (hidden: boolean = false): Promise<Request[]> => {
         try {
             const res = await api.get("/requests/repairs");
             const repairs = res.data.requests;
+            if (!hidden) {
+                return repairs.filter((r: RequestApi) => !r.hidden).map((reqData: RequestApi) => mapRequest(reqData));
+            }
             return repairs.map((reqData: RequestApi) => mapRequest(reqData));
         } catch (error) {
             throw error;
         }
     },
-    getAllOrders: async (): Promise<Request[]> => {
+    getAllOrders: async (hidden: boolean = false): Promise<Request[]> => {
         try {
             const res = await api.get("/requests/orders");
             const orders = res.data.requests;
+            if (!hidden) {
+                return orders.filter((r: RequestApi) => !r.hidden).map((reqData: RequestApi) => mapRequest(reqData));
+            }
             return orders.map((reqData: RequestApi) => mapRequest(reqData));
         } catch (error) {
             throw error;

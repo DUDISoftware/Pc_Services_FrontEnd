@@ -27,14 +27,16 @@ export default function RequestBoard({
   tab,
 }: {
   requests: Request[];
-  tab: "service" | "product";
+  tab: "service" | "product" | "history";
 }) {
   const [columns, setColumns] = useState<Column[]>([]);
   const [services, setServices] = useState<{ _id: string; name: string }[]>([]);
   const [products, setProducts] = useState<{ _id: string; name: string }[]>([]);
   const [info, setInfo] = useState<Info>({} as Info);
 
-  // Load thông tin cửa hàng (dùng cho email)
+  useEffect(() => {
+  }, [requests]);
+
   useEffect(() => {
     const loadInfo = async () => {
       try {
@@ -47,28 +49,40 @@ export default function RequestBoard({
     loadInfo();
   }, []);
 
-  // Load danh sách dịch vụ (dùng cho title)
   useEffect(() => {
     const loadServices = async () => {
       try {
-        const data = (await serviceService.getAll());
+        const data = await serviceService.getAll();
         setServices(data);
       } catch (err) {
         console.error("❌ Lỗi khi tải danh sách dịch vụ:", err);
       }
     };
-
     if (tab === "service") {
       loadServices();
     }
   }, [tab]);
 
-  // Gộp request thành các column theo status
   function mapRequestsToColumns(requests: Request[]): Column[] {
     const columns: Column[] = [
-      { id: "new", title: "🆕 Mới", requests: [] },
-      { id: "in_progress", title: "⚙️ Đang xử lý", requests: [] },
-      { id: "completed", title: "✅ Hoàn thành", requests: [] },
+      {
+        id: "new",
+        title:
+          tab === "history" ? "❌ Đã ẩn (Mới)" : "🆕 Mới",
+        requests: [],
+      },
+      {
+        id: "in_progress",
+        title:
+          tab === "history" ? "❌ Đã ẩn (Đang xử lý)" : "⚙️ Đang xử lý",
+        requests: [],
+      },
+      {
+        id: "completed",
+        title:
+          tab === "history" ? "❌ Đã ẩn (Hoàn thành)" : "✅ Hoàn thành",
+        requests: [],
+      },
     ];
 
     for (const req of requests) {
@@ -77,7 +91,8 @@ export default function RequestBoard({
         col.requests.push({
           _id: req._id,
           name: req.name,
-          problem_description: req.problem_description ?? req.items?.[0]?.name ?? "",
+          problem_description:
+            req.problem_description ?? req.items?.[0]?.name ?? "",
           updatedAt: new Date(req.updatedAt).toLocaleDateString("vi-VN"),
           phone: req.phone,
           address: req.address,
@@ -88,7 +103,7 @@ export default function RequestBoard({
           estimated_time: "",
           status: req.status,
           createdAt: req.createdAt ?? "",
-          hidden: req.hidden
+          hidden: req.hidden,
         });
       }
     }
@@ -96,7 +111,6 @@ export default function RequestBoard({
     return columns;
   }
 
-  // Load data khi đổi tab hoặc props.requests
   useEffect(() => {
     const load = async () => {
       let data: Request[] = [];
@@ -104,10 +118,21 @@ export default function RequestBoard({
       if (requests.length > 0) {
         data = requests;
       } else {
-        data =
-          tab === "service"
-            ? (await requestService.getAllRepairs()).filter(r => r.hidden !== true)
-            : (await requestService.getAllOrders()).filter(r => r.hidden !== true);
+        if (tab === "service") {
+          data = (await requestService.getAllRepairs()).filter(
+            (r) => r.hidden !== true
+          );
+        } else if (tab === "product") {
+          data = (await requestService.getAllOrders()).filter(
+            (r) => r.hidden !== true
+          );
+        } else if (tab === "history") {
+          const [repairs, orders] = await Promise.all([
+            requestService.getAllRepairs(),
+            requestService.getAllOrders(),
+          ]);
+          data = [...repairs, ...orders].filter((r) => r.hidden === true);
+        }
       }
 
       const cols = mapRequestsToColumns(data);
@@ -117,13 +142,24 @@ export default function RequestBoard({
     load();
   }, [requests, tab]);
 
-  // Drag & Drop
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
-
     const { source, destination } = result;
-    const updatedColumns = [...columns];
 
+    const allowedMoves: Record<string, string[]> = {
+      new: ["in_progress", "completed"],
+      in_progress: ["completed"],
+      completed: [],
+    };
+
+    if (
+      !allowedMoves[source.droppableId]?.includes(destination.droppableId)
+    ) {
+      alert("Không thể chuyển yêu cầu sang trạng thái này!");
+      return;
+    }
+
+    const updatedColumns = [...columns];
     const sourceCol = updatedColumns.find(
       (col) => col.id === source.droppableId
     )!;
@@ -131,74 +167,70 @@ export default function RequestBoard({
       (col) => col.id === destination.droppableId
     )!;
 
-    const [movedRequest] = sourceCol.requests.splice(source.index, 1) as [Request];
+    const [movedRequest] = sourceCol.requests.splice(source.index, 1);
     destCol.requests.splice(destination.index, 0, movedRequest);
-
     setColumns(updatedColumns);
 
-    // Gửi update trạng thái
     try {
       if (tab === "service") {
-        await requestService.updateRepair(
-          String(movedRequest._id),
-          {
-            status: destCol.id as Request["status"],
-            images: movedRequest.images,
-          }
-        );
+        await requestService.updateRepair(String(movedRequest._id), {
+          status: destCol.id as Request["status"],
+          images: movedRequest.images,
+        });
+
         if (destCol.id === "completed" && movedRequest._id) {
-          // Gửi email thông báo hoàn thành
           if (movedRequest.email) {
             try {
               await userService.sendEmail(
                 movedRequest.email,
                 "Yêu cầu của bạn đã được hoàn thành",
                 `Xin chào ${movedRequest.name || "khách hàng"},
-                Yêu cầu của bạn với mã <strong>${movedRequest._id}</strong> đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!
-                Trân trọng,
-                Đội ngũ hỗ trợ`
+                Yêu cầu của bạn với mã <strong>${movedRequest._id}</strong> đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!`
               );
               await userService.sendEmail(
                 info.email,
                 `Yêu cầu ${movedRequest._id} đã hoàn thành`,
-                `Yêu cầu sửa chữa với mã ${movedRequest._id} của khách hàng ${movedRequest.name || "khách hàng"} đã được hoàn thành.`
+                `Yêu cầu sửa chữa với mã ${movedRequest._id} đã được hoàn thành.`
               );
             } catch (err) {
               console.error("❌ Lỗi khi gửi email hoàn thành:", err);
             }
           }
         }
-      } else {
-        await requestService.updateOrder(
-          String(movedRequest._id),
-          {
-            status: destCol.id as Request["status"],
-          }
-        );
+      } else if (tab === "product") {
+        await requestService.updateOrder(String(movedRequest._id), {
+          status: destCol.id as Request["status"],
+        });
+
         if (destCol.id === "completed" && movedRequest.items) {
-          // ✅ Giảm tồn kho
           for (const item of movedRequest.items) {
             if (typeof item.product_id._id === "string") {
               const prod = await productService.getById(item.product_id._id);
               const newStock = (prod.quantity || 0) - (item.quantity || 1);
-              await productService.updateQuantity(item.product_id._id, newStock);
+              await productService.updateQuantity(
+                item.product_id._id,
+                newStock
+              );
+              if (newStock === 0) {
+                await productService.updateStatus(
+                  item.product_id._id,
+                  "out_of_stock"
+                );
+              }
             }
           }
-          // Gửi email thông báo hoàn thành
           if (movedRequest.email) {
             try {
               await userService.sendEmail(
                 movedRequest.email,
                 "Yêu cầu của bạn đã được hoàn thành",
                 `Xin chào ${movedRequest.name || "khách hàng"},
-                Yêu cầu của bạn với mã ${movedRequest._id} đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!
-                Trân trọng,
-                Đội ngũ hỗ trợ`
+                Yêu cầu của bạn với mã ${movedRequest._id} đã được hoàn thành.`
               );
               await userService.sendEmail(
                 info.email,
                 `Yêu cầu ${movedRequest._id} đã hoàn thành`,
-                `Yêu cầu sửa chữa với mã ${movedRequest._id} của khách hàng ${movedRequest.name || "khách hàng"} đã được hoàn thành.`
+                `Yêu cầu đơn hàng với mã ${movedRequest._id} đã được hoàn thành.`
               );
             } catch (err) {
               console.error("❌ Lỗi khi gửi email hoàn thành:", err);
@@ -208,7 +240,6 @@ export default function RequestBoard({
       }
     } catch (err) {
       console.error("❌ Lỗi khi cập nhật trạng thái:", err);
-      // Optional: rollback UI hoặc hiện toast lỗi
     }
   };
 
@@ -220,35 +251,33 @@ export default function RequestBoard({
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex flex-col md:grid md:grid-cols-1 lg:flex lg:flex-row gap-8 items-center lg:items-start">
-  {columns.map((col) => (
-    <Droppable key={col.id} droppableId={col.id}>
-      {(provided, snapshot) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.droppableProps}
-          className={`w-full lg:w-[32%] max-w-2xl p-4 rounded-xl shadow-md bg-white transition-all ${
-            snapshot.isDraggingOver ? "bg-blue-50" : ""
-          }`}
-        >
-          <h3 className="text-lg font-semibold mb-4">{col.title}</h3>
-          <div className="flex flex-col items-center gap-4">
-            {col.requests.map((req, index) => (
-              <Draggable
-                key={String(req._id)}
-                draggableId={String(req._id)}
-                index={index}
-              >
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    className={`w-full max-w-md border rounded-lg shadow-sm bg-gray-50 p-3 transition ${
-                      snapshot.isDragging
-                        ? "bg-blue-100 border-blue-400"
-                        : "hover:bg-gray-100"
+          {columns.map((col) => (
+            <Droppable key={col.id} droppableId={col.id}>
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className={`w-full lg:w-[32%] max-w-2xl p-4 rounded-xl shadow-md bg-white transition-all ${snapshot.isDraggingOver ? "bg-blue-50" : ""
                     }`}
-                  >
+                >
+                  <h3 className="text-lg font-semibold mb-4">{col.title}</h3>
+                  <div className="flex flex-col items-center gap-4">
+                    {col.requests.map((req, index) => (
+                      <Draggable
+                        key={String(req._id)}
+                        draggableId={String(req._id)}
+                        index={index}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className={`w-full max-w-md border rounded-lg shadow-sm bg-gray-50 p-3 transition ${snapshot.isDragging
+                                ? "bg-blue-100 border-blue-400"
+                                : "hover:bg-gray-100"
+                              }`}
+                          >
                             <RequestCard
                               req={{
                                 _id: String(req._id),
@@ -271,7 +300,12 @@ export default function RequestBoard({
                                 const updated =
                                   tab === "service"
                                     ? (await requestService.getAllRepairs()).filter(r => r.hidden !== true)
-                                    : (await requestService.getAllOrders()).filter(r => r.hidden !== true);
+                                    : tab === "product"
+                                      ? (await requestService.getAllOrders()).filter(r => r.hidden !== true)
+                                      : (await Promise.all([
+                                        requestService.getAllRepairs(),
+                                        requestService.getAllOrders()
+                                      ])).flat().filter(r => r.hidden === true);
                                 setColumns(mapRequestsToColumns(updated));
                               }}
                             />
@@ -286,9 +320,7 @@ export default function RequestBoard({
             </Droppable>
           ))}
         </div>
-
       </DragDropContext>
     </div>
   );
-
 }

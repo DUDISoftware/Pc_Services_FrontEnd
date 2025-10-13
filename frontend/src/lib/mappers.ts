@@ -141,7 +141,13 @@ export function mapService(apiData: ServiceApi): Service {
     status: apiData.status,
     created_at: apiData.created_at,
     updated_at: apiData.updated_at,
-    category_id: apiData.category_id
+    category_id: apiData.category_id,
+    images: apiData.images && Array.isArray(apiData.images)
+      ? (apiData.images as UploadedImage[]).map((img) => ({
+          url: (img as UploadedImage).url,
+          public_id: (img as UploadedImage).public_id,
+        }))
+      : [],
   }
 }
 

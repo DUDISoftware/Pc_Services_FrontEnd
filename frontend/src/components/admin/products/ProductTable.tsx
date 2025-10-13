@@ -1,3 +1,5 @@
+/* eslint-disable prefer-const */
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -7,7 +9,6 @@ import Button from "@/components/common/Button";
 import { productService } from "@/services/product.service";
 import { categoryService } from "@/services/category.service";
 import { Product, UploadedImage } from "@/types/Product";
-
 
 type Category = {
   _id: string;
@@ -41,16 +42,15 @@ export default function ProductTable() {
     images?: (File | UploadedImage)[];
   }>({ images: [], status: "available" });
 
+
   const totalPages = Math.max(1, Math.ceil(products.length / itemsPerPage));
-  const displayedProducts = products.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, products.length);
+  const displayedProducts = products.slice(startItem - 1, endItem);
 
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
@@ -64,8 +64,17 @@ export default function ProductTable() {
 
   const fetchProducts = async () => {
     try {
-      const data = await productService.getAll(100, 1);
-      setProducts(data.products);
+      let page = 1;
+      const limit = 10;
+      let allProducts: Product[] = [];
+      while (true) {
+        const data = await productService.getAll(limit, page);
+        if (data.products.length === 0) break;
+        allProducts = [...allProducts, ...data.products];
+        if (data.products.length < limit) break;
+        page++;
+      }
+      setProducts(allProducts);
     } catch (err) {
       console.error("Error fetching products", err);
     } finally {
@@ -80,6 +89,32 @@ export default function ProductTable() {
     } catch (err) {
       console.error("Error fetching categories", err);
     }
+  };
+
+  const getPaginationRange = (totalPages: number, currentPage: number, siblingCount = 1): (number | string)[] => {
+    const totalPageNumbers = siblingCount * 2 + 5;
+    if (totalPages <= totalPageNumbers) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const leftSibling = Math.max(currentPage - siblingCount, 1);
+    const rightSibling = Math.min(currentPage + siblingCount, totalPages);
+    const shouldShowLeftDots = leftSibling > 2;
+    const shouldShowRightDots = rightSibling < totalPages - 2;
+    const firstPage = 1;
+    const lastPage = totalPages;
+    if (!shouldShowLeftDots && shouldShowRightDots) {
+      const range = [...Array(3 + siblingCount * 2)].map((_, i) => i + 1);
+      return [...range, '...', lastPage];
+    }
+    if (shouldShowLeftDots && !shouldShowRightDots) {
+      const range = [...Array(3 + siblingCount * 2)].map((_, i) => totalPages - (2 + siblingCount * 2) + i);
+      return [firstPage, '...', ...range];
+    }
+    if (shouldShowLeftDots && shouldShowRightDots) {
+      const range = Array.from({ length: rightSibling - leftSibling + 1 }, (_, i) => leftSibling + i);
+      return [firstPage, '...', ...range, '...', lastPage];
+    }
+    return [];
   };
 
   const handleDelete = async (id: string) => {
@@ -190,23 +225,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     }));
   };
 
-  //excel export
-  const handleExport = async () => {
-    try {
-      const res = await productService.exportProductsToExcel();
-      const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'products.xlsx';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Export failed', error);
-    }
-  };
+
   return (
     <div className="bg-white shadow rounded p-4">
       <TableHeader
@@ -214,22 +233,55 @@ const handleSubmit = async (e: React.FormEvent) => {
         breadcrumb={["Admin", "Sản phẩm"]}
         actions={
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 gap-2 w-full sm:w-auto">
-            <Button className="h-10 px-4 text-sm w-full sm:w-auto" 
-            variant="secondary" 
-            onClick={handleExport}
-            >
-              📤 Xuất file
-            </Button>
-            <Button
-              className="h-10 px-4 text-sm w-full sm:w-auto"
-              variant="primary"
-              onClick={openAddForm}
-            >
-              + Thêm sản phẩm
-            </Button>
+            <Button className="h-10 px-4 text-sm w-full sm:w-auto" variant="secondary">📤 Xuất file</Button>
+            <Button className="h-10 px-4 text-sm w-full sm:w-auto" variant="primary" onClick={() => setShowForm(true)}>+ Thêm sản phẩm</Button>
           </div>
         }
       />
+
+      <div className="my-4">
+        <input
+          type="text"
+          placeholder="Tìm kiếm sản phẩm..."
+          className="border px-3 py-2 rounded w-full max-w-xs"
+          onChange={async (e) => {
+        const value = e.target.value;
+        setLoading(true);
+        if (value.trim() === "") {
+          await fetchProducts();
+        } else {
+          try {
+            const searchResults = await searchProducts(value, 100, currentPage);
+            setCurrentPage(1);
+            setProducts(searchResults);
+          } catch (err) {
+            setProducts([]);
+          } finally {
+            setLoading(false);
+          }
+        }
+          }}
+          onKeyDown={async (e) => {
+        if (e.key === "Enter") {
+          const value = (e.target as HTMLInputElement).value;
+          setLoading(true);
+          if (value.trim() === "") {
+            await fetchProducts();
+          } else {
+            try {
+          const searchResults = await searchProducts(value, 100, currentPage);
+          setCurrentPage(1);
+          setProducts(searchResults);
+            } catch (err) {
+          setProducts([]);
+            } finally {
+          setLoading(false);
+            }
+          }
+        }
+          }}
+        />
+      </div>
 
       {loading ? (
         <p>Đang tải...</p>
@@ -275,23 +327,35 @@ const handleSubmit = async (e: React.FormEvent) => {
                   <td className="p-2">{p.quantity}</td>
                   <td className="p-2">
                     <span
-                      className={`px-2 py-1 rounded text-sm ${
-                        p.status === "available"
-                          ? "bg-green-100 text-green-600"
-                          : p.status === "out_of_stock"
+                      className={`px-2 py-1 rounded text-sm ${p.status === "available"
+                        ? "bg-green-100 text-green-600"
+                        : p.status === "out_of_stock"
                           ? "bg-red-100 text-red-600"
                           : "bg-gray-100 text-gray-600"
-                      }`}
+                        }`}
                     >
                       {p.status === "available"
                         ? "Còn hàng"
                         : p.status === "out_of_stock"
-                        ? "Hết hàng"
-                        : "Ẩn"}
+                          ? "Hết hàng"
+                          : "Ẩn"}
                     </span>
                   </td>
                   <td className="p-2 flex gap-2">
-                    <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
+                    <Eye className="w-4 h-4 cursor-pointer text-blue-600" 
+                      onClick={() => {
+                        try {
+                          if (typeof window !== "undefined") {
+                            const newWindow = window.open(`/user/product/detail/${p.slug}`, "_blank");
+                            if (!newWindow) {
+                              alert("Trình duyệt đã chặn cửa sổ mới. Vui lòng cho phép popup!");
+                            }
+                          }
+                        } catch (err) {
+                          alert("Không thể mở trang chi tiết sản phẩm.");
+                        }
+                      }}
+                    />
                     <Edit
                       className="w-4 h-4 cursor-pointer text-yellow-600"
                       onClick={() => openEditForm(p)}
@@ -338,23 +402,35 @@ const handleSubmit = async (e: React.FormEvent) => {
                         <p className="flex items-center gap-2">
                           <span className="font-semibold">Trạng thái:</span>
                           <span
-                            className={`px-2 py-1 rounded text-sm ${
-                              p.status === "available"
-                                ? "bg-green-100 text-green-600"
-                                : p.status === "out_of_stock"
+                            className={`px-2 py-1 rounded text-sm ${p.status === "available"
+                              ? "bg-green-100 text-green-600"
+                              : p.status === "out_of_stock"
                                 ? "bg-red-100 text-red-600"
                                 : "bg-gray-100 text-gray-600"
-                            }`}
+                              }`}
                           >
                             {p.status === "available"
                               ? "Còn hàng"
                               : p.status === "out_of_stock"
-                              ? "Hết hàng"
-                              : "Ẩn"}
+                                ? "Hết hàng"
+                                : "Ẩn"}
                           </span>
                         </p>
                         <div className="flex gap-4 pt-2">
-                          <Eye className="w-4 h-4 cursor-pointer text-blue-600" />
+                          <Eye className="w-4 h-4 cursor-pointer text-blue-600"
+                            onClick={() => {
+                              try {
+                                if (typeof window !== "undefined") {
+                                  const newWindow = window.open(`/user/product/detail/${p.slug}`, "_blank");
+                                  if (!newWindow) {
+                                    alert("Trình duyệt đã chặn cửa sổ mới. Vui lòng cho phép popup!");
+                                  }
+                                }
+                              } catch (err) {
+                                alert("Không thể mở trang chi tiết sản phẩm.");
+                              }
+                            }}
+                          />
                           <Edit
                             className="w-4 h-4 cursor-pointer text-yellow-600"
                             onClick={() => openEditForm(p)}
@@ -580,24 +656,42 @@ const handleSubmit = async (e: React.FormEvent) => {
           </div>
         </div>
       )}
-      <div className="mt-4 flex justify-center gap-2">
-        <button
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-          className="px-3 py-1 border rounded disabled:opacity-50"
-        >
-          ← Trước
-        </button>
-        <span className="px-3 py-1">
-          Trang {currentPage} / {totalPages}
-        </span>
-        <button
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-          className="px-3 py-1 border rounded disabled:opacity-50"
-        >
-          Sau →
-        </button>
+      <div className="mt-4 flex justify-between items-center flex-wrap gap-4">
+        <p className="text-sm text-gray-600">
+          Hiển thị {startItem}-{endItem} từ {products.length}
+        </p>
+
+        <div className="flex items-center gap-1 flex-wrap">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded bg-blue-50 text-blue-600 disabled:opacity-50"
+          >
+            &lt;
+          </button>
+
+          {getPaginationRange(totalPages, currentPage).map((page, i) => (
+            <button
+              key={i}
+              onClick={() => typeof page === 'number' && setCurrentPage(page)}
+              disabled={page === '...'}
+              className={`px-3 py-1 rounded ${currentPage === page
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-blue-50 text-blue-600'
+                } ${page === '...' ? 'cursor-default opacity-50' : ''}`}
+            >
+              {page}
+            </button>
+          ))}
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 rounded bg-blue-50 text-blue-600 disabled:opacity-50"
+          >
+            &gt;
+          </button>
+        </div>
       </div>
     </div>
   );
