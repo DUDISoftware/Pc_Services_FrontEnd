@@ -15,9 +15,8 @@ export default function UserHomePage() {
   return (
     <div>
      <CategoryNav selectedCategory={""} />
-      <HomeBanner />
+      <HomeBanner />    
       <FeaturedServices />
-      
       <HomeBenefits />
       <FeaturedProducts />
       <HeroSection />

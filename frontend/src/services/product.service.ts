@@ -132,6 +132,8 @@ export const productService = {
       formData.append("description", data.description || "");
       formData.append("slug", data.slug || "");
       formData.append("price", String(data.price || 0));
+            formData.append("discount", String(data.discount || 0));
+
       formData.append("quantity", String(data.quantity || 0));
       formData.append("status", data.status || "available");
       formData.append("brand", data.brand || "");

@@ -29,25 +29,34 @@ export default function ServiceList() {
   if (loading) return <p>Đang tải dịch vụ...</p>;
 
   return (
+    
     <div>
       <h1 className="text-2xl font-bold mb-6">Các dịch vụ sửa chữa</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {services.map((s) => (
-          <ServiceCard
-            key={s._id}
-            service={{
-              id: s._id,
-              title: s.name,
-              oldPrice: Math.round(s.price / 0.8), // Giả sử giá cũ cao hơn giá hiện tại 20%
-              price: s.price,
-              discount: "Giảm 20%",
-              rating: 4.5,
-              slug: s.slug,
-              img: (Array.isArray(s.images) && s.images.length > 0 ? s.images[0].url : DefaultServiceImage), // 👈 nếu s.images có ít nhất 1 ảnh thì lấy url ảnh đầu tiên, nếu không thì dùng ảnh mặc định
-            }}
-          />
-        ))}
-      </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+  {services.map((s) => (
+    <ServiceCard
+      key={s._id}
+      service={{
+        id: s._id,
+        title: s.name,
+        // ✅ oldPrice luôn là number để không lỗi type
+        oldPrice: s.price,
+        price:
+          s.discount > 0
+            ? Math.round(s.price - (s.price * s.discount) / 100)
+            : s.price,
+        discount: s.discount > 0 ? `${s.discount}%` : '', // chỉ hiển thị khi có giảm
+        rating: 4.5,
+        slug: s.slug,
+        img:
+          Array.isArray(s.images) && s.images.length > 0
+            ? s.images[0].url
+            : DefaultServiceImage,
+      }}
+    />
+  ))}
+</div>
+
     </div>
   );
 }

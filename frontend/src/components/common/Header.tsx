@@ -73,6 +73,7 @@ export default function Header() {
   const getActiveLabel = () => {
     if (pathname.includes("/user/product")) return "Sản phẩm";
     if (pathname.includes("/user/service")) return "Dịch vụ";
+     if (pathname.includes("/user/sales")) return "Ưu đãi";
     if (pathname.includes("/user/about")) return "Về chúng tôi";
     return "Trang chủ";
   };

@@ -115,8 +115,10 @@ export default function ServicesTable() {
           <tr>
             <th className="p-2"><input type="checkbox" /></th>
             <th className="p-2">Tên dịch vụ</th>
-            <th className="p-2">Mô tả</th>
-            <th className="p-2">Giá</th>
+            {/* <th className="p-2">Mô tả</th> */}
+            <th className="p-2">Giá gốc</th>
+            <th className="p-2">Giảm giá</th>
+            <th className="p-2">Giá đã giảm</th>
             <th className="p-2">Danh mục</th>
             <th className="p-2">Trạng thái</th>
             <th className="p-2">Hành động</th>
@@ -127,8 +129,10 @@ export default function ServicesTable() {
             <tr key={s._id} className="border-b hover:bg-gray-50">
               <td className="p-2"><input type="checkbox" /></td>
               <td className="p-2">{s.name}</td>
-              <td className="p-2">{s.description}</td>
+              {/* <td className="p-2">{s.description}</td> */}
               <td className="p-2">{s.price.toLocaleString()} đ</td>
+              <td className="p-2">{s.discount} %</td>
+              <td className="p-2">{(s.price - (s.price * s.discount / 100)).toLocaleString()} đ</td>
               <td className="p-2">
                 {typeof s.category_id === "string"
                   ? "Chưa có"
@@ -164,8 +168,10 @@ export default function ServicesTable() {
         {services.map((s) => (
           <div key={s._id} className="border rounded p-4 shadow-sm">
             <p><strong>Tên:</strong> {s.name}</p>
-            <p><strong>Mô tả:</strong> {s.description}</p>
+            {/* <p><strong>Mô tả:</strong> {s.description}</p> */}
             <p><strong>Giá:</strong> {s.price.toLocaleString()} đ</p>
+            <p><strong>Giảm giá:</strong> {s.discount} %</p>
+            <p><strong>Giảm giá:</strong> {(s.price - (s.price * s.discount / 100)).toLocaleString()}</p>
             <p><strong>Danh mục:</strong> {typeof s.category_id === "string" ? "Chưa có" : s.category_id?.name}</p>
             <p className="flex items-center gap-2">
               <strong>Trạng thái:</strong>

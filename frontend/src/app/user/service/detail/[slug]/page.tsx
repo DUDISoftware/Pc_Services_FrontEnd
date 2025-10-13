@@ -1,3 +1,78 @@
+// "use client";
+
+// import { use, useEffect, useState } from "react";
+// import Image from "next/image";
+// import { serviceService } from "@/services/service.service";
+// import { Service } from "@/types/Service";
+// import DefaultServiceImage from "@/assets/image/service/services.png";
+
+// import FeaturedFixServices from "./components/FeaturedFixServices";
+// import ServiceRequestModal from "./components/ServiceRequestModal";
+
+// export default function ServiceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+//   // ✅ unwrap params
+//   const { slug } = use(params);
+
+//   const [service, setService] = useState<Service | null>(null);
+//   const [loading, setLoading] = useState(true);
+//   const [open, setOpen] = useState(false);
+
+//   useEffect(() => {
+//     const fetchService = async () => {
+//       try {
+//         const data = await serviceService.getBySlug(slug);
+//         setService(data);
+//         const views = await serviceService.countViewRedis(data._id);
+//       } catch (err) {
+//         console.error("Lỗi khi tải chi tiết dịch vụ:", err);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+//     fetchService();
+//   }, [slug]);
+
+//   if (loading) return <p>Đang tải chi tiết dịch vụ...</p>;
+//   if (!service) return <p>Không tìm thấy dịch vụ.</p>;
+
+//   return (
+//     <div className="max-w-5xl mx-auto px-4 py-10">
+//       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+//         <div className="relative w-full h-80">
+//           <Image
+//             src={DefaultServiceImage}
+//             alt={service.name}
+//             fill
+//             className="object-contain"
+//           />
+//         </div>
+
+//         <div>
+//           <h1 className="text-2xl font-bold mb-4">{service.name}</h1>
+//           <div className="flex gap-3 mb-6">
+//             <span className="text-gray-400 line-through">
+//               {new Intl.NumberFormat("vi-VN").format(service.price * 1.2)}₫
+//             </span>
+//             <span className="text-red-500 text-2xl font-semibold">
+//               {new Intl.NumberFormat("vi-VN").format(service.price)}₫
+//             </span>
+//           </div>
+//           <p className="text-gray-700 mb-6">{service.description}</p>
+//           <button
+//             onClick={() => setOpen(true)}
+//             className="bg-blue-600 text-white px-6 py-3 rounded-lg"
+//           >
+//             Yêu cầu dịch vụ
+//           </button>
+//         </div>
+//       </div>
+
+//       <FeaturedFixServices />
+
+//       <ServiceRequestModal serviceData = {service} isOpen={open} onClose={() => setOpen(false)} />
+//     </div>
+//   );
+// }
 "use client";
 
 import { use, useEffect, useState } from "react";
@@ -9,8 +84,11 @@ import DefaultServiceImage from "@/assets/image/service/services.png";
 import FeaturedFixServices from "./components/FeaturedFixServices";
 import ServiceRequestModal from "./components/ServiceRequestModal";
 
-export default function ServiceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  // ✅ unwrap params
+export default function ServiceDetailPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = use(params);
 
   const [service, setService] = useState<Service | null>(null);
@@ -22,7 +100,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
       try {
         const data = await serviceService.getBySlug(slug);
         setService(data);
-        const views = await serviceService.countViewRedis(data._id);
+        await serviceService.countViewRedis(data._id);
       } catch (err) {
         console.error("Lỗi khi tải chi tiết dịch vụ:", err);
       } finally {
@@ -35,12 +113,22 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
   if (loading) return <p>Đang tải chi tiết dịch vụ...</p>;
   if (!service) return <p>Không tìm thấy dịch vụ.</p>;
 
+  // ✅ Chỉ tính giá giảm nếu có giảm giá thật
+  const hasDiscount = service.discount && Number(service.discount) > 0;
+  const discountedPrice = hasDiscount
+    ? Math.round(service.price - (service.price * Number(service.discount)) / 100)
+    : service.price;
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="relative w-full h-80">
           <Image
-            src={DefaultServiceImage}
+            src={
+              service.images && service.images.length > 0
+                ? service.images[0].url
+                : DefaultServiceImage
+            }
             alt={service.name}
             fill
             className="object-contain"
@@ -49,15 +137,31 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
 
         <div>
           <h1 className="text-2xl font-bold mb-4">{service.name}</h1>
-          <div className="flex gap-3 mb-6">
-            <span className="text-gray-400 line-through">
-              {new Intl.NumberFormat("vi-VN").format(service.price * 1.2)}₫
-            </span>
-            <span className="text-red-500 text-2xl font-semibold">
-              {new Intl.NumberFormat("vi-VN").format(service.price)}₫
-            </span>
+
+          <div className="flex gap-3 mb-6 items-center">
+            {/* ✅ Chỉ hiển thị giá gốc & giảm nếu discount > 0 */}
+            {hasDiscount ? (
+              <>
+                <span className="text-gray-400 line-through text-sm">
+                  {new Intl.NumberFormat("vi-VN").format(service.price)}₫
+                </span>
+                <span className="text-red-500 text-2xl font-semibold">
+                  {new Intl.NumberFormat("vi-VN").format(discountedPrice)}₫
+                </span>
+                <span className="text-sm bg-red-500 text-white px-2 py-1 rounded">
+                  -{service.discount}%
+                </span>
+              </>
+            ) : (
+              // ✅ Nếu không có discount, chỉ hiện giá bình thường
+              <span className="text-red-500 text-2xl font-semibold">
+                {new Intl.NumberFormat("vi-VN").format(service.price)}₫
+              </span>
+            )}
           </div>
+
           <p className="text-gray-700 mb-6">{service.description}</p>
+
           <button
             onClick={() => setOpen(true)}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg"
@@ -69,7 +173,11 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
 
       <FeaturedFixServices />
 
-      <ServiceRequestModal serviceData = {service} isOpen={open} onClose={() => setOpen(false)} />
+      <ServiceRequestModal
+        serviceData={service}
+        isOpen={open}
+        onClose={() => setOpen(false)}
+      />
     </div>
   );
 }

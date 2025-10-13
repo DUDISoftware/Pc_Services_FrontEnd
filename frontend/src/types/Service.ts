@@ -5,6 +5,8 @@ export type Service = {
   name: string;
   description: string;
   price: number;
+  discount: number;
+  salePrice: number;
   slug: string;
   type: "at_home" | "at_store";
   estimated_time: string;
@@ -25,6 +27,8 @@ export interface ServiceApi {
   name: string;
   description: string;
   price: number;
+  discount: number;
+  salePrice: number;
   slug: string;
   type: "at_home" | "at_store";
   estimated_time: string;

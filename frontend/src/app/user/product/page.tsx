@@ -26,6 +26,7 @@ export default function UserProductPage() {
       />
 
       {/* Danh sách sản phẩm */}
+      
       <Products category={selectedCategory} />
 
       {/* Các section khác */}

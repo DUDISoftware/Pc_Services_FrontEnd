@@ -91,6 +91,7 @@ export function mapProduct(apiData: ProductApi): Product {
     description: apiData.description ?? "",
     rating: apiData.rating ?? 0,
     price: apiData.price,
+    discount:apiData.discount,
     quantity: apiData.quantity,
     brand: apiData.brand,
     status: apiData.status as Product["status"],
@@ -99,15 +100,14 @@ export function mapProduct(apiData: ProductApi): Product {
     ports: apiData.ports || [],
     panel: apiData.panel,
     size: apiData.size,
-
     category_id:
-    typeof apiData.category_id === "object"
-      ? {
-          _id: apiData.category_id._id,
-          name: apiData.category_id.name,
-          slug: apiData.category_id.slug
-        }
-      : { _id: "", name: "", slug: "" },
+    apiData.category_id && typeof apiData.category_id === "object"
+    ? {
+        _id: apiData.category_id._id,
+        name: apiData.category_id.name,
+        slug: apiData.category_id.slug,
+      }
+    : apiData.category_id,
 
     // category_id:
     //   typeof apiData.category._id === "string"
@@ -133,6 +133,8 @@ export function mapService(apiData: ServiceApi): Service {
     name: apiData.name,
     description: apiData.description,
     price: apiData.price,
+    discount:apiData.discount,
+    salePrice:apiData.price - (apiData.price * apiData.discount /100),
     type: apiData.type,
     slug: apiData.slug,
     estimated_time: apiData.estimated_time,

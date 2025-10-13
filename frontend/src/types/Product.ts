@@ -11,6 +11,7 @@ export type Product = {
   description: string;
   rating?: number;
   price: number;
+  discount: number;
   quantity: number;
   status: "available" | "out_of_stock" | "hidden";
   brand: string;
@@ -38,6 +39,7 @@ export interface ProductApi {
   rating?: number;
   description?: string;
   price: number;
+  discount: number;
   quantity: number;
   status: "available" | "out_of_stock" | "hidden";
   brand: string;

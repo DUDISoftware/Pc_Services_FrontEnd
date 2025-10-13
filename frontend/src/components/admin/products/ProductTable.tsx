@@ -7,7 +7,6 @@ import Button from "@/components/common/Button";
 import { productService } from "@/services/product.service";
 import { categoryService } from "@/services/category.service";
 import { Product, UploadedImage } from "@/types/Product";
-import { discountService } from "@/services/discount.service";
 
 
 type Category = {
@@ -19,7 +18,6 @@ export default function ProductTable() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showForm, setShowForm] = useState(false);
@@ -35,12 +33,12 @@ export default function ProductTable() {
     model?: string;
     description?: string;
     price?: number;
+    discount?: number;
     quantity?: number;
     status?: "available" | "out_of_stock" | "hidden";
     brand?: string;
     category_id?: string;
     images?: (File | UploadedImage)[];
-    SaleOf?:number;
   }>({ images: [], status: "available" });
 
   const totalPages = Math.max(1, Math.ceil(products.length / itemsPerPage));
@@ -95,14 +93,13 @@ export default function ProductTable() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.category_id) {
       alert("Vui lòng chọn danh mục!");
       return;
     }
-
     const payload = {
       name: formData.name ?? "",
       slug: formData.slug ?? "",
@@ -114,6 +111,7 @@ export default function ProductTable() {
       model: formData.model ?? "",
       description: formData.description ?? "",
       price: formData.price ?? 0,
+      discount: formData.discount ?? 0,
       quantity: formData.quantity ?? 0,
       status: formData.status ?? "available",
       brand: formData.brand ?? "",
@@ -124,13 +122,11 @@ export default function ProductTable() {
     try {
       if (editingProduct) {
         const updated = await productService.update(editingProduct._id, payload);
-      if (formData.SaleOf !== undefined) {
-        await discountService.updateDiscount(editingProduct._id, { discount: formData.SaleOf });
-      }
         setProducts((prev) =>
           prev.map((p) => (p._id === updated._id ? updated : p))
         );
       } else {
+        console.log("Creating product with payload:", payload);
         const created = await productService.create(payload);
         setProducts((prev) => [...prev, created]);
       }
@@ -141,39 +137,32 @@ export default function ProductTable() {
       console.error("Save failed", err);
     }
   };
+  const openEditForm = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      slug: product.slug,
+      tags: product.tags,
+      ports: product.ports,
+      panel: product.panel,
+      resolution: product.resolution,
+      size: product.size,
+      model: product.model,
+      description: product.description,
+      price: product.price,
+      discount: product.discount,
+      quantity: product.quantity,
+      status: product.status,
+      brand: product.brand,
+     category_id:
+  typeof product.category_id === "object" && product.category_id !== null
+    ? (product.category_id as { _id: string })._id
+    : (product.category_id as string),
 
-  const openEditForm = async (product: Product) => {
-    try{
-      const discountData = await discountService.getByProductId(product._id);
-      console.log("📋 Discount data for product", product._id, ":", discountData); // Log để kiểm tra
-      setEditingProduct(product);
-      setFormData({
-        name: product.name,
-        slug: product.slug,
-        tags: product.tags,
-        ports: product.ports,
-        panel: product.panel,
-        resolution: product.resolution,
-        size: product.size,
-        model: product.model,
-        description: product.description,
-        price: product.price,
-        quantity: product.quantity,
-        status: product.status,
-        brand: product.brand,
-        category_id:
-          typeof product.category_id === "object"
-            ? product.category_id._id
-            : product.category_id,
-        images: product.images,
-        SaleOf: discountData?.SaleOf, 
-      });
-      setShowForm(true);
-    }catch (err: any) {
-        console.error("Error fetching discount", err);
-    }
+      images: product.images,
+    });
+    setShowForm(true);
   };
-
   const openAddForm = () => {
     setEditingProduct(null);
     setFormData({ images: [], status: "available" });
@@ -250,8 +239,9 @@ export default function ProductTable() {
             <tr>
               <th className="p-2">Hình ảnh</th>
               <th className="p-2">Sản phẩm</th>
-              <th className="p-2">Mô tả</th>
-              <th className="p-2">Giá</th>
+              <th className="p-2">Giá gốc</th>
+              <th className="p-2">Giảm giá</th>
+              <th className="p-2">Giá đã giảm</th>
               <th className="p-2">Danh mục</th>
               <th className="p-2">Số lượng</th>
               <th className="p-2">Trạng thái</th>
@@ -276,8 +266,9 @@ export default function ProductTable() {
                     )}
                   </td>
                   <td className="p-2">{p.name}</td>
-                  <td className="p-2">{p.description}</td>
                   <td className="p-2">{p.price.toLocaleString()} đ</td>
+                  <td className="p-2">{p.discount} %</td>
+                   <td className="p-2">{(p.price - (p.price * p.discount / 100)).toLocaleString()} đ</td>
                   <td className="p-2">
                     {typeof p.category_id === "object" ? p.category_id.name : p.category_id}
                   </td>
@@ -384,8 +375,13 @@ export default function ProductTable() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-white p-6 rounded shadow w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
+            onClick={() => setShowForm(false)} 
+            >
+              <div
+                className="bg-white p-6 rounded shadow w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()} 
+              >
             <h2 className="text-lg font-semibold mb-4">
               {editingProduct ? "Sửa sản phẩm" : "Thêm sản phẩm"}
             </h2>
@@ -489,13 +485,8 @@ export default function ProductTable() {
                 <input
                   type="number"
                   placeholder="Discount (%)"
-                  value={formData.SaleOf ?? "0"}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    SaleOf: e.target.value ? Number(e.target.value) : undefined,
-                  })
-                }
+                  value={formData.discount || "0"}
+                  onChange={(e) => setFormData({ ...formData, discount: Number(e.target.value)  })}
                   className="w-full border px-3 py-2 rounded"
                   required
                   min={0}

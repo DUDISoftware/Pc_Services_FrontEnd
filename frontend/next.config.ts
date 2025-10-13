@@ -11,9 +11,10 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
-    domains: ["res.cloudinary.com", "picsum.photos", "loremflickr.com"],
+    domains: ["res.cloudinary.com", "picsum.photos", "loremflickr.com","cdn2.fptshop.com.vn",],
   },
   // reactStrictMode: false,
 };
+
 
 export default nextConfig;
