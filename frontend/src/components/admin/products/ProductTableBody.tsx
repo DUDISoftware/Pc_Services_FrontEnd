@@ -1,13 +1,18 @@
 import React from "react";
 import { Edit, Trash, Eye } from "lucide-react";
 import { Product } from "@/types/Product";
+import { Discount } from "@/types/Discount";
+
 
 export interface ProductTableBodyProps {
   products: Product[];
   loading?: boolean;              // cho phép không truyền
   onEdit: (product: Product) => void;
   onDelete: (id: string) => void;
-  totalCols?: number;             // số cột để colSpan (mặc định 8)
+  totalCols?: number;   
+  discounts: Record<string, Discount | null>; // 👈 thêm
+          // số cột để colSpan (mặc định 8)
+
 }
 
 const currency = new Intl.NumberFormat("vi-VN");
@@ -18,6 +23,7 @@ export default function ProductTableBody({
   onEdit,
   onDelete,
   totalCols = 8,
+  discounts
 }: ProductTableBodyProps) {
   if (loading) {
     // hàng loading gọn — có thể thay bằng skeleton nếu muốn
@@ -64,8 +70,18 @@ export default function ProductTableBody({
               )}
             </td>
             <td className="p-2">{p.name}</td>
-            <td className="p-2">{p.description}</td>
+            {/* <td className="p-2">{p.description}</td> */}
             <td className="p-2">{currency.format(p.price)} đ</td>
+            <td className="p-2">
+              {discounts?.[p._id]?.sale_off
+                ? `${discounts[p._id]!.sale_off}%`
+                : "—"}
+            </td>
+            <td className="p-2">
+              {discounts?.[p._id]?.sale_off
+                ? `${(p.price - (p.price * discounts[p._id]!.sale_off) / 100).toLocaleString()} đ`
+                : `${p.price.toLocaleString()} đ`}
+            </td>
             <td className="p-2">
               {typeof p.category_id === "object" ? p.category_id.name : p.category_id}
             </td>
@@ -123,6 +139,13 @@ export default function ProductTableBody({
                   <p><span className="font-semibold">Tên:</span> {p.name}</p>
                   <p><span className="font-semibold">Mô tả:</span> {p.description}</p>
                   <p><span className="font-semibold">Giá:</span> {currency.format(p.price)} đ</p>
+                  <p>
+                    <span className="font-semibold">Giảm giá:</span>{" "}
+                    {discounts?.[p._id]?.sale_off
+                      ? `${discounts[p._id]!.sale_off}%`
+                      : "—"}
+                  </p>
+
                   <p>
                     <span className="font-semibold">Danh mục:</span>{" "}
                     {typeof p.category_id === "object" ? p.category_id.name : p.category_id}

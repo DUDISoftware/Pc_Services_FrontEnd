@@ -8,12 +8,14 @@ import { CategoryService } from "@/types/CategoryService";
 import { serviceService } from "@/services/service.service";
 import { X } from "lucide-react";
 import { toast } from "react-toastify";
+import { discountService } from "@/services/discount.service";
 
 type Props = {
   initialData?: Service;
   categories: CategoryService[];
   onSubmit: (data: FormData & { category_id: string }) => Promise<void>;
   onCancel: () => void;
+  fetchServices: () => Promise<void>; // gọi lại danh sách sau khi update
   isSubmitting?: boolean; // 👈 thêm dòng này
 };
 
@@ -22,12 +24,14 @@ export default function ServiceForm({
   categories,
   onSubmit,
   onCancel,
+  fetchServices,
   isSubmitting,
 }: Props) {
   const [form, setForm] = useState({
     name: "",
     description: "",
     price: 0,
+    discount: 0,
     type: "at_store" as "at_store" | "at_home", // ✅ ép kiểu
     estimated_time: "",
     status: "active" as "active" | "inactive" | "hidden", // ✅ ép kiểu
@@ -36,24 +40,38 @@ export default function ServiceForm({
   });
 
   useEffect(() => {
+    const fetchDiscount = async () => {
+      if (initialData?._id) {
+        try {
+         const res = await discountService.getByServiceId(initialData._id);
+          setForm(prev => ({ ...prev, discount: res?.sale_off || 0 }));
+        } catch (err) {
+          console.warn("⚠️ Không tìm thấy discount cho dịch vụ này", err);
+        }
+      }
+    };
+
     if (initialData) {
-      setForm({
+      setForm((prev) => ({
+        ...prev,
         name: initialData.name || "",
         description: initialData.description || "",
         price: initialData.price || 0,
-        type: (initialData.type as "at_store" | "at_home") || "at_store", // ✅
+        type: (initialData.type as "at_store" | "at_home") || "at_store",
         estimated_time: initialData.estimated_time || "",
-        status: (initialData.status as "active" | "inactive" | "hidden") || "active", // ✅
+        status: (initialData.status as "active" | "inactive" | "hidden") || "active",
         category_id:
           typeof initialData.category_id === "string"
             ? initialData.category_id
             : initialData.category_id &&
               typeof initialData.category_id === "object" &&
               "_id" in initialData.category_id
-              ? (initialData.category_id as { _id: string })._id
-              : "",
+            ? (initialData.category_id as { _id: string })._id
+            : "",
         images: initialData.images || [],
-      });
+      }));
+
+      fetchDiscount();
     }
   }, [initialData]);
 
@@ -65,7 +83,8 @@ export default function ServiceForm({
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]:
+       name === "price" || name === "discount"? Number(value) :value,
     }));
   };
 
@@ -98,7 +117,6 @@ export default function ServiceForm({
     const isAnyNewFile = form.images.some(img => img instanceof File);
 
     if (isAnyNewFile) {
-      // 👉 Trường hợp có ảnh mới: dùng FormData
       const formData = new FormData();
       formData.append("name", form.name);
       formData.append("description", form.description);
@@ -123,7 +141,6 @@ export default function ServiceForm({
 
       onSubmit(formData as FormData & { category_id: string }); // FormData path ✅
     } else {
-      // 👉 Trường hợp không đổi ảnh (hoặc ảnh cũ): gửi JSON thường
       const payload = {
         ...form,
         price: Number(form.price),
@@ -135,8 +152,20 @@ export default function ServiceForm({
           .replace(/\s+/g, "-")
           .replace(/[^a-z0-9-]/g, "")
       };
+
       onSubmit(payload as any); // JSON path ✅
     }
+
+  if (initialData?._id && form.discount > 0) {
+    try {
+      await discountService.updateDiscountService(initialData._id, {
+        sale_off: form.discount, 
+      });
+      console.log("✅ Cập nhật giảm giá dịch vụ thành công");
+    } catch (err) {
+      console.error("❌ Lỗi khi cập nhật giảm giá:", err);
+    }
+  }
   };
 
 
@@ -166,6 +195,17 @@ export default function ServiceForm({
         placeholder="Giá"
         className="w-full border p-2 rounded"
       />
+
+       <input
+          name="discount"
+          type="number"
+          value={form.discount}
+          onChange={handleChange}
+          placeholder="Giảm giá (%)"
+          className="w-full border p-2 rounded"
+          min={0}
+          max={100}
+        />
 
       <select
         name="type"

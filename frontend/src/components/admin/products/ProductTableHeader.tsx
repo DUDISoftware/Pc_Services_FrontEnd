@@ -16,11 +16,11 @@ export default function ProductTableHeader({ onAddProduct, onExport }: ProductTa
         <p className="text-sm text-gray-500">Xem, chỉnh sửa và thêm sản phẩm</p>
       </div>
       <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-        {onExport && (
-          <Button variant="secondary" onClick={onExport}>
+        
+        <Button variant="secondary" onClick={onExport}>
             📤 Xuất file
-          </Button>
-        )}
+        </Button>
+        
         <Button variant="primary" onClick={onAddProduct}>
           + Thêm sản phẩm
         </Button>
