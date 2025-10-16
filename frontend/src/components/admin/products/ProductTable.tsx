@@ -3,9 +3,11 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Product, UploadedImage } from "@/types/Product";
+import { Discount } from "@/types/Discount";
 import { productService } from "@/services/product.service";
 import { searchProducts } from "@/services/search.service";
 import { categoryService } from "@/services/category.service";
+import { discountService } from "@/services/discount.service";
 
 import ProductTableHeader from "@/components/admin/products/ProductTableHeader";
 import ProductSearchInput from "@/components/admin/products/ProductSearchInput";
@@ -37,6 +39,7 @@ type ProductFormData = {
 
 export default function ProductTable() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [discounts, setDiscounts] = useState<Record<string, Discount | null>>({});
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -77,7 +80,7 @@ export default function ProductTable() {
       setLoading(true);
       const current = Date.now();
       latestFetch.current = current;
-
+console.log("fetch product call");
       let data;
       if (searchQuery.trim()) {
         data = await searchProducts(searchQuery, itemsPerPage, currentPage);
@@ -89,6 +92,17 @@ export default function ProductTable() {
 
       setProducts(data.products);
       setTotalProducts(data.total);
+      // discount 
+  const discountResults = await Promise.all(
+    data.products.map((p: Product) =>
+      discountService.getByProductId(p._id).catch(() => null)
+    )
+  );
+  const discountMap: Record<string, Discount | null> = {};
+  data.products.forEach((p: Product, idx: number) => {
+    discountMap[p._id] = discountResults[idx];
+  });
+  setDiscounts(discountMap);
     } catch (err) {
       console.error("Error fetching products", err);
       setProducts([]);
@@ -146,6 +160,13 @@ export default function ProductTable() {
       toast.error("❌ Xóa sản phẩm thất bại.");
     }
   };
+  const updateDiscountForProduct = async (productId: string) => {
+  const discount = await discountService.getByProductId(productId).catch(() => null);
+  setDiscounts((prev) => ({
+    ...prev,
+    [productId]: discount,
+  }));
+};
 
   return (
     <div className="bg-white shadow rounded p-4">
@@ -155,7 +176,31 @@ export default function ProductTable() {
           setFormData({ images: [], status: "available" });
           setShowForm(true);
         }}
-      />
+        // excel
+        onExport={async () => {
+        try {
+          toast.info("⏳ Đang xuất file Excel...");
+
+          const blob = await productService.exportProductsToExcel();
+          const url = window.URL.createObjectURL(new Blob([blob]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute(
+            "download",
+            `Danh_sach_san_pham_${new Date().toISOString().split("T")[0]}.xlsx`
+          );
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+
+          toast.success("✅ Xuất file Excel thành công!");
+        } catch (error) {
+          console.error("❌ Lỗi khi xuất Excel:", error);
+          toast.error("Xuất file thất bại!");
+        }
+      }}
+    />
+      
 
       <ProductSearchInput
         query={searchQuery}
@@ -174,8 +219,10 @@ export default function ProductTable() {
             <tr>
               <th className="p-2">Ảnh</th>
               <th className="p-2">Tên</th>
-              <th className="p-2">Mô tả</th>
-              <th className="p-2">Giá</th>
+              {/* <th className="p-2">Mô tả</th> */}
+              <th className="p-2">Giá gốc</th>
+              <th className="p-2">Giảm giá</th>
+              <th className="p-2">Giá đã giảm</th>
               <th className="p-2">Danh mục</th>
               <th className="p-2">Số lượng</th>
               <th className="p-2">Trạng thái</th>
@@ -185,6 +232,7 @@ export default function ProductTable() {
           <ProductTableBody
             products={products}
             loading={loading}
+            discounts={discounts} 
             onEdit={(p) => {
               setEditingProduct(p);
               setFormData({
@@ -222,7 +270,7 @@ export default function ProductTable() {
         <ProductFormModal
           categories={categories}
           editingProduct={editingProduct}
-          show={showForm}
+          show={showForm}   
           onClose={() => {
             setShowForm(false);
             setEditingProduct(null);
@@ -232,27 +280,24 @@ export default function ProductTable() {
           setFormData={setFormData}
           handleImageChange={handleImageChange}
           removeImage={removeImage}
-          onSubmit={async (productData: Partial<Product>) => {
-            try {
-              let updated: Product;
-              if (editingProduct) {
-                updated = await productService.update(editingProduct._id, productData);
-                setProducts((prev) =>
-                  prev.map((p) => (p._id === updated._id ? updated : p))
-                );
-              } else {
-                updated = await productService.create(productData);
-                setProducts((prev) => [updated, ...prev]);
-              }
-              toast.success(editingProduct ? "Cập nhật thành công!" : "Thêm mới thành công!");
-              setShowForm(false);
-              setEditingProduct(null);
-              setFormData({ images: [], status: "available" });
-            } catch (err) {
-              console.error("Save failed", err);
-              toast.error("❌ Lưu sản phẩm thất bại.");
+            updateDiscountForProduct={updateDiscountForProduct}
+         onSubmit={async (productData: Partial<Product>) => {
+          try {
+            if (editingProduct) {
+              await productService.update(editingProduct._id, productData);
+            } else {
+              await productService.create(productData);
             }
-          }}
+            toast.success(editingProduct ? "Cập nhật thành công!" : "Thêm mới thành công!");
+            setShowForm(false);
+            await fetchProducts(); // Chỉ cần gọi lại hàm này!
+            setEditingProduct(null);
+            setFormData({ images: [], status: "available" });
+          } catch (err) {
+            console.error("Save failed", err);
+            toast.error("❌ Lưu sản phẩm thất bại.");
+          }
+        }}
         />
       )}
     </div>
