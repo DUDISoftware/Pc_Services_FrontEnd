@@ -10,6 +10,8 @@ import { mapCategory } from "@/lib/mappers";
 import { toast } from "react-toastify";
 import { showConfirmToast } from "@/components/common/ConfirmToast";
 import "react-toastify/dist/ReactToastify.css";
+import { discountService } from "@/services/discount.service";
+
 
 export default function CategoryTable() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -19,6 +21,13 @@ export default function CategoryTable() {
   const [form, setForm] = useState({ name: "", description: "", slug: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [discountForm, setDiscountForm] = useState({
+  sale_off: 0,
+  start_date: "",
+  end_date: "",
+  });
+  const [isDiscounting, setIsDiscounting] = useState(false);
+
 
   const initialFormRef = useRef({ name: "", description: "", slug: "" });
 
@@ -38,6 +47,40 @@ export default function CategoryTable() {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  // get discount   
+ useEffect(() => {
+  const fetchGlobalDiscount = async () => {
+    try {
+      const data = await discountService.getDiscountProductAll();
+
+      if (data) {
+        const discount = data.discount?.SaleOf || data;
+
+        const formatDateTimeLocal = (dateString: string) => {
+          const date = new Date(dateString);
+          return date.toISOString().slice(0, 16);
+        };
+
+        setDiscountForm({
+          sale_off: discount.sale_off || 0,
+          start_date: formatDateTimeLocal(discount.start_date),
+          end_date: formatDateTimeLocal(discount.end_date),
+        });
+       // toast.info("Đã tải thông tin giảm giá hiện tại!");
+      } else {
+       //toast.info("Chưa có giảm giá chung nào được áp dụng.");
+      }
+    } catch (error) {
+      console.error("❌ Lỗi khi lấy giảm giá chung:", error);
+      //toast.error("Không thể tải thông tin giảm giá hiện tại.");
+    }
+  };
+
+  fetchGlobalDiscount();
+}, []);
+
+
 
   const openFormForNew = () => {
     setEditing(null);
@@ -153,11 +196,88 @@ export default function CategoryTable() {
     (c.description?.toLowerCase() || "").includes(searchTerm.toLowerCase())
   );
 
+  // discount all
+  const handleApplyGlobalDiscount = async () => {
+   
+    const start = new Date(discountForm.start_date);
+    const end = new Date(discountForm.end_date);
+    const today = new Date();
+    const value = discountForm.sale_off;
+
+    if( value == 0){
+      const confirmed = await showConfirmToast({
+        message: `Bạn có chắc xóa giảm giá chứ ?`,
+        confirmText: "Áp dụng",
+        cancelText: "Hủy",
+      });
+      if (!confirmed) return;
+
+    }else if(value != 0){
+      if ( !discountForm.start_date || !discountForm.end_date) {
+        toast.error("Vui lòng nhập đầy đủ thông tin giảm giá.");
+        return;
+      }
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        toast.error("Ngày bắt đầu hoặc kết thúc không hợp lệ!");
+        return;
+      }
+
+      if (start <= today) {
+        toast.error("Ngày bắt đầu không được nhỏ hơn hôm nay!");
+        return;
+      }
+      if (value<0) {
+        toast.error("Giảm giá không được nhỏ hơn 0!");
+        return;
+      }
+
+      if (end <= start) {
+        toast.error("Ngày kết thúc phải sau ngày bắt đầu!");
+        return;
+      }
+    } else{
+      const confirmed = await showConfirmToast({
+        message: `Áp dụng giảm giá ${discountForm.sale_off}% cho tất cả sản phẩm?`,
+        confirmText: "Áp dụng",
+        cancelText: "Hủy",
+      });
+        if (!confirmed) return;
+    }
+
+    const toastId = toast.loading("Đang áp dụng giảm giá cho tất cả sản phẩm...");
+    try {
+      setIsDiscounting(true);
+      await discountService.createDiscountProductAll({
+        sale_off: Number(discountForm.sale_off),
+        start_date: new Date(discountForm.start_date), 
+        end_date: new Date(discountForm.end_date),   
+      });
+
+      toast.update(toastId, {
+        render: "Áp dụng giảm giá thành công!",
+        type: "success",
+        isLoading: false,
+        autoClose: 2500,
+      });
+    } catch (err) {
+      console.error("Error applying global discount", err);
+      toast.update(toastId, {
+        render: "Lỗi khi áp dụng giảm giá.",
+        type: "error",
+        isLoading: false,
+        autoClose: 2500,
+      });
+    } finally {
+      setIsDiscounting(false);
+    }
+  };
+
+
   return (
     <div className="bg-white shadow rounded p-4">
       <TableHeader
-        title="Quản lý danh mục dịch vụ"
-        breadcrumb={["Admin", "Danh mục dịch vụ"]}
+        title="Quản lý danh mục sản phẩm"
+        breadcrumb={["Admin", "Danh mục sản phẩm"]}
         actions={
           <Button variant="primary" onClick={openFormForNew}>
             + Thêm danh mục
@@ -175,6 +295,59 @@ export default function CategoryTable() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
+      </div>
+          {/* Form giảm giá chung */}
+      <div className="border p-4 rounded-lg mb-6 bg-gray-50">
+        <h3 className="font-semibold text-lg mb-3">Siêu sale sản phẩm</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 items-end gap-4">
+          <div>
+            <label className="block text-sm mb-1">Phần trăm giảm (%)</label>
+            <input
+              type="number"
+              className="border rounded px-2 py-1 w-full"
+              placeholder="Nhập % giảm"
+              value={discountForm.sale_off}
+              onChange={(e) =>
+                setDiscountForm({ ...discountForm, sale_off: Number(e.target.value) })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1">Ngày bắt đầu</label>
+            <input
+              type="datetime-local"
+              className="border rounded px-2 py-1 w-full"
+              value={discountForm.start_date}
+              onChange={(e) =>
+                setDiscountForm({ ...discountForm, start_date: e.target.value })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1">Ngày kết thúc</label>
+            <input
+              type="datetime-local"
+              className="border rounded px-2 py-1 w-full"
+              value={discountForm.end_date}
+              onChange={(e) =>
+                setDiscountForm({ ...discountForm, end_date: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="flex md:justify-center">
+            <Button
+              variant="primary"
+              onClick={handleApplyGlobalDiscount}
+              disabled={isDiscounting}
+              className="w-full md:w-auto mt-1"
+            >
+              {isDiscounting ? "Đang áp dụng..." : "Áp dụng giảm giá chung"}
+            </Button>
+          </div>
+        </div>
       </div>
 
       {loading ? (

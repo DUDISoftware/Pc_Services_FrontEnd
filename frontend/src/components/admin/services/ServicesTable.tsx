@@ -8,6 +8,7 @@ import Button from "@/components/common/Button";
 import { serviceService } from "@/services/service.service";
 import { searchServices } from "@/services/search.service";
 import { categoryServiceService } from "@/services/categoryservice.service";
+import { discountService } from "@/services/discount.service"; // 🟢 thêm
 import { Service } from "@/types/Service";
 import { CategoryService } from "@/types/CategoryService";
 import { toast } from "react-toastify";
@@ -22,11 +23,13 @@ export default function ServicesTable() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [query, setQuery] = useState("");
+  const [discounts, setDiscounts] = useState<Record<string, number>>({}); // 🟢 thêm
+  const [discountDates, setDiscountDates] = useState<Record<string, { start: Date; end: Date }>>({});
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  
   const totalPages = Math.max(1, Math.ceil(services.length / itemsPerPage));
   const displayedServices = services.slice(
     (currentPage - 1) * itemsPerPage,
@@ -42,15 +45,30 @@ export default function ServicesTable() {
     return () => window.removeEventListener("resize", updateItemsPerPage);
   }, []);
 
+const fetchServices = async () => {
+  const data = await serviceService.getAll();
 
-  const fetchServices = async () => {
-    try {
-      const data = await serviceService.getAll();
-      setServices(data);
-    } catch (error) {
-      console.error("Lỗi khi tải dịch vụ:", error);
-    }
-  };
+  const discountMap: Record<string, number> = {};
+  const discountDatesMap: Record<string, { start: Date; end: Date }> = {};
+
+  await Promise.all(
+    data.map(async (s) => {
+      const discount = await discountService.getByServiceId(s._id);
+      if (discount) {
+        discountMap[s._id] = discount.sale_off;
+        discountDatesMap[s._id] = {
+          start: new Date(discount.start_date),
+          end: new Date(discount.end_date),
+        };
+      }
+    })
+  );
+
+  setDiscounts(discountMap);
+  setDiscountDates(discountDatesMap);
+  setServices(data);
+};
+
 
   const fetchCategories = async () => {
     try {
@@ -166,13 +184,16 @@ export default function ServicesTable() {
       try {
         const res = await serviceService.exportServicesToExcel();
         const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'services.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute(
+          "download",
+          `Danh_sach_dich_vu_${new Date().toISOString().split("T")[0]}.xlsx`
+        );
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
         window.URL.revokeObjectURL(url);
       } catch (error) {
         console.error('Export failed', error);
@@ -258,61 +279,108 @@ export default function ServicesTable() {
         <thead className="bg-gray-100">
           <tr>
             <th className="p-2"><input type="checkbox" /></th>
-            <th className="p-2">Tên dịch vụ</th>
-            <th className="p-2">Mô tả</th>
-            <th className="p-2">Giá</th>
-            <th className="p-2">Danh mục</th>
-            <th className="p-2">Trạng thái</th>
-            <th className="p-2">Hành động</th>
+            <th className="p-2 text-center">Tên dịch vụ</th>
+            <th className="p-2 text-center">Giá gốc</th>
+            <th className="p-2 text-center">Giảm giá</th>
+            <th className="p-2 text-center">Giá sau khi giảm</th>
+            <th className="p-2 text-center">Danh mục</th>
+            <th className="p-2 text-center">Trạng thái</th>
+            <th className="p-2 text-center">Hành động</th>
           </tr>
         </thead>
         <tbody>
-          {displayedServices.map((s) => (
-            <tr key={s._id} className="border-b hover:bg-gray-50">
-              <td className="p-2"><input type="checkbox" /></td>
-              <td className="p-2">{s.name}</td>
-              <td className="p-2">{s.description}</td>
-              <td className="p-2">{s.price.toLocaleString()} đ</td>
-              <td className="p-2">
-                {typeof s.category_id === "string"
-                  ? "Chưa có"
-                  : s.category_id?.name || "Chưa có"}
-              </td>
-              <td className="p-2">
-                <span className={`px-2 py-1 rounded text-sm ${s.status === "active"
-                  ? "bg-green-100 text-green-600"
-                  : s.status === "inactive"
-                    ? "bg-yellow-100 text-yellow-600"
-                    : "bg-red-100 text-red-600"
-                  }`}>
-                  {s.status === "active"
-                    ? "Đã mở"
-                    : s.status === "inactive"
+          {displayedServices.map((s) => {
+            const discountPercent = discounts[s._id] || 0;
+            const finalPrice = s.price - (s.price * discountPercent) / 100;
+            const start_date = discounts[s._id]
+
+            return (
+              <tr key={s._id} className="border-b hover:bg-gray-50">
+                <td className="p-2"><input type="checkbox" /></td>
+                <td className="p-2 text-center">{s.name}</td>
+                <td className="p-2 text-center">{s.price.toLocaleString()} đ</td>
+                <td className="p-2 text-center">
+                  {(() => {
+                    const sale_off = discounts[s._id];
+                    const dates = discountDates[s._id];
+                    if (sale_off === undefined || !dates?.start || !dates?.end) return "—";
+
+                    const now = new Date();
+                    const isActive = dates.start <= now && now <= dates.end;
+                    const isUpcoming = now < dates.start;
+
+                    if (isActive) {
+                      return <span className="text-green-600 font-medium">{sale_off}% đang</span>;
+                    } else if (isUpcoming) {
+                      return <span className="text-yellow-500 italic">{sale_off}% sắp</span>;
+                    } else {
+                      return <span className="text-gray-400">{sale_off}% hết hạn</span>;
+                    }
+                  })()}
+                </td>
+                <td className="p-2 text-center">
+                  {discountPercent > 0
+                    ? `${finalPrice.toLocaleString()} đ`
+                    : `${s.price.toLocaleString()} đ`}
+                </td>
+
+                <td className="p-2 text-center">
+                  {typeof s.category_id === "string"
+                    ? "Chưa có"
+                    : s.category_id?.name || "Chưa có"}
+                </td>
+
+                <td className="p-2 text-center">
+                  <span
+                    className={`px-2 py-1 rounded text-sm ${
+                      s.status === "active"
+                        ? "bg-green-100 text-green-600"
+                        : s.status === "inactive"
+                        ? "bg-yellow-100 text-yellow-600"
+                        : "bg-red-100 text-red-600"
+                    }`}
+                  >
+                    {s.status === "active"
+                      ? "Đã mở"
+                      : s.status === "inactive"
                       ? "Tạm ngừng"
                       : "Đã ẩn"}
-                </span>
-              </td>
-              <td className="p-2 flex gap-2">
-                <Eye className="w-4 h-4 cursor-pointer text-blue-600"
-                  onClick={() => {
-                    try {
-                      if (typeof window !== "undefined") {
-                        const newWindow = window.open(`/user/service/detail/${s.slug}`, "_blank");
-                        if (!newWindow) {
-                          alert("Trình duyệt đã chặn cửa sổ mới. Vui lòng cho phép popup!");
+                  </span>
+                </td>
+
+                <td className="p-2 flex gap-2 justify-center items-center">
+                  <Eye
+                    className="w-4 h-4 cursor-pointer text-blue-600"
+                    onClick={() => {
+                      try {
+                        if (typeof window !== "undefined") {
+                          const newWindow = window.open(
+                            `/user/service/detail/${s.slug}`,
+                            "_blank"
+                          );
+                          if (!newWindow) {
+                            alert("Trình duyệt đã chặn cửa sổ mới. Vui lòng cho phép popup!");
+                          }
                         }
+                      } catch (err) {
+                        alert("Không thể mở trang chi tiết sản phẩm.");
                       }
-                    } catch (err) {
-                      alert("Không thể mở trang chi tiết sản phẩm.");
-                    }
-                  }}
-                />
-                <Edit className="w-4 h-4 cursor-pointer text-yellow-600" onClick={() => handleEdit(s)} />
-                <Trash className="w-4 h-4 cursor-pointer text-red-600" onClick={() => handleDelete(s._id)} />
-              </td>
-            </tr>
-          ))}
+                    }}
+                  />
+                  <Edit
+                    className="w-4 h-4 cursor-pointer text-yellow-600"
+                    onClick={() => handleEdit(s)}
+                  />
+                  <Trash
+                    className="w-4 h-4 cursor-pointer text-red-600"
+                    onClick={() => handleDelete(s._id)}
+                  />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
+
       </table>
 
       {/* Responsive cards for mobile */}
@@ -371,6 +439,8 @@ export default function ServicesTable() {
           initialData={editingService || undefined}
           categories={categories}
           onSubmit={handleSubmit}
+          fetchServices={fetchServices} // ✅ phải thêm
+
           onCancel={() => setModalOpen(false)}
         />
       </Modal>
