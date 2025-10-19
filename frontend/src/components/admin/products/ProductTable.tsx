@@ -80,7 +80,7 @@ export default function ProductTable() {
       setLoading(true);
       const current = Date.now();
       latestFetch.current = current;
-console.log("fetch product call");
+      console.log("fetch product call");
       let data;
       if (searchQuery.trim()) {
         data = await searchProducts(searchQuery, itemsPerPage, currentPage);
@@ -93,8 +93,8 @@ console.log("fetch product call");
       setProducts(data.products);
       setTotalProducts(data.total);
       // discount 
-  const discountResults = await Promise.all(
-    data.products.map((p: Product) =>
+    const discountResults = await Promise.all(
+      data.products.map((p: Product) =>
       discountService.getByProductId(p._id).catch(() => null)
     )
   );
@@ -226,7 +226,7 @@ console.log("fetch product call");
               <th className="p-2">Danh mục</th>
               <th className="p-2">Số lượng</th>
               <th className="p-2">Trạng thái</th>
-              <th className="p-2">Thao tác</th>
+              <th className="p-2 ">Thao tác</th>
             </tr>
           </thead>
           <ProductTableBody
@@ -280,8 +280,8 @@ console.log("fetch product call");
           setFormData={setFormData}
           handleImageChange={handleImageChange}
           removeImage={removeImage}
-            updateDiscountForProduct={updateDiscountForProduct}
-         onSubmit={async (productData: Partial<Product>) => {
+          updateDiscountForProduct={updateDiscountForProduct}
+          onSubmit={async (productData: Partial<Product>) => {
           try {
             if (editingProduct) {
               await productService.update(editingProduct._id, productData);
@@ -290,7 +290,7 @@ console.log("fetch product call");
             }
             toast.success(editingProduct ? "Cập nhật thành công!" : "Thêm mới thành công!");
             setShowForm(false);
-            await fetchProducts(); // Chỉ cần gọi lại hàm này!
+            //await fetchProducts(); // Chỉ cần gọi lại hàm này!
             setEditingProduct(null);
             setFormData({ images: [], status: "available" });
           } catch (err) {

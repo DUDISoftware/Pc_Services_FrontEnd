@@ -11,7 +11,7 @@ export const discountService = {
         throw new Error("productId không hợp lệ");
       }
 
-      console.log("📡 GET discount at:", `/discounts/product/${productId}`);
+      //console.log("📡 GET discount at:", `/discounts/product/${productId}`);
 
       // Gọi đúng route backend: /discounts/product/:productId
       const res = await api.get<DiscountResponse>(`/discounts/product/${productId}`);
@@ -42,7 +42,7 @@ export const discountService = {
     }
   },
    // 🟡 Cập nhật giảm giá theo productId
-  async updateDiscount(productId: string, body: { sale_off: number }) {
+  async updateDiscount(productId: string, body: { sale_off: number, start_date:Date, end_date: Date}) {
     try {
       if (!productId || typeof productId !== "string" || productId.length !== 24) {
         throw new Error("productId không hợp lệ");
@@ -66,7 +66,7 @@ export const discountService = {
         throw new Error("serviceId không hợp lệ");
       }
 
-      console.log("📡 GET discount at:", `/discounts/service/${serviceId}`);
+      //console.log("📡 GET discount at:", `/discounts/service/${serviceId}`);
 
       const res = await api.get<DiscountServiceResponse>(`/discounts/service/${serviceId}`);
 
@@ -95,22 +95,98 @@ export const discountService = {
       return null;
     }
   },
-    async updateDiscountService(serviceId: string, body: { sale_off: number }) {
-  try {
-    if (!serviceId || typeof serviceId !== "string" || serviceId.length !== 24) {
-      throw new Error("serviceId không hợp lệ");
+  async updateDiscountService(serviceId: string, body: { sale_off: number, start_date:Date | null, end_date: Date | null}) {
+    try {
+      if (!serviceId || typeof serviceId !== "string" || serviceId.length !== 24) {
+        throw new Error("serviceId không hợp lệ");
+      }
+
+      console.log("📡 PUT update discount service:", `/discounts/service/${serviceId}`, body);
+
+      const res = await api.put(`/discounts/service/${serviceId}`, body);
+
+      console.log("✅ Cập nhật giảm giá dịch vụ thành công:", res.data);
+      return res.data.discount;
+    } catch (error) {
+      console.error("❌ Lỗi khi update discount service:", error);
+      throw error;
     }
+  },
+  async createDiscount(productId: string,body: { sale_off: number; start_date: Date; end_date: Date }) {
+    try {
+      if (!productId || typeof productId !== "string" || productId.length !== 24) {
+        throw new Error("productId không hợp lệ");
+      }
+      console.log("📡 POST create discount:", `/discounts/product/${productId}`, body);
+      const res = await api.post(`/discounts/product/${productId}`, body);
+      console.log("✅ Tạo giảm giá mới thành công:", res.data);
+      return res.data.discount;
+    } catch (error) {
+      console.error("❌ Lỗi khi tạo giảm giá:", error);
+      throw error;
+    }
+  },
+  async createService(ServiceId: string,body: { sale_off: number; start_date: Date; end_date: Date }) {
+    try {
+      if (!ServiceId || typeof ServiceId !== "string" || ServiceId.length !== 24) {
+        throw new Error("productId không hợp lệ");
+      }
+      console.log("📡 POST create service:", `/discounts/service/${ServiceId}`, body);
+      const res = await api.post(`/discounts/service/${ServiceId}`, body);
+      console.log("✅ Tạo giảm giá mới thành công:", res.data);
+      return res.data.discount || res.data;
+    } catch (error) {
+      console.error("❌ Lỗi khi tạo giảm giá:", error);
+      throw error;
+    }
+  },
 
-    console.log("📡 PUT update discount service:", `/discounts/service/${serviceId}`, body);
+   async createDiscountProductAll(body: { sale_off: number; start_date: Date; end_date: Date }) {
+    try {
+      const res = await api.post(`/discounts/productAll`, body);
+      console.log("✅ Tạo giảm giá mới thành công:", res.data);
+      return res.data.discount;
+    } catch (error) {
+      console.error("❌ Lỗi khi tạo giảm giá:", error);
+      throw error;
+    }
+  },
+  // 🟢 Lấy thông tin giảm giá chung cho tất cả sản phẩm
+  async getDiscountProductAll() {
+    try {
+      const res = await api.get("/discounts/productAll");
+      console.log("✅ Lấy giảm giá chung thành công:", res.data);
 
-    const res = await api.put(`/discounts/service/${serviceId}`, body);
+      // Kiểm tra và chuẩn hóa dữ liệu trả về
+      return res.data.discount?.SaleOf || null;
+    } catch (error: any) {
+      console.error("❌ Lỗi khi lấy giảm giá chung:", error);
+      throw error;
+    }
+  },
+async createDiscountServiceAll(body: { sale_off: number; start_date: Date; end_date: Date }) {
+    try {
+      const res = await api.post(`/discounts/serviceAll`, body);
+      console.log("✅ Tạo giảm giá mới thành công:", res.data);
+      return res.data.discount;
+    } catch (error) {
+      console.error("❌ Lỗi khi tạo giảm giá:", error);
+      throw error;
+    }
+  },
+  // 🟢 Lấy thông tin giảm giá chung cho tất cả sản phẩm
+  async getDiscountServicetAll() {
+    try {
+      const res = await api.get("/discounts/serviceAll");
+      console.log("✅ Lấy giảm giá chung thành công:", res.data);
 
-    console.log("✅ Cập nhật giảm giá dịch vụ thành công:", res.data);
-    return res.data.discount;
-  } catch (error) {
-    console.error("❌ Lỗi khi update discount service:", error);
-    throw error;
-  }
-},
+      // Kiểm tra và chuẩn hóa dữ liệu trả về
+      return res.data.discount?.SaleOf || null;
+    } catch (error: any) {
+      console.error("❌ Lỗi khi lấy giảm giá chung:", error);
+      throw error;
+    }
+  },
+
 
 };

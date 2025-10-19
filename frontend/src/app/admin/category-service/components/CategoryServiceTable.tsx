@@ -11,6 +11,7 @@ import CategoryServiceForm from "./CategoryServiceForm"
 import { toast } from "react-toastify"
 import { showConfirmToast } from "@/components/common/ConfirmToast"
 import "react-toastify/dist/ReactToastify.css"
+import { discountService } from "@/services/discount.service"
 
 export default function CategoryServiceTable() {
   const [categories, setCategories] = useState<CategoryService[]>([])
@@ -20,6 +21,11 @@ export default function CategoryServiceTable() {
   const [editing, setEditing] = useState<CategoryService | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [discountForm, setDiscountForm] = useState({
+    sale_off: 0,
+    start_date: "",
+    end_date: "",
+  });
 
   const fetchData = async () => {
     try {
@@ -33,9 +39,29 @@ export default function CategoryServiceTable() {
       setLoading(false)
     }
   }
+  const fetchGlobalDiscount = async () => {
+    try {
+      const data = await discountService.getDiscountServicetAll();
+      if (data) {
+        setDiscountForm({
+          sale_off: data.sale_off,
+          start_date: data.start_date ? data.start_date.slice(0, 16) : "",
+          end_date: data.end_date ? data.end_date.slice(0, 16) : "",
+        });
+      } else {
+        //toast.info("Chưa có giảm giá chung cho dịch vụ nào.");
+      }
+    } catch (error) {
+      console.error("❌ Lỗi khi lấy giảm giá chung:", error);
+      //toast.error("Không thể tải thông tin giảm giá chung.");
+    }
+  };
+
 
   useEffect(() => {
-    fetchData()
+    fetchData();
+    fetchGlobalDiscount();
+
   }, [])
 
   useEffect(() => {
@@ -108,6 +134,65 @@ export default function CategoryServiceTable() {
       toast.update(toastId, { render: "❌ Xóa thất bại", type: "error", isLoading: false, autoClose: 3000 })
     }
   }
+  const handleCreateGlobalDiscount = async () => {
+  try {
+   
+
+    const start = new Date(discountForm.start_date);
+    const end = new Date(discountForm.end_date);
+    const now = new Date();
+    const value = discountForm.sale_off;
+
+    if(value == 0){
+      const confirmed = await showConfirmToast({
+        message: `Bạn có chắc xóa giảm giá chứ ?`,
+        confirmText: "Áp dụng",
+        cancelText: "Hủy",
+      });
+      if (!confirmed) return;
+    }
+    else if(value!=0){
+      if (!discountForm.start_date || !discountForm.end_date) {
+        toast.error("Vui lòng nhập đầy đủ thông tin giảm giá!");
+        return;
+      }
+      if (start <= now) {
+        toast.error("⛔ Ngày bắt đầu phải lớn hơn hôm nay!");
+        return;
+      }
+      if (end <= start) {
+        toast.error("⛔ Ngày kết thúc phải sau ngày bắt đầu!");
+        return;
+      }
+      if (value<0) {
+        toast.error("Giảm giá không được nhỏ hơn 0!");
+        return;
+      }
+    }else {
+      const confirmed = await showConfirmToast({
+      message: `Áp dụng giảm giá ${discountForm.sale_off}% cho tất cả dịch vụ?`,
+      confirmText: "Áp dụng",
+      cancelText: "Hủy",
+    });
+    if (!confirmed) return;
+    }
+
+    const payload = {
+      sale_off: discountForm.sale_off,
+      start_date: start,
+      end_date: end,
+    };
+
+    const toastId = toast.loading("Đang tạo giảm giá chung...");
+    await discountService.createDiscountServiceAll(payload);
+    toast.update(toastId, { render: "Giảm giá chung được tạo thành công!", type: "success", isLoading: false, autoClose: 2000 });
+    fetchGlobalDiscount();
+  } catch (error) {
+    console.error("❌ Lỗi khi tạo giảm giá:", error);
+    toast.error("Không thể tạo giảm giá chung!");
+  }
+};
+
 
   if (loading) return <p className="p-4">Đang tải dữ liệu...</p>
 
@@ -138,6 +223,62 @@ export default function CategoryServiceTable() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
+     <div className="border p-4 rounded-lg mb-6 bg-gray-50">
+      <h3 className="font-semibold text-lg mb-3">Giảm giá chung cho tất cả dịch vụ</h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 items-end gap-4">
+        {/* Phần trăm giảm */}
+        <div>
+          <label className="block text-sm mb-1">Phần trăm giảm (%)</label>
+          <input
+            type="number"
+            className="border rounded px-2 py-1 w-full"
+            value={discountForm.sale_off}
+            onChange={(e) =>
+              setDiscountForm({ ...discountForm, sale_off: Number(e.target.value) })
+            }
+          />
+        </div>
+
+        {/* Ngày bắt đầu */}
+        <div>
+          <label className="block text-sm mb-1">Ngày bắt đầu</label>
+          <input
+            type="datetime-local"
+            className="border rounded px-2 py-1 w-full"
+            value={discountForm.start_date}
+            onChange={(e) =>
+              setDiscountForm({ ...discountForm, start_date: e.target.value })
+            }
+          />
+        </div>
+
+        {/* Ngày kết thúc */}
+        <div>
+          <label className="block text-sm mb-1">Ngày kết thúc</label>
+          <input
+            type="datetime-local"
+            className="border rounded px-2 py-1 w-full"
+            value={discountForm.end_date}
+            onChange={(e) =>
+              setDiscountForm({ ...discountForm, end_date: e.target.value })
+            }
+          />
+        </div>
+
+        {/* Nút áp dụng */}
+        <div className="flex md:justify-center">
+          <Button
+            variant="primary"
+            onClick={handleCreateGlobalDiscount}
+            className="w-full md:w-auto mt-1"
+          >
+            Áp dụng giảm giá chung
+          </Button>
+        </div>
+      </div>
+    </div>
+
 
       <table className="w-full text-left border-collapse">
         <thead className="bg-gray-100">

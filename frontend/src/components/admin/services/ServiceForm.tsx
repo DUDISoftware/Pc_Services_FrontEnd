@@ -9,7 +9,8 @@ import { serviceService } from "@/services/service.service";
 import { X } from "lucide-react";
 import { toast } from "react-toastify";
 import { discountService } from "@/services/discount.service";
-
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 type Props = {
   initialData?: Service;
   categories: CategoryService[];
@@ -37,19 +38,35 @@ export default function ServiceForm({
     status: "active" as "active" | "inactive" | "hidden", // ✅ ép kiểu
     category_id: "",
     images: [] as (File | { url: string; public_id?: string })[],
+    startDate:  null as Date | null,
+    endDate:  null as Date | null
   });
 
   useEffect(() => {
-    const fetchDiscount = async () => {
-      if (initialData?._id) {
-        try {
-         const res = await discountService.getByServiceId(initialData._id);
-          setForm(prev => ({ ...prev, discount: res?.sale_off || 0 }));
-        } catch (err) {
-          console.warn("⚠️ Không tìm thấy discount cho dịch vụ này", err);
-        }
-      }
-    };
+  const fetchDiscount = async () => {
+  if (!initialData?._id) return;
+
+  try {
+    const res = await discountService.getByServiceId(initialData._id);
+
+    if (res) {
+      const now = new Date();
+      const startDate = res.start_date ? new Date(res.start_date) : null;
+      const endDate = res.end_date ? new Date(res.end_date) : null;
+
+      setForm((prev) => ({
+        ...prev,
+        discount:  res.sale_off || 0 ,
+        startDate:  startDate ,
+        endDate: endDate ,
+      }));
+
+    }
+  } catch (err) {
+    console.warn("⚠️ Không tìm thấy discount cho dịch vụ này", err);
+  }
+};
+
 
     if (initialData) {
       setForm((prev) => ({
@@ -109,12 +126,25 @@ export default function ServiceForm({
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    const selectedCategory = categories.find(c => c._id === form.category_id);
+  // Kiểm tra discount
+  if (form.discount > 0 && (!form.startDate || !form.endDate)) {
+    toast.error("Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc cho giảm giá!");
+    return; 
+  }
+  if (form.startDate && form.endDate && form.endDate < form.startDate) {
+    toast.error("Ngày kết thúc phải lớn hơn ngày bắt đầu!");
+    return; 
+  }
 
+  try {
+    let serviceId: string = initialData?._id || "";
+
+    // Tạo FormData nếu có file mới
     const isAnyNewFile = form.images.some(img => img instanceof File);
+    let payload: any;
 
     if (isAnyNewFile) {
       const formData = new FormData();
@@ -129,19 +159,18 @@ export default function ServiceForm({
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, "-")
-        .replace(/[^a-z0-9-]/g, "")
-      );
+        .replace(/[^a-z0-9-]/g, ""));
       formData.append("category_id", form.category_id);
 
-      form.images.forEach((img) => {
+      form.images.forEach(img => {
         if (img instanceof File) {
           formData.append("images", img);
         }
       });
 
-      onSubmit(formData as FormData & { category_id: string }); // FormData path ✅
+      payload = formData;
     } else {
-      const payload = {
+      payload = {
         ...form,
         price: Number(form.price),
         category_id: form.category_id,
@@ -152,160 +181,242 @@ export default function ServiceForm({
           .replace(/\s+/g, "-")
           .replace(/[^a-z0-9-]/g, "")
       };
-
-      onSubmit(payload as any); // JSON path ✅
     }
 
-  if (initialData?._id && form.discount > 0) {
-    try {
-      await discountService.updateDiscountService(initialData._id, {
-        sale_off: form.discount, 
-      });
-      console.log("✅ Cập nhật giảm giá dịch vụ thành công");
-    } catch (err) {
-      console.error("❌ Lỗi khi cập nhật giảm giá:", err);
+    // Tạo mới hay cập nhật service
+    let createdService;
+    if (initialData?._id) {
+      createdService = await serviceService.update(initialData._id, payload);
+      toast.success("✅ Cập nhật dịch vụ thành công!");
+      serviceId = initialData._id;
+    } else {
+      createdService = await serviceService.create(payload);
+      toast.success("✅ Tạo dịch vụ thành công!");
+      serviceId = createdService._id;
     }
+
+    // Xử lý discount
+    if (form.discount > 0) {
+      if (initialData?._id) {
+        await discountService.updateDiscountService(serviceId, {
+          sale_off: form.discount,
+          start_date: form.startDate!,
+          end_date: form.endDate!,
+        });
+        toast.success("✅ Cập nhật giảm giá dịch vụ thành công!");
+      } else {
+        await discountService.createService(serviceId, {
+          sale_off: form.discount,
+          start_date: form.startDate!,
+          end_date: form.endDate!,
+        });
+        toast.success("✅ Tạo giảm giá cho dịch vụ thành công!");
+      }
+    }
+
+    onCancel();
+    await fetchServices();
+
+  } catch (err) {
+    console.error("❌ Lỗi khi tạo/cập nhật dịch vụ:", err);
+    toast.error("❌ Đã xảy ra lỗi. Vui lòng thử lại.");
   }
-  };
-
+};
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <input
-        name="name"
-        value={form.name}
-        onChange={handleChange}
-        placeholder="Tên dịch vụ"
-        className="w-full border p-2 rounded"
-      />
-
-      <textarea
-        name="description"
-        value={form.description}
-        onChange={handleChange}
-        placeholder="Mô tả"
-        className="w-full border p-2 rounded"
-      />
-
-      <input
-        name="price"
-        type="number"
-        value={form.price}
-        onChange={handleChange}
-        placeholder="Giá"
-        className="w-full border p-2 rounded"
-      />
-
-       <input
-          name="discount"
-          type="number"
-          value={form.discount}
-          onChange={handleChange}
-          placeholder="Giảm giá (%)"
-          className="w-full border p-2 rounded"
-          min={0}
-          max={100}
-        />
-
-      <select
-        name="type"
-        value={form.type}
-        onChange={handleChange}
-        className="w-full border p-2 rounded"
-      >
-        <option value="at_store">Tại cửa hàng</option>
-        <option value="at_home">Tại nhà</option>
-      </select>
-
-      <input
-        name="estimated_time"
-        value={form.estimated_time}
-        onChange={handleChange}
-        placeholder="Thời gian ước tính"
-        className="w-full border p-2 rounded"
-      />
-
-      <select
-        name="status"
-        value={form.status}
-        onChange={handleChange}
-        className="w-full border p-2 rounded"
-      >
-        <option value="active">Hoạt động</option>
-        <option value="inactive">Không hoạt động</option>
-        <option value="hidden">Ẩn</option>
-      </select>
-
-      {/* chọn danh mục sửa chữa */}
-      <select
-        name="category_id"
-        value={form.category_id}
-        onChange={handleChange}
-        className="w-full border p-2 rounded"
-      >
-        <option value="">-- Chọn danh mục --</option>
-        {categories.map((c) => (
-          <option key={c._id} value={c._id}>
-            {c.name}
-          </option>
-        ))}
-      </select>
-
-      <div>
-        <label className="block mb-1 font-medium">Hình ảnh (tối đa 3)</label>
-        <input
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleImageChange}
-          className="w-full"
-          disabled={(form.images?.length || 0) >= 3}
-        />
-        <div className="flex flex-wrap gap-3 mt-3">
-          {form.images &&
-            form.images.map((img, index) => {
-              const url =
-                img instanceof File ? URL.createObjectURL(img) : img.url;
-              return (
-                <div
-                  key={index}
-                  className="relative w-24 h-24 border rounded overflow-hidden"
-                >
-                  <img
-                    src={url}
-                    alt="preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              );
-            })}
+  <div
+    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    onClick={onCancel}
+  >
+    <div
+      className="bg-white p-6 rounded shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="w-40 text-sm font-medium text-gray-700">Tên dịch vụ</span>
+          <input
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            className="flex-1 border p-2 rounded"
+          />
         </div>
-      </div>
 
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border rounded"
-        >
-          Hủy
-        </button>
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Đang lưu..." : "Lưu"}
-        </button>
+        <div className="flex items-start gap-3">
+          <span className="w-40 text-sm font-medium text-gray-700 pt-2">Mô tả</span>
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            className="flex-1 border p-2 rounded"
+          />
+        </div>
 
-      </div>
-    </form>
-  );
+        <div className="flex items-center gap-3">
+          <span className="w-40 text-sm font-medium text-gray-700">Giá</span>
+          <input
+            name="price"
+            type="number"
+            value={form.price}
+            onChange={handleChange}
+            className="flex-1 border p-2 rounded"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="w-40 text-sm font-medium text-gray-700">Giảm giá (%)</span>
+          <input
+            name="discount"
+            type="number"
+            value={form.discount}
+            onChange={handleChange}
+            className="flex-1 border p-2 rounded"
+            min={0}
+            max={100}
+          />
+        </div>
+
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2 flex-1">
+            <span className="w-25 text-sm font-medium text-gray-700">Ngày bắt đầu</span>
+            <DatePicker
+              selected={form.startDate ? new Date(form.startDate) : null}
+              onChange={(date: Date | null) =>
+                setForm((prev) => ({ ...prev, startDate: date || new Date() }))
+              }
+              showTimeSelect
+              timeFormat="HH:mm"
+              timeIntervals={15}
+              dateFormat="yyyy-MM-dd HH:mm"
+              popperPlacement="top"
+              className="flex-1 border px-3 py-2 rounded"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 flex-1">
+            <span className="w-23 text-sm font-medium text-gray-700">Ngày kết thúc</span>
+            <DatePicker
+              selected={form.endDate ? new Date(form.endDate) : null}
+              onChange={(date: Date | null) =>
+                setForm((prev) => ({ ...prev, endDate: date || new Date() }))
+              }
+              showTimeSelect
+              timeFormat="HH:mm"
+              timeIntervals={15}
+              dateFormat="yyyy-MM-dd HH:mm"
+              popperPlacement="top"
+              className="flex-1 border px-3 py-2 rounded"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="w-40 text-sm font-medium text-gray-700">Loại dịch vụ</span>
+          <select
+            name="type"
+            value={form.type}
+            onChange={handleChange}
+            className="flex-1 border p-2 rounded"
+          >
+            <option value="at_store">Tại cửa hàng</option>
+            <option value="at_home">Tại nhà</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="w-40 text-sm font-medium text-gray-700">Thời gian ước tính</span>
+          <input
+            name="estimated_time"
+            value={form.estimated_time}
+            onChange={handleChange}
+            className="flex-1 border p-2 rounded"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="w-40 text-sm font-medium text-gray-700">Trạng thái</span>
+          <select
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            className="flex-1 border p-2 rounded"
+          >
+            <option value="active">Hoạt động</option>
+            <option value="inactive">Không hoạt động</option>
+            <option value="hidden">Ẩn</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="w-40 text-sm font-medium text-gray-700">Danh mục sửa chữa</span>
+          <select
+            name="category_id"
+            value={form.category_id}
+            onChange={handleChange}
+            className="flex-1 border p-2 rounded"
+          >
+            <option value="">-- Chọn danh mục --</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1 font-medium">Hình ảnh (tối đa 3)</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImageChange}
+            className="w-full"
+            disabled={(form.images?.length || 0) >= 3}
+          />
+          <div className="flex flex-wrap gap-3 mt-3">
+            {form.images &&
+              form.images.map((img, index) => {
+                const url = img instanceof File ? URL.createObjectURL(img) : img.url;
+                return (
+                  <div
+                    key={index}
+                    className="relative w-24 h-24 border rounded overflow-hidden"
+                  >
+                    <img src={url} alt="preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 border rounded"
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Đang lưu..." : "Lưu"}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+);
+
 }

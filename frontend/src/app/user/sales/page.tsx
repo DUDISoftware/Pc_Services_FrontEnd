@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRightCircle, Star } from "lucide-react";
 import { productService } from "@/services/product.service";
-import { Product } from "@/types/Product";
 import { ratingService } from "@/services/rating.service";
+import { Product } from "@/types/Product";
 
-type ProductType = {
+const discountOptions = ["20% Supper sale", "30%", "40% Best sale", "10%"];
+
+type ProductCard = {
   _id: string;
   title: string;
   oldPrice: number;
@@ -19,131 +21,128 @@ type ProductType = {
   slug: string;
 };
 
-export default function DiscountProducts() {
-  const [products, setProducts] = useState<ProductType[]>([]);
+export default function FeaturedProducts() {
+  const [products, setProducts] = useState<ProductCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const [index, setIndex] = useState(0);
-  const transitionRef = useRef(true);
-
-  const visibleCards = 4;
 
   useEffect(() => {
-    const fetchDiscountProducts = async () => {
+    async function fetchFeaturedProducts() {
       try {
-        const { products } = await productService.getAll(12, 1);
-        const discountList = [25, 30, 20, 30, 15, 10, 35, 40];
+        const res = await productService.getFeatured(8);
+        const featuredIds = res.map((p: Product) => p._id);
 
-        const mappedPromises = products.slice(0, 12).map(async (p: Product, idx: number) => {
-          const discountPercent = discountList[idx % discountList.length];
-          const oldPrice = Math.round(p.price / (1 - discountPercent / 100));
+        // Build featured product cards with default rating
+        const featuredCards: ProductCard[] = res.map((item) => ({
+          _id: item._id,
+          title: item.name,
+          oldPrice: Math.round(item.price * 1.2),
+          price: item.price,
+          rating: 5.0,
+          img: item.images?.[0]?.url || "/images/placeholder.png",
+          slug: item.slug,
+          discount: getRandomDiscount(),
+        }));
 
-          return {
-            _id: p._id,
-            title: p.name,
-            oldPrice,
-            price: p.price,
-            discount: `${discountPercent}%`,
-            rating: (await ratingService.getScoreByProductId(p._id)) || 5.0,
-            img: p.images?.[0]?.url || "/images/placeholder.png",
-            slug: p.slug,
-          };
-        });
+        // Fill up with more products if needed
+        let finalProducts = [...featuredCards];
+        if (featuredCards.length < 8) {
+          const needed = 8 - featuredCards.length;
+          const extraRes = await productService.getAll(needed, 1);
+          const extraCards: ProductCard[] = extraRes.products
+            .filter((p) => !featuredIds.includes(p._id))
+            .slice(0, needed)
+            .map((p) => ({
+              _id: p._id,
+              title: p.name,
+              oldPrice: Math.round(p.price * 1.2),
+              price: p.price,
+              rating: 5.0,
+              img: p.images?.[0]?.url || "/images/placeholder.png",
+              slug: p.slug,
+              discount: getRandomDiscount(),
+            }));
+          finalProducts = [...featuredCards, ...extraCards];
+        }
 
-        const mapped = await Promise.all(mappedPromises);
-        setProducts(mapped);
+        // Fetch ratings in parallel
+        const ratings = await Promise.all(
+          finalProducts.map((p) =>
+            ratingService.getScoreByProductId(p._id).catch(() => 5.0)
+          )
+        );
+
+        const ratedProducts = finalProducts.map((p, i) => ({
+          ...p,
+          rating: ratings[i] || 5.0,
+        }));
+
+        setProducts(ratedProducts.slice(0, 8));
       } catch (err) {
-        console.error("Lỗi khi fetch sản phẩm:", err);
+        console.error("❌ Failed to fetch featured products:", err);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    fetchDiscountProducts();
+    fetchFeaturedProducts();
   }, []);
 
-  // ✅ Auto slide every 3.5s
-  useEffect(() => {
-    if (products.length <= 1) return;
-    const interval = setInterval(() => setIndex((prev) => prev + 1), 5000);
-    return () => clearInterval(interval);
-  }, [products]);
-
-  // ✅ Handle reset when reaching end
-  useEffect(() => {
-  if (!products.length) return;
-
-  const totalSlides = Math.ceil(products.length / visibleCards);
-
-  // After showing the last full slide, reset
-  if (index >= totalSlides) {
-    transitionRef.current = false;
-    const timeout = setTimeout(() => {
-      setIndex(0); 
-      transitionRef.current = true;
-    }, 700); 
-    return () => clearTimeout(timeout);
-  }
-}, [index, products.length]);
-
+  const getRandomDiscount = () =>
+    discountOptions[Math.floor(Math.random() * discountOptions.length)];
 
   if (loading) return <p className="px-4">Đang tải sản phẩm...</p>;
-  if (!products.length) return null;
-
-  const extendedProducts = [...products, ...products.slice(0, visibleCards)];
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-2">
-        <h2 className="text-lg font-semibold">Sản phẩm giảm giá</h2>
+        <h2 className="text-lg font-semibold">Sản phẩm giảm giá sâu</h2>
       </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {products.length === 0 && (
+          <p className="text-gray-500 text-sm col-span-full">
+            Không có sản phẩm nổi bật nào.
+          </p>
+        )}
 
-      <div className="relative w-full overflow-hidden">
-        <div
-          className={`flex ${transitionRef.current ? "transition-transform duration-700 ease-in-out" : ""}`}
-          style={{
-            transform: `translateX(-${index * (100 / visibleCards)}%)`,
-            width: `${(extendedProducts.length * 100) / visibleCards}%`,
-          }}
-        >
-          {extendedProducts.map((item, idx) => (
-            <div key={`${item._id}-${idx}`} style={{ width: `${100 / extendedProducts.length}%` }} className="px-2 flex-shrink-0">
-              <div className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative bg-white">
-                <Link href={`/user/product/detail/${item.slug}`}>
-                  {item.discount && (
-                    <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
-                      {item.discount}
-                    </span>
-                  )}
-                  <div className="relative w-full h-36 sm:h-40 mb-3">
-                    <Image
-                      src={item.img}
-                      alt={item.title}
-                      fill
-                      className="object-contain rounded"
-                    />
-                  </div>
-                  <h3 className="text-xs sm:text-sm font-medium line-clamp-2 mb-2 hover:text-blue-600">
-                    {item.title}
-                  </h3>
-                  <div className="flex items-center justify-between mt-auto">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px] text-gray-400 line-through">
-                        {item.oldPrice.toLocaleString()}₫
-                      </span>
-                      <span className="text-red-500 font-semibold text-sm">
-                        {item.price.toLocaleString()}₫
-                      </span>
-                    </div>
-                    <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
-                      <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                      {item.rating.toFixed(1)}
-                    </div>
-                  </div>
-                </Link>
+        {products.map((item) => (
+          <div
+            key={item._id}
+            className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative"
+          >
+            <Link href={`/user/product/detail/${item.slug}`}>
+              {item.discount && (
+                <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
+                  {item.discount}
+                </span>
+              )}
+              <div className="relative w-full h-36 sm:h-40 mb-3">
+                <Image
+                  src={item.img}
+                  alt={item.title}
+                  fill
+                  className="object-contain rounded"
+                />
               </div>
-            </div>
-          ))}
-        </div>
+              <h3 className="text-xs sm:text-sm font-medium line-clamp-2 flex-1 mb-2">
+                {item.title}
+              </h3>
+              <div className="flex items-center justify-between mt-auto">
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-gray-400 line-through">
+                    {item.oldPrice.toLocaleString()}₫
+                  </span>
+                  <span className="text-red-500 font-semibold text-sm">
+                    {item.price.toLocaleString()}₫
+                  </span>
+                </div>
+                <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
+                  <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                  {item.rating.toFixed(1)}
+                </div>
+              </div>
+            </Link>
+          </div>
+        ))}
       </div>
     </div>
   );
