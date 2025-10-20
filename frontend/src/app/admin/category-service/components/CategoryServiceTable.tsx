@@ -83,36 +83,75 @@ export default function CategoryServiceTable() {
     return () => clearTimeout(timeout)
   }, [searchQuery, categories])
 
-  const handleSubmit = async (payload: Partial<CategoryService>) => {
-    try {
-      if (!payload.name?.trim()) {
-        toast.error("Tên danh mục không được để trống.")
-        return
-      }
 
-      payload.slug = payload.name.toLowerCase().replace(/\s+/g, "-")
-      setIsSubmitting(true)
-      const toastId = toast.loading(editing ? "Đang cập nhật..." : "Đang thêm danh mục...")
+  const handleSubmit = async (payload: Partial<CategoryService>): Promise<CategoryService> => {
+    if (!payload.name?.trim()) {
+      toast.error("Tên danh mục không được để trống.")
+      throw new Error("Invalid name")
+    }
+
+      payload.slug = (payload.name || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // remove diacritics
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .replace(/\s+/g, "-") // spaces to dash
+        .replace(/[^a-z0-9-]/g, "") // remove invalid chars
+        .replace(/-+/g, "-") // collapse multiple dashes
+        .replace(/(^-|-$)/g, ""); // trim leading/trailing dash
+    setIsSubmitting(true)
+    const toastId = toast.loading(editing ? "Đang cập nhật..." : "Đang thêm danh mục...")
+
+    try {
+      let saved: CategoryService
 
       if (editing) {
-        await categoryServiceService.update(editing._id, payload)
-        toast.update(toastId, { render: "✅ Cập nhật thành công", type: "success", isLoading: false, autoClose: 2000 })
+        const result = await categoryServiceService.update(editing._id, payload)
+        if (!result) {
+          // bảo đảm không trả về null
+          throw new Error("Server trả về null khi cập nhật danh mục")
+        }
+        saved = result
+        toast.update(toastId, {
+          render: "✅ Cập nhật thành công",
+          type: "success",
+          isLoading: false,
+          autoClose: 2000,
+        })
       } else {
-        await categoryServiceService.create(payload)
-        toast.update(toastId, { render: "✅ Thêm mới thành công", type: "success", isLoading: false, autoClose: 2000 })
+        const result = await categoryServiceService.create(payload)
+        if (!result) {
+          // bảo đảm không trả về null
+          throw new Error("Server trả về null khi tạo danh mục")
+        }
+        saved = result
+        toast.update(toastId, {
+          render: "✅ Thêm mới thành công",
+          type: "success",
+          isLoading: false,
+          autoClose: 2000,
+        })
       }
 
+      await fetchData()
       setModalOpen(false)
       setEditing(null)
-      fetchData()
+
+      return saved
     } catch (err) {
       console.error("Lỗi khi lưu danh mục:", err)
-      toast.error("❌ Không thể lưu danh mục!")
+      toast.update(toastId, {
+        render: "❌ Không thể lưu danh mục!",
+        type: "error",
+        isLoading: false,
+        autoClose: 2000,
+      })
+      throw err
     } finally {
       setIsSubmitting(false)
     }
   }
-
   const handleDelete = async (id: string) => {
     const confirm = await showConfirmToast({
       message: "Bạn có chắc muốn xóa danh mục này?",
@@ -168,30 +207,29 @@ export default function CategoryServiceTable() {
         toast.error("Giảm giá không được nhỏ hơn 0!");
         return;
       }
-    }else {
-      const confirmed = await showConfirmToast({
-      message: `Áp dụng giảm giá ${discountForm.sale_off}% cho tất cả dịch vụ?`,
-      confirmText: "Áp dụng",
-      cancelText: "Hủy",
-    });
-    if (!confirmed) return;
+      }else {
+        const confirmed = await showConfirmToast({
+        message: `Áp dụng giảm giá ${discountForm.sale_off}% cho tất cả dịch vụ?`,
+        confirmText: "Áp dụng",
+        cancelText: "Hủy",
+      });
+      if (!confirmed) return;
+      }
+      const payload = {
+        sale_off: discountForm.sale_off,
+        start_date: start,
+        end_date: end,
+      };
+
+      const toastId = toast.loading("Đang tạo giảm giá chung...");
+      await discountService.createDiscountServiceAll(payload);
+      toast.update(toastId, { render: "Giảm giá chung được tạo thành công!", type: "success", isLoading: false, autoClose: 2000 });
+      fetchGlobalDiscount();
+    } catch (error) {
+      console.error("❌ Lỗi khi tạo giảm giá:", error);
+      toast.error("Không thể tạo giảm giá chung!");
     }
-
-    const payload = {
-      sale_off: discountForm.sale_off,
-      start_date: start,
-      end_date: end,
-    };
-
-    const toastId = toast.loading("Đang tạo giảm giá chung...");
-    await discountService.createDiscountServiceAll(payload);
-    toast.update(toastId, { render: "Giảm giá chung được tạo thành công!", type: "success", isLoading: false, autoClose: 2000 });
-    fetchGlobalDiscount();
-  } catch (error) {
-    console.error("❌ Lỗi khi tạo giảm giá:", error);
-    toast.error("Không thể tạo giảm giá chung!");
-  }
-};
+  };
 
 
   if (loading) return <p className="p-4">Đang tải dữ liệu...</p>

@@ -16,8 +16,8 @@ type Props = {
   categories: CategoryService[];
   onSubmit: (data: FormData & { category_id: string }) => Promise<void>;
   onCancel: () => void;
-  fetchServices: () => Promise<void>; // gọi lại danh sách sau khi update
-  isSubmitting?: boolean; // 👈 thêm dòng này
+  fetchServices: () => Promise<void>; 
+  isSubmitting?: boolean; 
 };
 
 export default function ServiceForm({
@@ -129,7 +129,6 @@ export default function ServiceForm({
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
-  // Kiểm tra discount
   if (form.discount > 0 && (!form.startDate || !form.endDate)) {
     toast.error("Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc cho giảm giá!");
     return; 
@@ -142,7 +141,6 @@ const handleSubmit = async (e: React.FormEvent) => {
   try {
     let serviceId: string = initialData?._id || "";
 
-    // Tạo FormData nếu có file mới
     const isAnyNewFile = form.images.some(img => img instanceof File);
     let payload: any;
 
@@ -183,7 +181,6 @@ const handleSubmit = async (e: React.FormEvent) => {
       };
     }
 
-    // Tạo mới hay cập nhật service
     let createdService;
     if (initialData?._id) {
       createdService = await serviceService.update(initialData._id, payload);
@@ -195,7 +192,6 @@ const handleSubmit = async (e: React.FormEvent) => {
       serviceId = createdService._id;
     }
 
-    // Xử lý discount
     if (form.discount > 0) {
       if (initialData?._id) {
         await discountService.updateDiscountService(serviceId, {

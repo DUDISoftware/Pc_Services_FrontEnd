@@ -26,6 +26,35 @@ export interface DiscountService {
   createdAt?: string;
   updatedAt?: string;
 }
+export interface DiscountCategoryService {
+  _id: string;
+  sale_off: number;
+  type: string;
+  category_service_id: {
+    _id: string;
+    name: string;
+    slug: string;
+  };
+  start_date: string;
+  end_date: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DiscountCategoryProduct {
+  _id: string;
+  sale_off: number;
+  type: string;
+  category_product_id: {
+    _id: string;
+    name: string;
+    slug: string;
+  };
+  start_date: string;
+  end_date: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface DiscountResponse {
   status: string;
@@ -42,5 +71,21 @@ export interface DiscountServiceResponse {
   discount: {
     message: string;
     SaleOf: DiscountService;
+  } | null;
+}
+export interface DiscountCategoryServiceResponse {
+  status: string;
+  message: string;
+  discount: {
+    message: string;
+    SaleOf: DiscountCategoryService;
+  } | null;
+}
+export interface DiscountCategoryProductResponse {
+  status: string;
+  message: string;
+  discount: {
+    message: string;
+    SaleOf: DiscountCategoryProduct;
   } | null;
 }
