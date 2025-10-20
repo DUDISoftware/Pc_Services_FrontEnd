@@ -1,13 +1,18 @@
 import React from "react";
 import { Edit, Trash, Eye } from "lucide-react";
 import { Product } from "@/types/Product";
+import { Discount } from "@/types/Discount";
+
 
 export interface ProductTableBodyProps {
   products: Product[];
   loading?: boolean;              // cho phép không truyền
   onEdit: (product: Product) => void;
   onDelete: (id: string) => void;
-  totalCols?: number;             // số cột để colSpan (mặc định 8)
+  totalCols?: number;   
+  discounts: Record<string, Discount | null>; //  thêm
+          // số cột để colSpan (mặc định 8)
+
 }
 
 const currency = new Intl.NumberFormat("vi-VN");
@@ -18,6 +23,7 @@ export default function ProductTableBody({
   onEdit,
   onDelete,
   totalCols = 8,
+  discounts
 }: ProductTableBodyProps) {
   if (loading) {
     // hàng loading gọn — có thể thay bằng skeleton nếu muốn
@@ -50,7 +56,7 @@ export default function ProductTableBody({
         <React.Fragment key={p._id}>
           {/* Desktop row */}
           <tr className="border-b hover:bg-gray-50 hidden lg:table-row">
-            <td className="p-2">
+            <td className="p-2 flex justify-center items-center">
               {p.images?.[0] ? (
                 <img
                   src={p.images[0].url}
@@ -63,14 +69,71 @@ export default function ProductTableBody({
                 </div>
               )}
             </td>
-            <td className="p-2">{p.name}</td>
-            <td className="p-2">{p.description}</td>
-            <td className="p-2">{currency.format(p.price)} đ</td>
-            <td className="p-2">
+            <td className="p-2 text-center">{p.name}</td>
+            <td className="p-2 text-center">{currency.format(p.price)} đ</td>          
+            <td className="p-2 text-center">
+              {(() => {
+                const discount = discounts?.[p._id];
+                if (!discount) return "—";
+
+                const now = new Date();
+                const start = new Date(discount.start_date);
+                const end = new Date(discount.end_date);
+                const isActive = start <= now && now <= end;
+                if (isActive && discount.sale_off > 0) {
+                  return (
+                    <span className="text-green-600 font-medium">
+                      {discount.sale_off}% đang
+                    </span>
+                  );
+                }
+                if (discount.sale_off > 0) {
+                  return (
+                    <span className="text-yellow-500 italic">
+                      {discount.sale_off}% sắp
+                    </span>
+                  );
+                }
+                return "—";
+              })()}
+            </td>
+            <td className="p-2 text-center">
+              {(() => {
+                const discount = discounts?.[p._id];
+                if (!discount) return `${p.price.toLocaleString()} đ`;
+
+                const now = new Date();
+                const start = new Date(discount.start_date);
+                const end = new Date(discount.end_date);
+                const isActive = start <= now && now <= end;
+
+                if (isActive && discount.sale_off > 0) {
+                  const discountedPrice = p.price - (p.price * discount.sale_off) / 100;
+                  return (
+                    <div>
+                      <span>
+                        {discountedPrice.toLocaleString()} đ
+                      </span>
+                    </div>
+                  );
+                }else {
+                   const discountedPrice = p.price - (p.price * discount.sale_off) / 100;
+                  return (
+                    <div>
+                      <span>
+                        {discountedPrice.toLocaleString()} đ
+                      </span>
+                    </div>
+                  );
+                }
+               
+              })()}
+            </td>
+            <td className="p-2 text-center">
               {typeof p.category_id === "object" ? p.category_id.name : p.category_id}
             </td>
-            <td className="p-2">{p.quantity}</td>
-            <td className="p-2">
+            <td className="p-2 text-center">{p.quantity}</td>
+            <td className="p-2 text-center">
               <span
                 className={`px-2 py-1 rounded text-sm ${
                   p.status === "available"
@@ -87,18 +150,20 @@ export default function ProductTableBody({
                   : "Ẩn"}
               </span>
             </td>
-            <td className="p-2 flex gap-2">
-              <Eye
-                className="w-4 h-4 cursor-pointer text-blue-600"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    const w = window.open(`/user/product/detail/${p.slug}`, "_blank");
-                    if (!w) alert("Trình duyệt đã chặn popup!");
-                  }
-                }}
-              />
-              <Edit className="w-4 h-4 cursor-pointer text-yellow-600" onClick={() => onEdit(p)} />
-              <Trash className="w-4 h-4 cursor-pointer text-red-600" onClick={() => onDelete(p._id)} />
+            <td className="p-2 text-center">
+              <div className="inline-flex gap-2 justify-center items-center">
+                <Eye
+                  className="w-4 h-4 cursor-pointer text-blue-600"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      const w = window.open(`/user/product/detail/${p.slug}`, "_blank");
+                      if (!w) alert("Trình duyệt đã chặn popup!");
+                    }
+                  }}
+                />
+                <Edit className="w-4 h-4 cursor-pointer text-yellow-600" onClick={() => onEdit(p)} />
+                <Trash className="w-4 h-4 cursor-pointer text-red-600" onClick={() => onDelete(p._id)} />
+              </div>
             </td>
           </tr>
 
@@ -123,6 +188,13 @@ export default function ProductTableBody({
                   <p><span className="font-semibold">Tên:</span> {p.name}</p>
                   <p><span className="font-semibold">Mô tả:</span> {p.description}</p>
                   <p><span className="font-semibold">Giá:</span> {currency.format(p.price)} đ</p>
+                  <p>
+                    <span className="font-semibold">Giảm giá:</span>{" "}
+                    {discounts?.[p._id]?.sale_off
+                      ? `${discounts[p._id]!.sale_off}%`
+                      : "—"}
+                  </p>
+
                   <p>
                     <span className="font-semibold">Danh mục:</span>{" "}
                     {typeof p.category_id === "object" ? p.category_id.name : p.category_id}
