@@ -23,6 +23,17 @@ export const serviceService = {
       };
     }
   },
+   //excel
+  exportServicesToExcel: async (): Promise<Blob> => {
+    try {
+      const res = await api.get('/services/export', {
+        responseType: 'blob', 
+      });
+      return res.data; 
+    } catch (error) {
+      throw error;
+    }
+  },
 
   getById: async (id: string): Promise<Service> => {
     try {
