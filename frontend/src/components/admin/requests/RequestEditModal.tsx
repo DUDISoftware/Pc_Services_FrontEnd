@@ -6,6 +6,7 @@ import { serviceService } from "@/services/service.service";
 import { requestService } from "@/services/request.service";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { productService } from "@/services/product.service";
 
 interface RequestEditModalProps {
   isOpen: boolean;
@@ -91,6 +92,18 @@ export default function RequestEditModal({
         await requestService.updateOrder(request._id, {
           name, email, phone, address, status
         });
+        if (status === "cancelled"){
+          try {
+            const items = request.items || [];
+            for (const item of items) {
+              const stock = await productService.getQuantity(item.product_id._id);
+              await productService.updateQuantity(item.product_id._id, stock + item.quantity);
+            }
+          } catch (err) {
+            console.error("❌ Lỗi khi hoàn trả kho:", err);
+            toast.error("Hoàn trả kho thất bại");
+          }
+        }
       }
 
       toast.success("Cập nhật thành công ✅");

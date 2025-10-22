@@ -78,9 +78,11 @@ export default function Header() {
   const getActiveLabel = () => {
     if (pathname.includes("/user/product")) return "Sản phẩm";
     if (pathname.includes("/user/service")) return "Dịch vụ";
+    if (pathname.includes("/user/sales")) return "Ưu đãi";
     if (pathname.includes("/user/about")) return "Về chúng tôi";
     return "Trang chủ";
   };
+
   const activeLabel = getActiveLabel();
 
   return (
@@ -100,21 +102,21 @@ export default function Header() {
 
         {/* 🧭 Desktop Nav */}
         {mounted && (
-        <nav className="hidden md:flex gap-6 text-sm font-medium">
-          {links.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className={`pb-1 px-1 transition-all 
+          <nav className="hidden md:flex gap-6 text-sm font-medium">
+            {links.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className={`pb-1 px-1 transition-all 
                 ${activeLabel === link.label
-                  ? "font-semibold text-blue-600 border-b-2 border-blue-600"
-                  : "hover:bg-blue-100 hover:text-blue-700 rounded-lg"
-                }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+                    ? "font-semibold text-blue-600 border-b-2 border-blue-600"
+                    : "font-semibold hover:text-blue-700 hover:border-b-2 hover:border-blue-600"
+                  }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         )}
         {/* 🔍 Search */}
         <div className="flex-1 mx-3 hidden sm:flex">

@@ -14,6 +14,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { bannerService } from "@/services/banner.service";
+import { toast } from "react-toastify";
 
 type BannerItem = {
   id: string;
@@ -33,12 +34,12 @@ export default function DragDropBannerLayout() {
   const [galleryImages, setGalleryImages] = useState<BannerItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const pageSize = 5;
+  const pageSize = 15;
   const maxSlots = selectedTemplate === "template2" ? 1 : selectedTemplate === "template3" ? 4 : 3;
 
   const fetchBanners = async () => {
     try {
-      const res = await bannerService.getAll(5, 1);
+      const res = await bannerService.getAll(pageSize, currentPage);
       const data = res.banners;
       if (currentTemplate === "") {
         // ✅ B1: Tìm ảnh mới nhất có position > 0 để xác định template
@@ -182,7 +183,7 @@ export default function DragDropBannerLayout() {
             : null
         )
       );
-      alert("✅ Đã cập nhật layout và vị trí thành công!");
+      toast.success("✅ Đã cập nhật layout và vị trí thành công!");
       await fetchBanners();
     } catch (err) {
       console.error("❌ Lỗi khi cập nhật:", err);
@@ -191,7 +192,7 @@ export default function DragDropBannerLayout() {
 
   return (
     <div className="p-4 max-w-xl mx-auto">
-      <h2 className="text-xl font-semibold mb-4">Kéo thả để sắp xếp banner</h2>
+      <h2 className="text-xl font-semibold mb-4">Kéo thả để sắp xếp ảnh</h2>
       <div className="mb-4">
         <label className="block mb-2 text-sm font-medium">Chọn bố cục hiển thị:</label>
         <select
@@ -199,9 +200,9 @@ export default function DragDropBannerLayout() {
           onChange={(e) => setSelectedTemplate(e.target.value as any)}
           className="border px-3 py-2 rounded w-full"
         >
-          <option value="template1">Template 1: 1 ảnh lớn trái, 2 ảnh nhỏ phải</option>
-          <option value="template2">Template 2: 1 ảnh lớn toàn banner</option>
-          <option value="template3">Template 3: 4 ảnh nhỏ slide ngang</option>
+          <option value="template1">Khung 1: 1 ảnh lớn trái, 2 ảnh nhỏ phải</option>
+          <option value="template2">Khung 2: 1 ảnh lớn</option>
+          <option value="template3">Khung 3: 4 ảnh nhỏ lướt ngang</option>
         </select>
       </div>
 
@@ -261,7 +262,7 @@ export default function DragDropBannerLayout() {
           className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded"
           onClick={handleConfirm}
         >
-          ✅ Xác nhận sử dụng template này cho HomeBanner
+          Xác nhận sử dụng khung mẫu này cho Trang chủ
         </button>
       </div>
 

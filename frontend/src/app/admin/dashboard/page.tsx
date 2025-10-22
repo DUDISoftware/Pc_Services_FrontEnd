@@ -21,6 +21,9 @@ import {
 } from "recharts";
 import { useEffect, useState } from "react";
 import { statsService } from "@/services/stats.service";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
+import { toast } from "react-toastify";
 
 export default function DashboardPage() {
   const today = new Date().toISOString().split("T")[0];
@@ -292,7 +295,60 @@ export default function DashboardPage() {
         breadcrumb={["Admin", "Thống kê - báo cáo"]}
         actions={
           <div className="flex gap-2">
-            <Button variant="secondary">📤 Xuất file</Button>
+            <Button
+            variant="secondary"
+            onClick={async () => {
+              try {
+                const chartElement = document.querySelector(".chart-container") as HTMLElement;
+                if (!chartElement) {
+                  console.log("Không tìm thấy class");
+                  toast.error("Không tìm thấy biểu đồ để xuất PDF!");
+                  return;
+                }
+
+                toast.info("⏳ Đang tạo file PDF...");
+
+                // 🖼️ Chụp biểu đồ thành ảnh PNG
+                const dataUrl = await toPng(chartElement, {
+                  cacheBust: true,
+                  quality: 1,
+                  backgroundColor: "#ffffff",
+                });
+
+                // 🧾 Tạo file PDF
+                const pdf = new jsPDF("l", "mm", "a4");
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                // 🏷️ Tiêu đề
+                pdf.setFont("Helvetica", "bold");
+                pdf.setFontSize(20);
+                pdf.text("BAO CAO THONG KE DOANH THU", pdfWidth / 2, 20, { align: "center" });
+
+                // 📆 Ngày tạo
+                pdf.setFont("Helvetica", "normal");
+                pdf.setFontSize(12);
+                pdf.text(`Ngay tao: ${new Date().toLocaleDateString("vi-VN")}`, 20, 35);
+
+                // 🖼️ Thêm biểu đồ
+                const chartTop = 45;
+                const chartHeight = pdfHeight - chartTop - 10;
+                pdf.addImage(dataUrl, "PNG", 10, chartTop, pdfWidth - 20, chartHeight);
+
+                // 💾 Lưu file
+                const fileName = `Thong_ke_${new Date().toISOString().split("T")[0]}.pdf`;
+                pdf.save(fileName);
+
+                console.log("Xuất thành công");
+                toast.success("✅ Xuất file PDF thành công!");
+              } catch (error) {
+                console.error("❌ Lỗi khi xuất PDF:", error);
+                toast.error("Xuất file thất bại!");
+              }
+            }}
+          >
+            📤 Xuất file PDF
+          </Button>
             <Button onClick={() => setShowCompare(true)}>📊 So sánh</Button>
           </div>
         }
@@ -339,7 +395,7 @@ export default function DashboardPage() {
       <ChartTabs tab={tab} onChange={setTab} />
 
       {/* Biểu đồ */}
-      <div className="bg-white rounded-2xl shadow p-6">
+      <div className="bg-white rounded-2xl shadow p-6 chart-container">
         <div className="flex items-center justify-between mb-4">
 
           <ChartLegend selectedMonth={selectedMonth} />

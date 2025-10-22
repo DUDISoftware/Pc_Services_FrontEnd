@@ -19,12 +19,16 @@ export type Product = {
   resolution?: string;
   model?: string;
   ports: string[];
-  category_id: {
+  category_id: string;
+  category?: {
     _id: string;
     name: string;
     slug: string;
-  } | string;
+  };
   images: UploadedImage[];
+  sale_off?: number;
+  start_date?: Date;
+  end_date?: Date;
   createdAt: string;
   updatedAt: string;
 };
@@ -35,7 +39,7 @@ export interface ProductApi {
   name: string;
   slug: string;
   tags?: string[];
-  rating?: number;
+  avg_rating?: number;
   description?: string;
   price: number;
   quantity: number;
@@ -46,10 +50,12 @@ export interface ProductApi {
   resolution?: string;
   model?: string;
   ports?: string[];
-  category_id: { _id: string; name: string; slug: string } | string;
+  category_id: string;
+  category?: { _id: string; name: string; slug: string };
   images: (File | UploadedImage)[];
+  sale_off?: number;
+  start_date?: string;
+  end_date?: string;
   createdAt: string; // nếu BE trả camelCase
   updatedAt: string;
-  // created_at: string; // nếu BE trả snake_case thì dùng dòng này thay cho createdAt
-  // updated_at: string;
 }

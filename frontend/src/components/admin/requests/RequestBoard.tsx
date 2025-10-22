@@ -103,7 +103,7 @@ export default function RequestBoard({
           images: req.images,
           estimated_time: "",
           status: req.status,
-          createdAt: req.createdAt ?? "",
+          createdAt: new Date(req.createdAt).toLocaleDateString("vi-VN"),
           hidden: req.hidden,
         });
       }
@@ -212,10 +212,6 @@ export default function RequestBoard({
             if (typeof item.product_id._id === "string") {
               const prod = await productService.getById(item.product_id._id);
               const newStock = (prod.quantity || 0) - (item.quantity || 1);
-              await productService.updateQuantity(
-                item.product_id._id,
-                newStock
-              );
               if (newStock === 0) {
                 await productService.updateStatus(
                   item.product_id._id,
@@ -296,7 +292,7 @@ export default function RequestBoard({
                                 _id: String(req._id),
                                 name: req.name || "Khách hàng",
                                 problem_description:
-                                  req.problem_description || req.note || "Không có mô tả",
+                                req.problem_description || req.note || "Không có mô tả",
                                 phone: req.phone || "",
                                 address: req.address || "",
                                 email: req.email || "",

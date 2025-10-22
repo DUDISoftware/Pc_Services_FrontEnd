@@ -16,7 +16,7 @@ export default function ServiceList() {
     const fetchServices = async () => {
       try {
         const data = await serviceService.getAll();
-        setServices(data);
+        setServices(data.services);
       } catch (err) {
         console.error("Lỗi khi tải dịch vụ:", err);
       } finally {
@@ -40,10 +40,10 @@ export default function ServiceList() {
               title: s.name,
               oldPrice: Math.round(s.price * 1.2),
               price: s.price,
-              discount: "Giảm 20%",
-              rating: 4.5,
+              discount: `${s.discount} %`,
+              rating: s.rating || 5.0,
               slug: s.slug,
-              img: (Array.isArray(s.images) && s.images.length > 0 ? s.images[0].url : DefaultServiceImage), // 👈 nếu s.images có ít nhất 1 ảnh thì lấy url ảnh đầu tiên, nếu không thì dùng ảnh mặc định
+              img: (Array.isArray(s.images) && s.images.length > 0 ? s.images[0].url : DefaultServiceImage), 
             }}
           />
         ))}

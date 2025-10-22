@@ -7,18 +7,22 @@ import TableHeader from "@/components/admin/TableHeader";
 
 function BannerTab() {
   return (
-    <div className="space-y-8">
-      {/* Upload ảnh */}
-      <BannerForm />
-      {/* Chọn layout + preview/dragdrop */}
+    <div className="flex flex-col md:flex-row md:space-x-8 space-y-8 md:space-y-0">
+      {/* Left: DragDropBannerLayout */}
+      <div className="md:w-2/3 w-full">
       <DragDropBannerLayout />
+      </div>
+      {/* Right: BannerForm */}
+      <div className="md:w-1/3 w-full">
+      <BannerForm />
+      </div>
     </div>
   );
 }
 
 export default function StaticContentPage() {
   const tabs = [
-    { label: "Chỉnh sửa Banner", value: "banner", content: <BannerTab /> },
+    { label: "Chỉnh sửa khung ảnh", value: "banner", content: <BannerTab /> },
     { label: "Chỉnh sửa thông tin", value: "info", content: <InfoForm /> },
   ];
 

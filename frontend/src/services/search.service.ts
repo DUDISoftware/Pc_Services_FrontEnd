@@ -11,11 +11,15 @@ import api from "@/lib/api";
  * Gọi API tìm kiếm sản phẩm theo query.
  * Trả về danh sách sản phẩm đã map về kiểu FE.
  */
-export async function searchProducts(query: string, limit: number = 30, page: number = 1, filter = {"status":"available"}): Promise<{ products: Product[]; total: number }> {
+export async function searchProducts(query: string, limit: number = 30, page: number = 1, filter =  {"status":{$ne:"hidden"}}, order = {createdAt: -1}): Promise<{ products: Product[]; total: number }> {
   try {
-    const res = await api.get(`/products/search?query=${decodeURIComponent(query)}&limit=${limit}&page=${page}&filter=${JSON.stringify(filter)}`);
+    query = encodeURIComponent(query);
+    const filterStr = JSON.stringify(filter);
+    const orderStr = JSON.stringify(order);
+    // Gọi API với query, limit, page, filter
+    const res = await api.get(`/products/search?query=${query}&limit=${limit}&page=${page}&filter=${filterStr}&order=${orderStr}`);
     const json = res.data;
-    const products = json.products.products;
+    const products = json.products;
 
     if (!Array.isArray(products)) {
       console.error("❌ Dữ liệu trả về không đúng định dạng:", json);
@@ -72,7 +76,7 @@ export async function searchServices(query: string): Promise<Service[]> {
   try {
     const res = await api.get(`/services/search?query=${encodeURIComponent(query)}`);
     const json = res.data;
-    const services = json.results as { services: ServiceApi[] };
+    const services = json.services as { services: ServiceApi[] };
     if (!Array.isArray(services)) {
       console.error("❌ Dữ liệu trả về không đúng định dạng:", json);
       throw new Error("Invalid service response");

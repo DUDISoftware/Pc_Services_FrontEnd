@@ -2,23 +2,25 @@
 import api from "@/lib/api";
 import { Service, ServiceApi, UploadedImage } from "@/types/Service";
 import { mapService } from "@/lib/mappers";
-
-type Featured = {
-  services: {
-    id: string;
-    views: number;
-  }[];
-}
+import { all } from "axios";
 
 export const serviceService = {
-  getAll: async (limit = 10, page = 1): Promise<Service[]> => {
+  getAll: async (limit = 10, page = 1): Promise<{ services: Service[]; total: number; totalPages: number }> => {
     try {
       const res = await api.get(`/services?limit=${limit}&page=${page}`);
-      const services = res.data.services as Service[];
-      return services.map(mapService);
+      const rawServices = res.data.services as ServiceApi[];
+      return {
+        services: rawServices.map((s) => mapService(s)),
+        total: res.data.total,
+        totalPages: res.data.totalPages
+      };
     } catch (error) {
       console.error("Error in getAll:", error);
-      return [];
+      return {
+        services: [],
+        total: 0,
+        totalPages: 1
+      };
     }
   },
 
@@ -73,29 +75,37 @@ export const serviceService = {
     }
   },
 
-  getFeatured: async (limit: number = 5): Promise<Featured> => {
+  getFeatured: async (limit: number = 5): Promise<Service[]> => {
     try {
       const res = await api.get(`/services/featured?limit=${limit}`);
-      if (res.data.services.length === 0) {
-        const services = (await serviceService.getAll()).slice(0, limit);
-        return { services: services.map(s => ({ id: s._id, views: 0 })) };
+      const services = res.data.services as ServiceApi[];
+      // Nếu đã đủ số lượng → trả về ngay
+      if (services.length >= limit) {
+        return services.map((s) => mapService(s));
       }
-      return res.data as Featured;
+
+      const remaining = limit - services.length;
+
+      // Lấy thêm dịch vụ từ all nếu cần
+      if (remaining > 0) {
+        const allServicesRes = await api.get(`/services?limit=${remaining * 2}&page=1`);
+        const allServices = allServicesRes.data.services as ServiceApi[];
+
+        // 🔥 Lọc ra những service chưa xuất hiện trong danh sách featured
+        const featuredIds = new Set(services.map((s) => s._id));
+        const uniqueExtraServices = allServices.filter((s) => !featuredIds.has(s._id));
+
+        const combinedServices = [...services, ...uniqueExtraServices].slice(0, limit);
+        return combinedServices.map((s) => mapService(s));
+      }
+
+      return services.map((s) => mapService(s));
     } catch (error) {
       console.error("Error in getFeatured:", error);
-      return { services: [] };
+      return [];
     }
   },
 
-  getView: async (id: string): Promise<number> => {
-    try {
-      const res = await api.get(`/services/${id}/views`);
-      return res.data.views;
-    } catch (error) {
-      console.error("Error in getView:", error);
-      return 0;
-    }
-  },
 
   countViewRedis: async (id: string): Promise<void> => {
     try {
@@ -104,5 +114,17 @@ export const serviceService = {
       console.error("Error in countViewRedis:", error);
       throw error;
     }
-  }
+  },
+
+  //excel
+  exportServicesToExcel: async (): Promise<Blob> => {
+    try {
+      const res = await api.get('/services/export', {
+        responseType: 'blob',
+      });
+      return res.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
