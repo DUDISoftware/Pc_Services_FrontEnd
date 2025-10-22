@@ -3,12 +3,13 @@
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useState } from "react";
-import { User, Mail, MapPin, Phone, FileText } from "lucide-react";
+import { User, Mail, MapPin, Phone, FileText, EarIcon } from "lucide-react";
 import { requestService } from "@/services/request.service";
 import { Cart, CartItem } from "@/types/Cart";
 import { userService } from "@/services/user.service";
 import { OTPModal } from "./OtpModal";
 import { Items } from "@/types/Request";
+import { productService } from "@/services/product.service";
 
 interface OrderFormProps {
   cart: Cart;
@@ -114,6 +115,15 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
 
       setIsPopupOpen(true);
 
+      // Giảm số lượng hàng
+      for (const item of items) {
+        const stock = await productService.getQuantity(item.product_id);
+        if (stock - item.quantity === 0) {
+          productService.updateStatus(item.product_id, "out_of_stock");
+        }
+        await productService.updateQuantity(item.product_id, stock - item.quantity);
+      }
+
       // Reset giỏ hàng
       const emptyCart: Cart = {
         _id: "",
@@ -139,6 +149,13 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
     }
     setIsSubmitting(false);
   };
+
+  function push(url: string) {
+    setTimeout(() => {
+      window.location.href = url;
+    }, 5000);
+    window.location.href = url;
+  }
 
   return (
     <div className="w-full lg:w-2/3">
@@ -248,6 +265,7 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
                 items,
               });
               toast.success("Đặt hàng thành công 🎉");
+              push("/user/home");
               setIsPopupOpen(true);
               // Reset giỏ hàng
               const emptyCart: Cart = {
@@ -275,8 +293,6 @@ export default function OrderForm({ cart, setCart }: OrderFormProps) {
           }}
         />
       )}
-
-
 
       {/* Popup modal */}
       {isPopupOpen && (

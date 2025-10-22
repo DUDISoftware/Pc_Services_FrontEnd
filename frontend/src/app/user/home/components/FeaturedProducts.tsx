@@ -8,8 +8,6 @@ import { productService } from "@/services/product.service";
 import { ratingService } from "@/services/rating.service";
 import { Product } from "@/types/Product";
 
-const discountOptions = ["20%", "30% Today Only!", "10%", "10%"];
-
 type ProductCard = {
   _id: string;
   title: string;
@@ -37,10 +35,10 @@ export default function FeaturedProducts() {
           title: item.name,
           oldPrice: Math.round(item.price * 1.2),
           price: item.price,
-          rating: 5.0,
+          rating: item.rating || 5.0,
           img: item.images?.[0]?.url || "/images/placeholder.png",
           slug: item.slug,
-          discount: getRandomDiscount(),
+          discount: item.sale_off !== undefined ? String(`${item.sale_off}%`) : undefined,
         }));
 
         // Fill up with more products if needed
@@ -56,27 +54,15 @@ export default function FeaturedProducts() {
               title: p.name,
               oldPrice: Math.round(p.price * 1.2),
               price: p.price,
-              rating: 5.0,
+              rating: p.rating || 5.0,
               img: p.images?.[0]?.url || "/images/placeholder.png",
               slug: p.slug,
-              discount: getRandomDiscount(),
+              discount: p.sale_off !== undefined ? String(`${p.sale_off}%`) : undefined,
             }));
           finalProducts = [...featuredCards, ...extraCards];
         }
 
-        // Fetch ratings in parallel
-        const ratings = await Promise.all(
-          finalProducts.map((p) =>
-            ratingService.getScoreByProductId(p._id).catch(() => 5.0)
-          )
-        );
-
-        const ratedProducts = finalProducts.map((p, i) => ({
-          ...p,
-          rating: ratings[i] || 5.0,
-        }));
-
-        setProducts(ratedProducts.slice(0, 8));
+        setProducts(finalProducts.slice(0, 8));
       } catch (err) {
         console.error("❌ Failed to fetch featured products:", err);
       } finally {
@@ -86,9 +72,6 @@ export default function FeaturedProducts() {
 
     fetchFeaturedProducts();
   }, []);
-
-  const getRandomDiscount = () =>
-    discountOptions[Math.floor(Math.random() * discountOptions.length)];
 
   if (loading) return <p className="px-4">Đang tải sản phẩm...</p>;
 
@@ -113,7 +96,7 @@ export default function FeaturedProducts() {
             className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative"
           >
             <Link href={`/user/product/detail/${item.slug}`}>
-              {item.discount && (
+              {item.discount !== '0%' && (
                 <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
                   {item.discount}
                 </span>

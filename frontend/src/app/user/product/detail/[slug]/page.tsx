@@ -80,7 +80,7 @@ export default function ProductDetailPage() {
         comment,
         score,
       };
-      const createdRating = await ratingService.create(payload);
+      await ratingService.create(payload);
       setName("");
       setComment("");
       setScore(5);
@@ -97,17 +97,17 @@ export default function ProductDetailPage() {
     <>
       <CategoryNav
         selectedCategory={
-          typeof product.category_id === "object"
-            ? product.category_id.name
-            : (product.category_id as string)
+          typeof product.category === "object"
+            ? product.category.name
+            : undefined
         }
         onSelectCategory={() => {}}
       />
       <ProductBreadcrumb
         category={
-          typeof product.category_id === "object"
-            ? product.category_id.name
-            : (product.category_id as string)
+          typeof product.category === "object"
+            ? product.category.name
+            : ''
         }
       />
 

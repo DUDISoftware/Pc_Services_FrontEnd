@@ -7,6 +7,7 @@ import { Stats, StatsApi } from "@/types/Stats";
 // lib/mappers.ts
 import { Banner, BannerApi, LayoutOption } from "@/types/Banner";
 import { InfoApi, Info } from "@/types/Info";
+import { Discount, DiscountApi } from "@/types/Discount";
 
 /** Convert FE layout -> BE numeric */
 export function mapLayoutToApi(layout?: LayoutOption | number): number | undefined {
@@ -89,7 +90,7 @@ export function mapProduct(apiData: ProductApi): Product {
     tags: apiData.tags || [],
     slug: apiData.slug,
     description: apiData.description ?? "",
-    rating: apiData.rating ?? 0,
+    rating: apiData.avg_rating ?? 0,
     price: apiData.price,
     quantity: apiData.quantity,
     brand: apiData.brand,
@@ -99,21 +100,16 @@ export function mapProduct(apiData: ProductApi): Product {
     ports: apiData.ports || [],
     panel: apiData.panel,
     size: apiData.size,
-
-    category_id:
-    typeof apiData.category_id === "object"
+    category_id: apiData.category_id,      
+    category:
+    typeof apiData.category === "object"
       ? {
-          _id: apiData.category_id._id,
-          name: apiData.category_id.name,
-          slug: apiData.category_id.slug
+          _id: apiData.category._id,
+          name: apiData.category.name,
+          slug: apiData.category.slug
         }
-      : { _id: "", name: "", slug: "" },
-
-    // category_id:
-    //   typeof apiData.category._id === "string"
-    //     ? apiData.category._id
-    //     : apiData.category._id._id,
-
+      : undefined,
+    
     // ánh xạ images → luôn trả UploadedImage[]
     images: Array.isArray(apiData.images)
       ? (apiData.images as UploadedImage[]).map((img) => ({
@@ -121,7 +117,10 @@ export function mapProduct(apiData: ProductApi): Product {
           public_id: (img as UploadedImage).public_id,
         }))
       : [],
-
+    
+    sale_off: apiData.sale_off || 0,
+    start_date: apiData.start_date ? new Date(apiData.start_date) : undefined,
+    end_date: apiData.end_date ? new Date(apiData.end_date) : undefined,
     createdAt: apiData.createdAt,
     updatedAt: apiData.updatedAt,
   };
@@ -139,13 +138,17 @@ export function mapService(apiData: ServiceApi): Service {
     status: apiData.status,
     created_at: apiData.created_at,
     updated_at: apiData.updated_at,
-    category_id: apiData.category_id,
+    category: apiData.category,
     images: apiData.images && Array.isArray(apiData.images)
       ? (apiData.images as UploadedImage[]).map((img) => ({
           url: (img as UploadedImage).url,
           public_id: (img as UploadedImage).public_id,
         }))
       : [],
+    start_date: apiData.start_date ? new Date(apiData.start_date) : undefined,
+    end_date: apiData.end_date ? new Date(apiData.end_date) : undefined,
+    rating: apiData.avg_rating ?? 0,
+    discount: apiData.sale_off ?? 0,
   }
 }
 
@@ -201,5 +204,30 @@ export function mapInfo(apiData: InfoApi): Info {
     x: apiData.x,
     termsOfService: apiData.termsOfService,
     privacyPolicy: apiData.privacyPolicy,
+  }
+}
+
+export function mapDiscount(apiData: DiscountApi): Discount {
+  return {
+    _id: apiData._id,
+    product: {
+      _id: apiData.product?._id || "",
+      name: apiData.product?.name || "",
+      images: apiData.product?.images || [],
+      tags: apiData.product?.tags || [],
+      slug: apiData.product?.slug || "",
+      description: apiData.product?.description || "",
+      price: apiData.product?.price || 0,
+      quantity: apiData.product?.quantity || 0,
+      brand: apiData.product?.brand || "",
+      rating: apiData.product?.avg_rating || 0,
+    } as Product,
+    service: apiData.service ? mapService(apiData.service) : undefined,
+    product_category_id: apiData.product_category_id,
+    service_category_id: apiData.service_category_id,
+    type: apiData.type,
+    sale_off: apiData.sale_off,
+    start_date: new Date(apiData.start_date),
+    end_date: new Date(apiData.end_date),
   }
 }

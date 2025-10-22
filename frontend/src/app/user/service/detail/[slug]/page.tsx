@@ -30,12 +30,6 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
       try {
         const data = await serviceService.getBySlug(slug);
         setService(data);
-        await serviceService.countViewRedis(data._id);
-
-        const ratingData = await ratingService.getByServiceId(data._id);
-        if (ratingData?.ratings) {
-          setRatings(ratingData.ratings);
-        }
       } catch (err) {
         console.error("Lỗi khi tải chi tiết dịch vụ:", err);
       } finally {
@@ -44,6 +38,19 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
     };
     fetchService();
   }, [slug]);
+
+  useEffect(() => {
+    const countViews = async () => {
+      if (service) {
+        await serviceService.countViewRedis(service._id);
+        const ratingData = await ratingService.getByServiceId(service._id);
+        if (ratingData?.ratings) {
+          setRatings(ratingData.ratings);
+        }
+      }
+    };
+    countViews();
+  }, [service]);
 
   const averageRating =
     ratings.length > 0

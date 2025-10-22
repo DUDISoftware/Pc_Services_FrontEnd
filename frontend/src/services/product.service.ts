@@ -9,22 +9,9 @@ type ProductPages = {
 }
 
 export const productService = {
-  // getAll: async (limit = 10, page = 1): Promise<{ products: Product[], total: number, page: number }> => {
-  //   try {
-  //     const res = await api.get(`/products?limit=${limit}&page=${page}`);
-  //     return { 
-  //       products: res.data.products.map((p: ProductApi) => mapProduct(p)), 
-  //       total: res.data.total, 
-  //       page: res.data.page, 
-  //     };
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // },
-
-  getAll: async (limit = 10, page = 1, filter = {"status":"available"}, fields = ''): Promise<ProductPages> => {
+  getAll: async (limit = 10, page = 1, filter = { status: { $ne: "hidden" } }, fields = '', order = { updatedAt: -1 }): Promise<ProductPages> => {
     try {
-      const res = await api.get(`/products?limit=${limit}&page=${page}&filter=${JSON.stringify(filter)}&fields=${fields}`);
+      const res = await api.get(`/products?limit=${limit}&page=${page}&filter=${JSON.stringify(filter)}&fields=${fields}&order=${JSON.stringify(order)}`);
       return {
         products: res.data.products.map((p: ProductApi) => mapProduct(p)),
         total: res.data.total,
@@ -90,7 +77,7 @@ export const productService = {
     }
   },
 
-  getByCategory: async (category: string, limit = 10, page = 1): Promise<{products: Product[], total: number, page: number }> => {
+  getByCategory: async (category: string, limit = 10, page = 1): Promise<{ products: Product[], total: number, page: number }> => {
     try {
       const res = await api.get(`/products/category/${category}?limit=${limit}&page=${page}`);
       return {
@@ -137,13 +124,7 @@ export const productService = {
       formData.append("size", data.size || "");
       formData.append("model", data.model || "");
       formData.append("resolution", data.resolution || "");
-      formData.append(
-        "category_id",
-        typeof data.category_id === "object"
-          ? data.category_id._id
-          : (data.category_id || "")
-      );
-
+      formData.append("category_id", data.category_id || "");
       (data.tags || []).forEach((tag, i) => {
         formData.append(`tags[${i}]`, tag);
       });
@@ -183,12 +164,7 @@ export const productService = {
       formData.append("size", data.size || "");
       formData.append("model", data.model || "");
       formData.append("resolution", data.resolution || "");
-      formData.append(
-        "category_id",
-        typeof data.category_id === "object"
-          ? data.category_id._id
-          : (data.category_id || "")
-      );
+      formData.append("category_id", data.category_id || "");
 
       (data.tags || []).forEach((tag, i) => {
         formData.append(`tags[${i}]`, tag);
@@ -235,14 +211,14 @@ export const productService = {
 
   delete: async (id: string): Promise<void> => {
     try {
-      const res = await api.patch(`/products/${id}/status`, { status: "hidden"});
-      return 
+      const res = await api.patch(`/products/${id}/status`, { status: "hidden" });
+      return
     } catch (error) {
       throw error;
     }
   },
 
-  getView: async(id: string): Promise<number> => {
+  getView: async (id: string): Promise<number> => {
     try {
       const res = await api.get(`/products/${id}/views`);
       return res.data.views;
@@ -251,11 +227,24 @@ export const productService = {
     }
   },
 
-  countViewRedis: async(id: string): Promise<void> => {
+  countViewRedis: async (id: string): Promise<void> => {
     try {
       await api.post(`/products/${id}/views`);
     } catch (error) {
       throw error;
     }
-  }
+  },
+
+  //excel
+  exportProductsToExcel: async (): Promise<Blob> => {
+    try {
+      const res = await api.get('/products/export', {
+        responseType: 'blob',
+      });
+      return res.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
 };

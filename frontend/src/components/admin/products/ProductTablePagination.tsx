@@ -1,4 +1,4 @@
-import React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ProductTablePaginationProps {
   totalPages: number;
@@ -23,30 +23,27 @@ export default function ProductTablePagination({
 
     const leftSibling = Math.max(currentPage - siblingCount, 1);
     const rightSibling = Math.min(currentPage + siblingCount, totalPages);
-    const shouldShowLeftDots = leftSibling > 2;
-    const shouldShowRightDots = rightSibling < totalPages - 2;
+    const showLeftDots = leftSibling > 2;
+    const showRightDots = rightSibling < totalPages - 2;
 
-    const firstPage = 1;
-    const lastPage = totalPages;
-
-    if (!shouldShowLeftDots && shouldShowRightDots) {
-      const range = [...Array(3 + siblingCount * 2)].map((_, i) => i + 1);
-      return [...range, "...", lastPage];
+    if (!showLeftDots && showRightDots) {
+      const range = Array.from({ length: 3 + siblingCount * 2 }, (_, i) => i + 1);
+      return [...range, "...", totalPages];
     }
 
-    if (shouldShowLeftDots && !shouldShowRightDots) {
-      const range = [...Array(3 + siblingCount * 2)].map(
-        (_, i) => totalPages - (2 + siblingCount * 2) + i
+    if (showLeftDots && !showRightDots) {
+      const range = Array.from({ length: 3 + siblingCount * 2 }, (_, i) =>
+        totalPages - (2 + siblingCount * 2) + i
       );
-      return [firstPage, "...", ...range];
+      return [1, "...", ...range];
     }
 
-    if (shouldShowLeftDots && shouldShowRightDots) {
+    if (showLeftDots && showRightDots) {
       const range = Array.from(
         { length: rightSibling - leftSibling + 1 },
         (_, i) => leftSibling + i
       );
-      return [firstPage, "...", ...range, "...", lastPage];
+      return [1, "...", ...range, "...", totalPages];
     }
 
     return [];
@@ -54,39 +51,42 @@ export default function ProductTablePagination({
 
   return (
     <div className="mt-4 flex justify-between items-center flex-wrap gap-4">
-      <p className="text-sm text-gray-600">
-        Trang {currentPage}/{totalPages}
-      </p>
-      <div className="flex items-center gap-1 flex-wrap">
+      {/* BÊN TRÁI */}
+      <p className="text-sm text-gray-700">Trang {currentPage} / {totalPages}</p>
+
+      {/* BÊN PHẢI */}
+      <div className="flex items-center gap-1 ml-auto">
+        {/* Prev */}
         <button
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
           disabled={currentPage === 1}
-          className="px-3 py-1 rounded bg-blue-50 text-blue-600 disabled:opacity-50"
+          className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40"
         >
-          &lt;
+          <ChevronLeft size={16} />
         </button>
 
-        {getPaginationRange(totalPages, currentPage).map((page, i) => (
+        {/* Page numbers */}
+        {getPaginationRange(totalPages, currentPage).map((page, index) => (
           <button
-            key={i}
-            onClick={() => typeof page === "number" && onPageChange(page)}
+            key={index}
             disabled={page === "..."}
-            className={`px-3 py-1 rounded ${
-              currentPage === page
-                ? "bg-blue-600 text-white"
-                : "bg-blue-50 text-blue-600"
-            } ${page === "..." ? "cursor-default opacity-50" : ""}`}
+            onClick={() => typeof page === "number" && onPageChange(page)}
+            className={`w-8 h-8 text-sm flex items-center justify-center rounded-md
+              ${page === currentPage ? "text-blue-600 underline font-semibold" : "text-gray-800 hover:bg-gray-100"}
+              ${page === "..." ? "cursor-default text-gray-400" : ""}
+            `}
           >
             {page}
           </button>
         ))}
 
+        {/* Next */}
         <button
-          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
           disabled={currentPage === totalPages}
-          className="px-3 py-1 rounded bg-blue-50 text-blue-600 disabled:opacity-50"
+          className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40"
         >
-          &gt;
+          <ChevronRight size={16} />
         </button>
       </div>
     </div>

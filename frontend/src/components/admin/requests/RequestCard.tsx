@@ -135,7 +135,6 @@ export default function RequestCard({ req, services, products, onDeleted, setIsM
                     if (req.service_id) {
                       await requestService.hideRepair(req._id);
                     } else {
-                      console.log("Hiding order", req);
                       await requestService.hideOrder(req._id);
                     }
                     onDeleted?.(); // ✅ callback reload danh sách
@@ -196,7 +195,7 @@ export default function RequestCard({ req, services, products, onDeleted, setIsM
 
         <p className="flex items-center gap-2 text-gray-500 text-sm">
           <span>📅</span>
-          <span>{new Date(req.updatedAt).toLocaleDateString("vi-VN")}</span>
+          <span>{req.updatedAt}</span>
         </p>
       </div>
 

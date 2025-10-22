@@ -41,6 +41,7 @@ export const ratingService = {
     },
 
     getScoreByProductId: async (productId: string): Promise<number> => {
+        console.log('Hit hard!')
         try {
             const res = await api.get(`/ratings/product/${productId}`);
             const ratings: ({ score: number } | null)[] = res.data.ratings;

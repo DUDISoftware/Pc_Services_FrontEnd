@@ -4,9 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRightCircle, Star } from "lucide-react";
-import { productService } from "@/services/product.service";
 import { Product } from "@/types/Product";
-import { ratingService } from "@/services/rating.service";
+import { discountService } from "@/services/discount.service";
 
 type ProductType = {
   _id: string;
@@ -28,37 +27,31 @@ export default function DiscountProducts() {
   const visibleCards = 4;
 
   useEffect(() => {
-    const fetchDiscountProducts = async () => {
+    const fetchProduct = async () => {
       try {
-        const { products } = await productService.getAll(12, 1);
-        const discountList = [25, 30, 20, 30, 15, 10, 35, 40];
-
-        const mappedPromises = products.slice(0, 12).map(async (p: Product, idx: number) => {
-          const discountPercent = discountList[idx % discountList.length];
-          const oldPrice = Math.round(p.price / (1 - discountPercent / 100));
-
+        const discounts = await discountService.getAllDiscounts('product', 12, 1);
+        const mapped = discounts.map(d => {
+          const p = d.product as Product;
+          const discountPercent = d.sale_off;
+          const oldPrice = p.price;
           return {
             _id: p._id,
             title: p.name,
             oldPrice,
-            price: p.price,
+            price: Math.round(oldPrice * (1 - discountPercent / 100)),
             discount: `${discountPercent}%`,
-            rating: (await ratingService.getScoreByProductId(p._id)) || 5.0,
+            rating: p.rating || 5.0,
             img: p.images?.[0]?.url || "/images/placeholder.png",
             slug: p.slug,
           };
         });
-
-        const mapped = await Promise.all(mappedPromises);
         setProducts(mapped);
+        setLoading(false);
       } catch (err) {
         console.error("Lỗi khi fetch sản phẩm:", err);
-      } finally {
-        setLoading(false);
       }
     };
-
-    fetchDiscountProducts();
+    fetchProduct();
   }, []);
 
   // ✅ Auto slide every 3.5s
@@ -96,7 +89,7 @@ export default function DiscountProducts() {
       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-2">
         <h2 className="text-lg font-semibold">Sản phẩm giảm giá</h2>
         <Link
-          href="/user/product/allproduct?category=all"
+          href="/user/sales"
           className="text-sm text-blue-500 hover:underline flex items-center"
         >
           Xem tất cả <ChevronRightCircle className="w-4 h-4 ml-1" />

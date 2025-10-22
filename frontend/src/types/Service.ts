@@ -11,12 +11,16 @@ export type Service = {
   status: "active" | "inactive" | "hidden";
   created_at?: string;
   updated_at?: string;
-  category_id: {
-  _id: string;
+  category: {
+    _id: string;
     name: string;
     description: string;
     status: "active" | "inactive";
   };
+  start_date?: Date;
+  end_date?: Date;
+  rating?: number;
+  discount?: number;
   images?: UploadedImage[];
 }
 
@@ -31,11 +35,15 @@ export interface ServiceApi {
   status: "active" | "inactive" | "hidden";
   created_at?: string;
   updated_at?: string;
-  category_id: {
+  category: {
     _id: string;
     name: string;
     description: string;
     status: "active" | "inactive";
   };
+  start_date?: Date;
+  end_date?: Date;
+  avg_rating?: number;
+  sale_off?: number;
   images?: UploadedImage[];
 }

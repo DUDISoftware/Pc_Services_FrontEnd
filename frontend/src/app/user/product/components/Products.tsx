@@ -27,6 +27,8 @@ type ProductType = {
   rating: number;
   img: string;
   category: string;
+  quantity: number;
+  sale_off?: number;
 };
 
 type ProductsProps = {
@@ -38,14 +40,13 @@ const PAGE_SIZE = 10;
 export default function Products({ category }: ProductsProps) {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
-  // const [category_ids, setCategory_ids] = useState<string | undefined>();
+  const [categoryName, setCategoryName] = useState(String);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
-      setPage(1);
       try {
         let products: Product[] = [];
         let totalProducts = 0;
@@ -53,7 +54,12 @@ export default function Products({ category }: ProductsProps) {
         if (category !== "all") {
           const catRes = await categoryService.getBySlug(category);
           const category_id = catRes._id;
-          const res = await productService.getByCategory(category_id, PAGE_SIZE, page);
+          setCategoryName(catRes.name);
+          const res = await productService.getByCategory(
+            category_id,
+            PAGE_SIZE,
+            page
+          );
           products = res.products;
           totalProducts = res.total || 0;
         }
@@ -76,18 +82,21 @@ export default function Products({ category }: ProductsProps) {
               img: p.images?.[0]?.url || "/images/placeholder.png",
               inStock: p.status === "available",
               category:
-                typeof p.category_id === "object"
-                  ? p.category_id.slug
-                  : p.category_id || "Khác",
-              rating: await ratingService.getScoreByProductId(p._id) || 5.0,
-              discount,
+                typeof p.category === "object"
+                  ? p.category.slug
+                  : p.category || "Khác",
+              rating: p.rating || 5.0,
+              discount: p.sale_off
+                ? `Giảm ${p.sale_off}%`
+                : discount,
+              quantity: p.quantity,
+              sale_off: p.sale_off,
             };
           })
         );
 
         setProducts(mapped);
         setTotal(totalProducts);
-
       } catch (err) {
         console.error(err);
       } finally {
@@ -97,33 +106,76 @@ export default function Products({ category }: ProductsProps) {
     fetchProducts();
   }, [category, page]);
 
-  // useEffect(() => {
-  //   setPage(1); // Reset to first page when category changes
-  //   if (category === "all") {
-  //     setCategory_ids(undefined);
-  //     return;
-  //   }
-  //   const fetchCategories = async () => {
-  //     try {
-  //       // category = decodeURIComponent(category.toLowerCase().trim());
-  //       const res = await categoryService.getBySlug(category);
-  //       setCategory_ids(res._id);
-  //     } catch (err) {
-  //       console.error(err);
-  //     }
-  //   };
-
-  //   if (category !== "all") {
-  //     fetchCategories();
-  //   }
-  // }, [category]);
-
   useEffect(() => {
-    // scroll back to top when page changes
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page]);
 
+  useEffect(() => {
+    console.log("Total products:", products);
+  }, [products]);
+
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Number pagination logic
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pages: (number | string)[] = [];
+    pages.push(1);
+    if (page > 3) pages.push("...");
+    for (
+      let i = Math.max(2, page - 1);
+      i <= Math.min(totalPages - 1, page + 1);
+      i++
+    ) {
+      pages.push(i);
+    }
+    if (page < totalPages - 2) pages.push("...");
+    if (totalPages > 1) pages.push(totalPages);
+
+    return (
+      <div className="flex justify-center items-center mt-8 gap-1">
+        {/* Prev Button */}
+        <button
+          disabled={page === 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40"
+        >
+          <ChevronLeft size={16} />
+        </button>
+
+        {/* Page numbers */}
+        {pages.map((num, idx) =>
+          typeof num === "number" ? (
+            <button
+              key={idx}
+              onClick={() => setPage(num)}
+              className={`w-8 h-8 text-sm flex items-center justify-center rounded-md
+              ${num === page ? "text-blue-600 underline font-semibold" : "text-gray-800 hover:bg-gray-100"}`}
+            >
+              {num}
+            </button>
+          ) : (
+            <span
+              key={idx}
+              className="w-8 h-8 text-sm flex items-center justify-center rounded-md text-gray-400 cursor-default"
+            >
+              {num}
+            </span>
+          )
+        )}
+
+        {/* Next Button */}
+        <button
+          disabled={page === totalPages}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    );
+  };
 
   if (loading) return <p>Đang tải sản phẩm...</p>;
 
@@ -132,7 +184,7 @@ export default function Products({ category }: ProductsProps) {
       {/* Header */}
       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-2">
         <h2 className="text-lg font-semibold">
-          {category === "all" ? "Tất cả sản phẩm" : category.toUpperCase()}
+          {category === "all" ? "Tất cả sản phẩm" : categoryName}
         </h2>
         <Link
           href={`/user/product/allproduct?category=${encodeURIComponent(
@@ -152,14 +204,11 @@ export default function Products({ category }: ProductsProps) {
             className="flex flex-col border border-gray-200 rounded-lg p-3 hover:shadow-md transition h-full relative"
           >
             <Link href={`/user/product/detail/${item.slug}`}>
-              {/* Badge */}
               {item.discount && (
                 <span className="absolute top-2 left-2 bg-[#FB5F2F] text-white text-xs px-2 py-1 rounded z-10">
                   {item.discount}
                 </span>
               )}
-
-              {/* Image */}
               <div className="relative w-full h-36 sm:h-40 mb-3">
                 <Image
                   src={item.img}
@@ -168,21 +217,37 @@ export default function Products({ category }: ProductsProps) {
                   className="object-contain rounded"
                 />
               </div>
-
-              {/* Title */}
               <h3 className="text-xs sm:text-sm font-medium line-clamp-2 flex-1 mb-2 hover:text-blue-600">
                 {item.title}
               </h3>
-
-              {/* Price + Rating */}
               <div className="flex items-center justify-between mt-auto">
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-gray-400 line-through">
-                    {item.oldPrice.toLocaleString()}₫
-                  </span>
-                  <span className="text-red-500 font-semibold text-sm">
-                    {item.price.toLocaleString()}₫
-                  </span>
+                <div className="flex items-center justify-between mt-2">
+                  {item.quantity === 0 ? (
+                    <div className="mt-2 text-sm text-red-500 font-semibold">Tạm hết hàng</div>
+                  ) : (
+                    <div className="flex flex-col mt-2">
+                      <div className="flex items-center gap-2">
+                        {(item.sale_off ?? 0) > 0 ? (
+                          <>
+                            <span className="text-gray-400 text-sm line-through">
+                              {item.price.toLocaleString()}₫
+                            </span>
+                            <span className="text-red-500 font-semibold text-sm">
+                              {(item.price * (1 - (item.sale_off ?? 0) / 100)).toLocaleString()}₫
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-red-500 font-semibold text-sm">
+                            {item.price.toLocaleString()}₫
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center text-xs text-gray-500">
+                    <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                    {item.rating ? item.rating.toFixed(1) : 5.0}
+                  </div>
                 </div>
                 <div className="flex items-center text-xs text-gray-500 ml-2 shrink-0">
                   <Star className="w-4 h-4 text-yellow-400 mr-1" />
@@ -200,34 +265,8 @@ export default function Products({ category }: ProductsProps) {
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center mt-6 gap-2">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className={`px-3 py-1 rounded border ${page === 1
-              ? "bg-gray-200 text-gray-400"
-              : "bg-white text-blue-600 hover:bg-blue-50"
-              }`}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="px-2 text-sm">
-            Trang {page} / {totalPages}
-          </span>
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className={`px-3 py-1 rounded border ${page === totalPages
-              ? "bg-gray-200 text-gray-400"
-              : "bg-white text-blue-600 hover:bg-blue-50"
-              }`}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      {/* Numbered Pagination */}
+      {renderPagination()}
     </div>
   );
 }
