@@ -21,6 +21,7 @@ export default function CategoryServiceTable() {
   const [editing, setEditing] = useState<CategoryService | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isConfirming, setIsConfirming] = useState(false);
   const [discountForm, setDiscountForm] = useState({
     sale_off: 0,
     start_date: "",
@@ -190,6 +191,7 @@ export default function CategoryServiceTable() {
     const end = new Date(discountForm.end_date);
     const now = new Date();
     const value = discountForm.sale_off;
+    setIsConfirming(true);
 
     if(value == 0){
       const confirmed = await showConfirmToast({
@@ -197,23 +199,30 @@ export default function CategoryServiceTable() {
         confirmText: "Áp dụng",
         cancelText: "Hủy",
       });
-      if (!confirmed) return;
+      if (!confirmed){
+        setIsConfirming(false);
+        return;
+      }
     }
     else if(value!=0){
       if (!discountForm.start_date || !discountForm.end_date) {
         toast.error("Vui lòng nhập đầy đủ thông tin giảm giá!");
+        setIsConfirming(false);
         return;
       }
       if (start <= now) {
         toast.error("⛔ Ngày bắt đầu phải lớn hơn hôm nay!");
+        setIsConfirming(false);
         return;
       }
       if (end <= start) {
         toast.error("⛔ Ngày kết thúc phải sau ngày bắt đầu!");
+        setIsConfirming(false);
         return;
       }
       if (value<0) {
         toast.error("Giảm giá không được nhỏ hơn 0!");
+        setIsConfirming(false);
         return;
       }
       }else {
@@ -222,7 +231,10 @@ export default function CategoryServiceTable() {
         confirmText: "Áp dụng",
         cancelText: "Hủy",
       });
-      if (!confirmed) return;
+      if (!confirmed){
+        setIsConfirming(false);
+        return;
+      }
       }
       const payload = {
         type: 'service_category',
@@ -315,19 +327,28 @@ export default function CategoryServiceTable() {
         </div>
 
         {/* Nút áp dụng */}
-        <div className="flex md:justify-center">
-          <Button
-            variant="primary"
-            onClick={handleCreateGlobalDiscount}
-            className="w-full md:w-auto mt-1"
-          >
-            Áp dụng giảm giá chung
-          </Button>
+         <div className="flex md:justify-center">
+          {!isConfirming && (
+            <Button
+              variant="primary"
+              onClick={handleCreateGlobalDiscount}
+              className="w-full md:w-auto mt-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300"
+            >
+              Áp dụng giảm giá chung
+            </Button>
+          )}
+
+          {isConfirming && (
+            <Button
+              disabled
+              className="w-full md:w-auto mt-1 bg-gray-400 text-gray-200 border-gray-400 cursor-not-allowed opacity-70"
+            >
+              Đang xác nhận...
+            </Button>
+          )}
         </div>
       </div>
     </div>
-
-
       <table className="w-full text-left border-collapse">
         <thead className="bg-gray-100">
           <tr>
