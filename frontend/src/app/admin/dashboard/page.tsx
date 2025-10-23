@@ -286,8 +286,7 @@ export default function DashboardPage() {
 
     return null;
   };
-
-
+  
   return (
     <div className="p-6 space-y-6">
       <TableHeader
@@ -296,59 +295,55 @@ export default function DashboardPage() {
         actions={
           <div className="flex gap-2">
             <Button
-            variant="secondary"
-            onClick={async () => {
-              try {
-                const chartElement = document.querySelector(".chart-container") as HTMLElement;
-                if (!chartElement) {
-                  console.log("Không tìm thấy class");
-                  toast.error("Không tìm thấy biểu đồ để xuất PDF!");
-                  return;
+              variant="secondary"
+              onClick={async () => {
+                try {
+                  const chartElement = document.querySelector(".chart-container") as HTMLElement;
+
+                  if (!chartElement) {
+                    console.log("Không tìm thấy class");
+                    toast.error("Không tìm thấy biểu đồ để xuất PDF!");
+                    return;
+                  }
+
+                  toast.info("⏳ Đang tạo file PDF...");
+
+                  const dataUrl = await toPng(chartElement, {
+                    cacheBust: true,
+                    quality: 1,
+                    backgroundColor: "#ffffff",
+                  });
+
+                  const pdf = new jsPDF("l", "mm", "a4");
+                  const pdfWidth = pdf.internal.pageSize.getWidth();
+                  const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                  pdf.setFont("Helvetica", "bold");
+                  pdf.setFontSize(20);
+                  pdf.text("Báo cáo doanh thu", pdfWidth / 2, 20, { align: "center" });
+
+                  pdf.setFont("Helvetica", "normal");
+                  pdf.setFontSize(12);
+                  pdf.text(`Ngày in báo cáo: ${new Date().toLocaleDateString("vi-VN")}`, 20, 35);
+
+                  const chartTop = 45;
+                  const chartHeight = pdfHeight - chartTop - 10;
+                  pdf.addImage(dataUrl, "PNG", 10, chartTop, pdfWidth - 20, chartHeight);
+
+                  const fileName = `Thong_ke_${new Date().toISOString().split("T")[0]}.pdf`;
+                  pdf.save(fileName);
+
+                  console.log("Xuất thành công");
+                  toast.success("✅ Xuất file PDF thành công!");
+                } catch (error) {
+                  console.error("❌ Lỗi khi xuất PDF:", error);
+                  toast.error("Xuất file thất bại!");
                 }
+              }}
+            >
+              📤 Xuất file PDF
+            </Button>
 
-                toast.info("⏳ Đang tạo file PDF...");
-
-                // 🖼️ Chụp biểu đồ thành ảnh PNG
-                const dataUrl = await toPng(chartElement, {
-                  cacheBust: true,
-                  quality: 1,
-                  backgroundColor: "#ffffff",
-                });
-
-                // 🧾 Tạo file PDF
-                const pdf = new jsPDF("l", "mm", "a4");
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
-
-                // 🏷️ Tiêu đề
-                pdf.setFont("Helvetica", "bold");
-                pdf.setFontSize(20);
-                pdf.text("BAO CAO THONG KE DOANH THU", pdfWidth / 2, 20, { align: "center" });
-
-                // 📆 Ngày tạo
-                pdf.setFont("Helvetica", "normal");
-                pdf.setFontSize(12);
-                pdf.text(`Ngay tao: ${new Date().toLocaleDateString("vi-VN")}`, 20, 35);
-
-                // 🖼️ Thêm biểu đồ
-                const chartTop = 45;
-                const chartHeight = pdfHeight - chartTop - 10;
-                pdf.addImage(dataUrl, "PNG", 10, chartTop, pdfWidth - 20, chartHeight);
-
-                // 💾 Lưu file
-                const fileName = `Thong_ke_${new Date().toISOString().split("T")[0]}.pdf`;
-                pdf.save(fileName);
-
-                console.log("Xuất thành công");
-                toast.success("✅ Xuất file PDF thành công!");
-              } catch (error) {
-                console.error("❌ Lỗi khi xuất PDF:", error);
-                toast.error("Xuất file thất bại!");
-              }
-            }}
-          >
-            📤 Xuất file PDF
-          </Button>
             <Button onClick={() => setShowCompare(true)}>📊 So sánh</Button>
           </div>
         }
@@ -365,86 +360,87 @@ export default function DashboardPage() {
         <UnitSelector unit={displayUnit} onChange={setDisplayUnit} />
       </div>
 
+      <div className="chart-container ">
+        {/* Tổng tháng */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-[50px]">
+          {totalStats.map((s) => (
+            <StatsCard
+              key={s.title}
+              {...s}
+              animate={animate}
+              unit={s.title.includes("Doanh thu") ? displayUnit : undefined}
+            />
+          ))}
 
-      {/* Tổng tháng */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {totalStats.map((s) => (
-          <StatsCard
-            key={s.title}
-            {...s}
-            animate={animate}
-            unit={s.title.includes("Doanh thu") ? displayUnit : undefined}
-          />
-        ))}
-
-      </div>
-
-      {/* Hôm nay */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {todayStats.map((s) => (
-          <StatsCard
-            key={s.title}
-            {...s}
-            animate={animate}
-            unit={s.title.includes("Doanh thu") ? displayUnit : undefined}
-          />
-        ))}
-
-      </div>
-
-      <ChartTabs tab={tab} onChange={setTab} />
-
-      {/* Biểu đồ */}
-      <div className="bg-white rounded-2xl shadow p-6 chart-container">
-        <div className="flex items-center justify-between mb-4">
-
-          <ChartLegend selectedMonth={selectedMonth} />
         </div>
 
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: 10 }}>
-            <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
-            <XAxis
-              dataKey="name"
-              tickFormatter={(value) => `Ngày ${value}`}
-              tick={{ fontSize: 12, fill: "#666" }}
-              angle={0}
-              dy={10}
+        {/* Hôm nay */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-[50px]">
+          {todayStats.map((s) => (
+            <StatsCard
+              key={s.title}
+              {...s}
+              animate={animate}
+              unit={s.title.includes("Doanh thu") ? displayUnit : undefined}
             />
-            <YAxis
-              tickFormatter={(value) =>
-                displayUnit === "million"
-                  ? (value / 1_000_000).toFixed(1) + "M"
-                  : value.toLocaleString("vi-VN")
-              }
-            />
-            <Tooltip content={<CustomTooltip />} />
+          ))}
+
+        </div>
+
+        <ChartTabs tab={tab} onChange={setTab} />
+
+        {/* Biểu đồ */}
+        <div className="bg-white rounded-2xl shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+
+            <ChartLegend selectedMonth={selectedMonth} />
+          </div>
+
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: 10 }}>
+              <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
+              <XAxis
+                dataKey="name"
+                tickFormatter={(value) => `Ngày ${value}`}
+                tick={{ fontSize: 12, fill: "#666" }}
+                angle={0}
+                dy={10}
+              />
+              <YAxis
+                tickFormatter={(value) =>
+                  displayUnit === "million"
+                    ? (value / 1_000_000).toFixed(1) + "M"
+                    : value.toLocaleString("vi-VN")
+                }
+              />
+              <Tooltip content={<CustomTooltip />} />
 
 
-            <Line type="monotone" dataKey="Tháng này" stroke="#2563EB" strokeWidth={3} />
-            <Line type="monotone" dataKey={`Tháng ${selectedMonth}`} stroke="#F59E0B" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
+              <Line type="monotone" dataKey="Tháng này" stroke="#2563EB" strokeWidth={3} />
+              <Line type="monotone" dataKey={`Tháng ${selectedMonth}`} stroke="#F59E0B" strokeWidth={3} />
+            </LineChart>
+          </ResponsiveContainer>
 
-        <ComparePopup
-          open={showCompare}
-          onClose={() => setShowCompare(false)}
-          leftMonth={compareLeftMonth}
-          leftYear={compareLeftYear}
-          rightMonth={compareRightMonth}
-          rightYear={compareRightYear}
-          onChangeLeft={(m: number, y: number) => {
-            setCompareLeftMonth(m);
-            setCompareLeftYear(y);
-          }}
-          onChangeRight={(m: number, y: number) => {
-            setCompareRightMonth(m);
-            setCompareRightYear(y);
-          }}
-          leftData={compareLeftData}
-          rightData={compareRightData}
-        />
+          <ComparePopup
+            open={showCompare}
+            onClose={() => setShowCompare(false)}
+            leftMonth={compareLeftMonth}
+            leftYear={compareLeftYear}
+            rightMonth={compareRightMonth}
+            rightYear={compareRightYear}
+            onChangeLeft={(m: number, y: number) => {
+              setCompareLeftMonth(m);
+              setCompareLeftYear(y);
+            }}
+            onChangeRight={(m: number, y: number) => {
+              setCompareRightMonth(m);
+              setCompareRightYear(y);
+            }}
+            leftData={compareLeftData}
+            rightData={compareRightData}
+          />
 
+        </div>
       </div>
     </div>
   );

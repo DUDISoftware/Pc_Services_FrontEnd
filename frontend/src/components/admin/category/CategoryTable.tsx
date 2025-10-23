@@ -21,6 +21,7 @@ export default function CategoryTable() {
   const [form, setForm] = useState({ name: "", description: "", slug: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isConfirming, setIsConfirming] = useState(false); 
 
   const [discountFormAll, setDiscountFormAll] = useState({
     sale_off: 0,
@@ -252,24 +253,29 @@ export default function CategoryTable() {
     const end = new Date(discountFormAll.end_date);
     const today = new Date();
     const value = discountFormAll.sale_off;
+    setIsConfirming(true); 
 
     if (value < 0) {
       toast.error("Phần trăm giảm không hợp lệ!");
+      setIsConfirming(false);
       return;
     }
 
     if (value > 0 && (!discountFormAll.start_date || !discountFormAll.end_date)) {
       toast.error("Vui lòng chọn ngày bắt đầu và kết thúc!");
+      setIsConfirming(false);
       return;
     }
 
     if (value > 0 && start <= today) {
       toast.error("Ngày bắt đầu không được nhỏ hơn hôm nay!");
+        setIsConfirming(false); 
       return;
     }
 
     if (value > 0 && end <= start) {
       toast.error("Ngày kết thúc phải sau ngày bắt đầu!");
+      setIsConfirming(false);
       return;
     }
 
@@ -278,7 +284,11 @@ export default function CategoryTable() {
       confirmText: "Xác nhận",
       cancelText: "Hủy",
     });
-    if (!confirmed) return;
+    if (!confirmed) 
+      {
+        setIsConfirming(false);
+        return;
+      }
 
     const toastId = toast.loading("Đang áp dụng giảm giá...");
     try {
@@ -294,6 +304,7 @@ export default function CategoryTable() {
       toast.update(toastId, { render: "Lỗi khi áp dụng giảm giá!", type: "error", isLoading: false, autoClose: 2500 });
     } finally {
       setIsDiscounting(false);
+      setIsConfirming(true); 
     }
   };
 
@@ -354,9 +365,22 @@ export default function CategoryTable() {
           </div>
 
           <div className="flex md:justify-center">
-            <Button variant="primary" onClick={handleApplyGlobalDiscount} disabled={isDiscounting} className="w-full md:w-auto mt-1">
-              {isDiscounting ? "Đang áp dụng..." : "Áp dụng giảm giá chung"}
-            </Button>
+            {isDiscounting || isConfirming ? (
+              <Button
+                disabled
+                className="w-full md:w-auto mt-1 bg-gray-400 text-gray-200 border-gray-400 cursor-not-allowed opacity-70"
+              >
+                {isDiscounting ? "Đang áp dụng..." : "Đang xác nhận..."}
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={handleApplyGlobalDiscount}
+                className="w-full md:w-auto mt-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300"
+              >
+                Áp dụng giảm giá chung
+              </Button>
+            )}
           </div>
         </div>
       </div>
